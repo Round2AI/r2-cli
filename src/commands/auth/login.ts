@@ -9,12 +9,13 @@
  * 5. 保存登录凭证
  */
 
-import type { Command } from "commander";
+import { Command } from "commander";
 import chalk from "chalk";
 import type { UserInfo, QRCodeStatus, GenerateQRCodeData } from "../../types/auth.js";
 import { executePollingQuery, type QueryDefinition } from "../../query/executor.js";
-import { createQRCodeAuthApi, createApiClient } from "../../services/api/client.js";
-import { createStorageService } from "../../services/storage/index.js";
+import { type IQRCodeAuthApi, ApiClientService, QRCodeAuthApiService } from "../../services/api/index.js";
+import { createStorageService, StorageService } from "../../services/storage/index.js";
+import { AuthError, PollingError } from "../../errors/index.js";
 
 // 动态导入 qrcode-terminal（CommonJS）
 import { createRequire } from "node:module";
@@ -27,13 +28,12 @@ const qrcodeTerminal = require("qrcode-terminal");
  * 登录服务类
  */
 class LoginService {
-  private apiClient: ReturnType<typeof createApiClient>;
-  private authApi: ReturnType<typeof createQRCodeAuthApi>;
-  private storage = createStorageService();
+  private authApi: IQRCodeAuthApi;
+  private storage: StorageService;
 
-  constructor() {
-    this.apiClient = createApiClient();
-    this.authApi = createQRCodeAuthApi(this.apiClient);
+  constructor(authApi?: IQRCodeAuthApi, storage?: StorageService) {
+    this.authApi = authApi ?? new QRCodeAuthApiService(new ApiClientService());
+    this.storage = storage ?? createStorageService();
   }
 
   /**
@@ -97,10 +97,18 @@ class LoginService {
         };
       }
 
-      throw new Error("登录失败: 未获取到凭证");
+      throw new AuthError("登录失败: 未获取到凭证");
     } catch (error) {
+
+      console.log('error', error);
       console.log(chalk.red("\n❌ 登录失败\n"));
-      throw error;
+
+      // 重新抛出错误，让上层处理
+      if (error instanceof Error) {
+        throw error;
+      }
+
+      throw new AuthError("登录失败: 未知错误");
     }
   }
 
@@ -116,9 +124,9 @@ class LoginService {
     const expireTimeMs = Number.parseInt(qrData.expireTime, 10);
     const pollIntervalMs = Number.parseInt(qrData.pollInterval, 10);
 
-    console.log(chalk.gray("\n二维码内容: ") + chalk.white(qrData.qrContent));
-    console.log(chalk.gray("过期时间: ") + chalk.white(`${expireTimeMs / 1000} 秒`));
-    console.log(chalk.gray("轮询间隔: ") + chalk.white(`${pollIntervalMs} 毫秒`));
+    // console.log(chalk.gray("\n二维码内容: ") + chalk.white(qrData.qrContent));
+    // console.log(chalk.gray("过期时间: ") + chalk.white(`${expireTimeMs / 1000} 秒`));
+    // console.log(chalk.gray("轮询间隔: ") + chalk.white(`${pollIntervalMs} 毫秒`));
 
     console.log(chalk.yellow("\n⏳ 等待扫码..."));
   }
@@ -190,7 +198,7 @@ class LoginService {
       return result;
     }
 
-    throw new Error("轮询异常终止");
+    throw new PollingError("轮询异常终止");
   }
 
   /**
@@ -271,8 +279,6 @@ class LoginService {
  * 创建登录命令
  */
 export function createLoginCommand(): Command {
-  const { Command } = require("commander");
-
   const command = new Command("login");
   command.description("扫码登录 Round2AI 账户");
 
@@ -285,9 +291,12 @@ export function createLoginCommand(): Command {
       const controller = new AbortController();
 
       // 设置超时
-      const timeout = setTimeout(() => {
-        controller.abort();
-      }, Number.parseInt(options.timeout ?? "300000", 10));
+      const timeout = setTimeout(
+        () => {
+          controller.abort();
+        },
+        Number.parseInt(options.timeout ?? "300000", 10),
+      );
 
       await loginService.login(controller.signal);
       clearTimeout(timeout);
@@ -305,8 +314,6 @@ export function createLoginCommand(): Command {
  * 创建登出命令
  */
 export function createLogoutCommand(): Command {
-  const { Command } = require("commander");
-
   const command = new Command("logout");
   command.description("退出登录");
 
@@ -328,8 +335,6 @@ export function createLogoutCommand(): Command {
  * 创建状态命令
  */
 export function createStatusCommand(): Command {
-  const { Command } = require("commander");
-
   const command = new Command("status");
   command.description("查看登录状态");
 

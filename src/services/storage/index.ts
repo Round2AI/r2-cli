@@ -7,20 +7,8 @@ import path from "node:path";
 import os from "node:os";
 import { stat, mkdir } from "node:fs/promises";
 import type { UserInfo } from "../../types/auth.js";
-
-// ==================== 类型定义 ====================
-
-/** 存储的凭证信息 */
-export interface StoredCredentials {
-  token: string;
-  userInfo: UserInfo;
-  timestamp: number;
-}
-
-/** 本地配置文件内容 */
-export interface LocalConfig {
-  credentials: StoredCredentials | null;
-}
+import type { IStorageService, LocalConfig, StoredCredentials } from "./storage-service.interface.js";
+import { StorageError } from "../../errors/index.js";
 
 // ==================== 常量 ====================
 
@@ -33,9 +21,9 @@ const CONFIG_VERSION = "1.0.0";
 // ==================== 存储服务 ====================
 
 /**
- * 存储服务类
+ * 存储服务实现
  */
-export class StorageService {
+export class StorageService implements IStorageService {
   private configPath: string;
   private config: LocalConfig;
 
@@ -60,7 +48,7 @@ export class StorageService {
   /**
    * 加载配置
    */
-  async loadConfig(): Promise<LocalConfig> {
+  private async loadConfig(): Promise<LocalConfig> {
     try {
       const content = await fs.readFile(this.configPath, "utf-8");
       const config = JSON.parse(content) as LocalConfig;
@@ -71,14 +59,18 @@ export class StorageService {
         // 文件不存在，返回空配置
         return { credentials: null };
       }
-      throw error;
+      throw new StorageError(
+        "Failed to load config",
+        this.configPath,
+        (error as NodeJS.ErrnoException).code,
+      );
     }
   }
 
   /**
    * 保存配置
    */
-  async saveConfig(config: LocalConfig): Promise<void> {
+  private async saveConfig(config: LocalConfig): Promise<void> {
     this.config = config;
     const content = JSON.stringify(config, null, 2);
 
@@ -91,10 +83,24 @@ export class StorageService {
       if ((error as NodeJS.ErrnoException).code === "ENOENT") {
         // 目录不存在，创建目录
         await mkdir(dirPath, { recursive: true });
+      } else {
+        throw new StorageError(
+          "Failed to create directory",
+          dirPath,
+          (error as NodeJS.ErrnoException).code,
+        );
       }
     }
 
-    await fs.writeFile(this.configPath, content, "utf-8");
+    try {
+      await fs.writeFile(this.configPath, content, "utf-8");
+    } catch (error) {
+      throw new StorageError(
+        "Failed to save config",
+        this.configPath,
+        (error as NodeJS.ErrnoException).code,
+      );
+    }
   }
 
   /**
