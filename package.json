@@ -1,6 +1,6 @@
 {
   "name": "@round2ai/r2-cli",
-  "version": "1.0.0",
+  "version": "1.0.3",
   "description": "R2-CLI，向 AI 开放二手潮奢交易全链路能力",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -14,8 +14,10 @@
     "README.md"
   ],
   "scripts": {
-    "build": "tsc",
-    "dev": "nodemon --exec ts-node src/index.ts"
+    "build": "node scripts/build.js",
+    "build:prod": "cross-env R2_API_URL=https://api.puresnake.com node scripts/build.js",
+    "dev": "nodemon --exec ts-node src/index.ts",
+    "publish:prod": "npm run build:prod && npm publish"
   },
   "keywords": [
     "round2ai",
@@ -35,12 +37,18 @@
     "figlet": "^1.11.0",
     "fs-extra": "^11.3.4",
     "inquirer": "^9.2.19",
-    "mammoth": "^1.12.0"
+    "mammoth": "^1.12.0",
+    "open": "^11.0.0",
+    "qrcode-terminal": "^0.12.0"
   },
   "devDependencies": {
     "@types/fs-extra": "^11.0.4",
     "@types/inquirer": "^9.0.7",
-    "@types/node": "^25.5.0",
+    "@types/node": "^25.5.2",
+    "@types/open": "^6.1.0",
+    "@types/qrcode-terminal": "^0.12.2",
+    "cross-env": "^10.1.0",
+    "esbuild": "^0.28.0",
     "ts-node": "^10.9.2",
     "typescript": "^6.0.2"
   }
