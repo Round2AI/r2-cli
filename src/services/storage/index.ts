@@ -7,7 +7,7 @@ import path from "node:path";
 import os from "node:os";
 import { stat, mkdir } from "node:fs/promises";
 import type { UserInfo } from "../../types/auth.js";
-import type { IStorageService, LocalConfig, StoredCredentials } from "./storage-service.interface.js";
+import type { IStorageService, LocalConfig, StoredCredentials, StoredAddress } from "./storage-service.interface.js";
 import { StorageError } from "../../errors/index.js";
 
 // ==================== 常量 ====================
@@ -163,6 +163,35 @@ export class StorageService implements IStorageService {
   async isLoggedIn(): Promise<boolean> {
     const credentials = await this.getCredentials();
     return credentials !== null;
+  }
+
+  /**
+   * 更新 token（刷新后使用）
+   */
+  async updateToken(token: string, expire?: number): Promise<void> {
+    const config = await this.loadConfig();
+    if (config.credentials) {
+      config.credentials.token = token;
+      config.credentials.expire = expire;
+      await this.saveConfig(config);
+    }
+  }
+
+  /**
+   * 获取缓存的发货地址
+   */
+  async getAddress(): Promise<StoredAddress | null> {
+    const config = await this.loadConfig();
+    return config.address ?? null;
+  }
+
+  /**
+   * 保存发货地址
+   */
+  async saveAddress(address: StoredAddress): Promise<void> {
+    const config = await this.loadConfig();
+    config.address = address;
+    await this.saveConfig(config);
   }
 }
 

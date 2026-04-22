@@ -4,3 +4,6 @@
 
 // 认证相关类型
 export * from "./auth.js";
+
+// 闲鱼相关类型
+export * from "./xianyu.js";

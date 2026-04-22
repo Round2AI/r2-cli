@@ -11,16 +11,20 @@
 
 import { Command } from "commander";
 import chalk from "chalk";
-import type { UserInfo, QRCodeStatus, GenerateQRCodeData } from "../../types/auth.js";
-import { executePollingQuery, type QueryDefinition } from "../../query/executor.js";
+import path from "node:path";
+import os from "node:os";
+import fs from "node:fs";
+import type { UserInfo, GenerateQRCodeData } from "../../types/auth.js";
+import { poll } from "../../utils/polling.js";
 import { type IQRCodeAuthApi, ApiClientService, QRCodeAuthApiService } from "../../services/api/index.js";
 import { createStorageService, StorageService } from "../../services/storage/index.js";
-import { AuthError, PollingError } from "../../errors/index.js";
+import { AuthError } from "../../errors/index.js";
 
-// 动态导入 qrcode-terminal（CommonJS）
+// 动态导入（CommonJS 包）
 import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
-const qrcodeTerminal = require("qrcode-terminal");
+const QRCode = require("qrcode-terminal");
+const QRCodeLib = require("qrcode");
 
 // ==================== 登录服务 ====================
 
@@ -47,63 +51,55 @@ class LoginService {
     console.log(chalk.green("✅ 二维码已生成\n"));
 
     // 2. 显示二维码
-    this.displayQRCode(qrData);
+    await this.displayQRCode(qrData);
 
-    // 3. 构建轮询查询
-    const query: QueryDefinition<{ status: QRCodeStatus; userInfo: UserInfo | null; token: string | null }> = {
-      id: "qrcode-status-poll",
-      description: "查询二维码登录状态",
-      deps: {
-        signal: signal ?? null,
-        uuid: () => Math.random().toString(36),
-        api: {
-          get: async <T = unknown>(url: string): Promise<T> => {
-            // 忽略 url 参数，使用内部方法调用
-            return this.authApi.getQRCodeStatus(qrData.qrToken) as T;
-          },
-          post: async <T = unknown>(_url: string, _body?: unknown): Promise<T> => {
-            throw new Error("Not implemented");
-          },
-        },
-        log: {
-          info: (msg) => console.log(chalk.blue(`[INFO] ${msg}`)),
-          error: (msg) => console.error(chalk.red(`[ERROR] ${msg}`)),
-          debug: (msg) => console.log(chalk.gray(`[DEBUG] ${msg}`)),
-        },
-      },
-      execute: async () => {
-        return this.authApi.getQRCodeStatus(qrData.qrToken);
-      },
-      options: {
-        timeout: Number.parseInt(qrData.expireTime, 10),
-        enableProgress: true,
-      },
-    };
+    // 3. 轮询登录状态
+    const expireTimeMs = Number.parseInt(qrData.expireTime, 10);
+    const pollIntervalMs = Number.parseInt(qrData.pollInterval, 10);
 
-    // 4. 执行轮询查询
     try {
-      const result = await this.pollLoginStatus(query, qrData);
+      const result = await poll(
+        () => this.authApi.getQRCodeStatus(qrData.qrToken),
+        {
+          interval: pollIntervalMs,
+          timeout: expireTimeMs,
+          condition: (data) => {
+            switch (data.status) {
+              case "scanned":
+                console.log(chalk.cyan(`\n🔍 已扫码: ${data.userInfo?.nickname || "未知用户"}`));
+                console.log(chalk.yellow("请在 APP 上确认登录"));
+                break;
+              case "confirmed":
+                console.log(chalk.green("\n✅ 用户已确认登录"));
+                break;
+              case "expired":
+                console.log(chalk.red("\n⏰ 二维码已过期"));
+                break;
+              case "canceled":
+                console.log(chalk.red("\n🚫 用户已取消登录"));
+                break;
+            }
+            return data.status === "confirmed";
+          },
+        },
+        signal ?? undefined,
+      );
 
-      // 5. 保存登录凭证
-      if (result.data.token && result.data.userInfo) {
-        await this.saveCredentials(result.data.token, result.data.userInfo);
+      // 4. 保存登录凭证
+      if (result.token && result.userInfo) {
+        await this.saveCredentials(result.token, result.userInfo);
 
         console.log(chalk.green("\n✅ 登录成功！\n"));
-        this.displayUserInfo(result.data.userInfo);
+        this.displayUserInfo(result.userInfo);
 
-        return {
-          userInfo: result.data.userInfo,
-          token: result.data.token,
-        };
+        return { userInfo: result.userInfo, token: result.token };
       }
 
       throw new AuthError("登录失败: 未获取到凭证");
     } catch (error) {
-
-      console.log('error', error);
+      console.log("error", error);
       console.log(chalk.red("\n❌ 登录失败\n"));
 
-      // 重新抛出错误，让上层处理
       if (error instanceof Error) {
         throw error;
       }
@@ -115,102 +111,34 @@ class LoginService {
   /**
    * 显示二维码
    */
-  private displayQRCode(qrData: GenerateQRCodeData): void {
-    console.log(chalk.yellow("📱 请使用 第二回合APP 扫描二维码登录\n"));
+  private async displayQRCode(qrData: GenerateQRCodeData): Promise<void> {
+    const qrContent = `r2://auth/login?qrToken=${qrData.qrContent}`;
 
-    // 使用 qrcode-terminal 显示二维码
-    qrcodeTerminal.generate(`r2://auth/login?qrToken=${qrData.qrContent}`, { small: true });
+    console.log(chalk.yellow("📱 请使用 第二回合 扫描二维码登录\n"));
 
-    const expireTimeMs = Number.parseInt(qrData.expireTime, 10);
-    const pollIntervalMs = Number.parseInt(qrData.pollInterval, 10);
+    // 终端显示
+    QRCode.generate(qrContent, { small: true });
 
-    // console.log(chalk.gray("\n二维码内容: ") + chalk.white(qrData.qrContent));
-    // console.log(chalk.gray("过期时间: ") + chalk.white(`${expireTimeMs / 1000} 秒`));
-    // console.log(chalk.gray("轮询间隔: ") + chalk.white(`${pollIntervalMs} 毫秒`));
+    // 保存到 ~/.r2-cli/qrcode.png
+    const configDir = path.join(os.homedir(), ".r2-cli");
+    fs.mkdirSync(configDir, { recursive: true });
+    const qrPath = path.join(configDir, "qrcode.png");
+    await QRCodeLib.toFile(qrPath, qrContent, { width: 300, margin: 2 });
 
+    console.log(chalk.gray(`\n  二维码已保存到: ${qrPath}`));
     console.log(chalk.yellow("\n⏳ 等待扫码..."));
-  }
-
-  /**
-   * 轮询登录状态
-   */
-  private async pollLoginStatus(
-    query: QueryDefinition<{
-      status: QRCodeStatus;
-      userInfo: UserInfo | null;
-      token: string | null;
-    }>,
-    qrData: GenerateQRCodeData,
-  ): Promise<{ data: { status: QRCodeStatus; userInfo: UserInfo | null; token: string | null } }> {
-    let lastStatus: QRCodeStatus = "waiting";
-
-    const expireTimeMs = Number.parseInt(qrData.expireTime, 10);
-    const pollIntervalMs = Number.parseInt(qrData.pollInterval, 10);
-
-    const pollingIterator = executePollingQuery(query, {
-      interval: pollIntervalMs,
-      timeout: expireTimeMs,
-      condition: (data) => {
-        // 检查状态变化
-        if (data.status !== lastStatus) {
-          lastStatus = data.status;
-
-          switch (data.status) {
-            case "scanned":
-              console.log(chalk.cyan(`\n🔍 已扫码: ${data.userInfo?.nickname || "未知用户"}`));
-              console.log(chalk.yellow("请在 APP 上确认登录"));
-              break;
-            case "confirmed":
-              console.log(chalk.green("\n✅ 用户已确认登录"));
-              break;
-            case "expired":
-              console.log(chalk.red("\n⏰ 二维码已过期"));
-              break;
-            case "canceled":
-              console.log(chalk.red("\n🚫 用户已取消登录"));
-              break;
-          }
-        }
-
-        return data.status === "confirmed";
-      },
-    });
-
-    let result: { data: { status: QRCodeStatus; userInfo: UserInfo | null; token: string | null } } | null = null;
-
-    // 手动迭代以获取 AsyncGenerator 的返回值
-    let done = false;
-    while (!done) {
-      const { value, done: iterationDone } = await pollingIterator.next();
-      done = iterationDone ?? true;
-
-      // 返回值在最后一次迭代时在 value 中
-      if (done) {
-        if (value && "data" in value) {
-          result = { data: value.data };
-        }
-      } else {
-        // 这是 yield 的 ProgressEvent，不需要处理
-      }
-    }
-
-    if (result) {
-      return result;
-    }
-
-    throw new PollingError("轮询异常终止");
   }
 
   /**
    * 显示用户信息
    */
   private displayUserInfo(userInfo: UserInfo): void {
+    const maskedMobile = userInfo.mobile.replace(/(\d{3})\d{4}(\d{4})/, "$1****$2");
+
     console.log(chalk.white("━━━━━━━━━━━━━━━━━━━━━━━━━━━━"));
     console.log(chalk.cyan("用户信息:"));
-    console.log(chalk.white("  用户名: ") + chalk.yellow(userInfo.username));
-    console.log(chalk.white("  昵称: ") + chalk.yellow(userInfo.nickname));
-    console.log(chalk.white("  手机号: ") + chalk.yellow(userInfo.mobile));
-    console.log(chalk.white("  用户ID: ") + chalk.yellow(userInfo.userId.toString()));
+    console.log(chalk.white("  昵称:   ") + chalk.yellow(userInfo.nickname));
+    console.log(chalk.white("  手机号: ") + chalk.yellow(maskedMobile));
     console.log(chalk.white("━━━━━━━━━━━━━━━━━━━━━━━━━━━━"));
   }
 

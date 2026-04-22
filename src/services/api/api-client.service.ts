@@ -3,13 +3,14 @@
  */
 
 import type { IApiClient, IQRCodeAuthApi, ApiConfig, RequestConfig, ApiResponse } from "./api-client.interface.js";
-import { ApiError } from "../../errors/index.js";
+import { ApiError, AuthError } from "../../errors/index.js";
 import type { GenerateQRCodeData, QRCodeStatusData } from "../../types/auth.js";
 
 /**
- * API 基础地址 - 构建时通过 esbuild --define 替换
+ * API 基础地址 - 构建时通过 esbuild define 替换 process.env.R2_API_URL
+ * dev 模式下 tsx 不做替换，需要兜底值
  */
-const R2_API_URL = "https://api.puresnake.com";
+const R2_API_URL: string = process.env.R2_API_URL || "https://api.qiuxietang.com";
 
 /**
  * API 客户端服务实现
@@ -24,7 +25,6 @@ export class ApiClientService implements IApiClient {
       version: config.version ?? "v3",
       debug: config.debug ?? false,
     };
-    console.log("this.config", this.config);
   }
 
   /**
@@ -39,6 +39,13 @@ export class ApiClientService implements IApiClient {
    */
   getToken(): string | null {
     return this.token;
+  }
+
+  /**
+   * 检查是否已设置 token
+   */
+  isTokenSet(): boolean {
+    return this.token !== null;
   }
 
   /**
@@ -69,8 +76,11 @@ export class ApiClientService implements IApiClient {
    */
   private async handleResponse<T>(response: Response): Promise<T> {
     if (!response.ok) {
+      if (response.status === 401) {
+        throw new AuthError("登录已过期或未登录，请运行 r2 auth login");
+      }
       const errorText = await response.text();
-      throw new ApiError(`HTTP ${response.status}: ${response.statusText} - ${errorText}`, response.status);
+      throw new ApiError(errorText || `${response.status} ${response.statusText}`, response.status);
     }
 
     const result = (await response.json()) as ApiResponse<T>;
@@ -80,7 +90,7 @@ export class ApiClientService implements IApiClient {
     }
 
     if (!result.success || result.status !== 0) {
-      throw new ApiError(`API Error: status=${result.status}, success=${result.success}, message=${result.msg}`, undefined, result);
+      throw new ApiError(result.msg || "未知错误", result.status, result);
     }
 
     return result.data;
@@ -155,6 +165,23 @@ export class ApiClientService implements IApiClient {
   async delete<T = unknown>(path: string): Promise<T> {
     const config: RequestConfig = { method: "DELETE" };
     return this.request<T>(path, config);
+  }
+
+  /**
+   * 刷新 token（不经过 handleResponse，避免 401 循环）
+   */
+  async refreshToken(token: string): Promise<{ token: string; expire?: number }> {
+    const url = this.buildUrl("user/refresh");
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", token },
+    });
+    if (!response.ok) throw new AuthError("Token 刷新失败");
+    const result = (await response.json()) as ApiResponse<{ token: string; expire?: number }>;
+    if (!result.success || result.status !== 0) {
+      throw new AuthError(result.msg || "Token 刷新失败");
+    }
+    return result.data;
   }
 }
 

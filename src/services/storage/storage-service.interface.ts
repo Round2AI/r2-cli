@@ -14,6 +14,18 @@ export interface StoredCredentials {
   userInfo: UserInfo;
   /** 时间戳 */
   timestamp: number;
+  /** token 过期时间（毫秒时间戳） */
+  expire?: number;
+}
+
+/**
+ * 存储的发货地址接口
+ */
+export interface StoredAddress {
+  divisionId: string;
+  province: string;
+  city: string;
+  area: string;
 }
 
 /**
@@ -22,6 +34,8 @@ export interface StoredCredentials {
 export interface LocalConfig {
   /** 登录凭证 */
   credentials: StoredCredentials | null;
+  /** 发货地址 */
+  address?: StoredAddress;
 }
 
 /**

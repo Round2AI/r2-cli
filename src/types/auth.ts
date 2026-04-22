@@ -31,13 +31,6 @@ export interface QRCodeStatusData {
   token: string | null;
 }
 
-/** API 响应基础结构 */
-export interface ApiResponse<T = unknown> {
-  success: boolean;
-  status: number;
-  data: T;
-}
-
 // ==================== 认证相关 ====================
 
 /** 登录凭证 */
@@ -54,23 +47,3 @@ export interface AuthState {
   token: string | null;
   lastLoginTime: number | null;
 }
-
-/** 配置信息 */
-export interface AuthConfig {
-  /** API 基础地址 */
-  baseUrl: string;
-  /** API 版本 */
-  version: string;
-  /** 轮询超时时间（毫秒） */
-  pollingTimeout: number;
-  /** 是否启用调试日志 */
-  debug: boolean;
-}
-
-/** 默认配置 */
-export const DEFAULT_AUTH_CONFIG: AuthConfig = {
-  baseUrl: process.env.R2_API_BASE_URL || "https://api.round2ai.com",
-  version: "v3",
-  pollingTimeout: 300000, // 5分钟
-  debug: process.env.DEBUG === "true",
-};

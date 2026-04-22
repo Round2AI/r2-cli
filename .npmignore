@@ -1,0 +1,8 @@
+# Only ship the r2-cli skill, not dev skills
+.claude/skills/cli-developer-0.1.0/
+.claude/skills/nodejs-1.0.1/
+.claude/agents/
+.claude/settings.local.json
+
+# Skills are installed via `npx skills add Round2AI/r2-cli`, not npm
+skills/

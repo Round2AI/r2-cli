@@ -1,10 +1,20 @@
 {
   "permissions": {
     "allow": [
-      "Read(//mnt/f/IdeaProjects/**)",
-      "Bash(node dist/index.js auth login)",
-      "Bash(npm run *)",
-      "Bash(npm install *)"
+      "Bash(npm run:*)",
+      "Bash(node dist/cli.js --help)",
+      "Bash(npx tsx:*)",
+      "Bash(pkill:*)",
+      "WebSearch",
+      "Bash(node:*)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(npx tsc *)",
+      "Bash(xargs grep *)",
+      "mcp__plugin_context7_context7__resolve-library-id",
+      "Bash(npm uninstall *)",
+      "Bash(npm install *)",
+      "Bash(git rm *)"
     ]
   }
 }
