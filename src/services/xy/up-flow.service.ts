@@ -1,6 +1,6 @@
 /**
  * 上架流程交互服务
- * 支持交互式向导和纯参数双模式
+ * 步骤顺序：店铺(缓存) → 选择商品 → 成色 → 描述 → 类目 → 售价 → 属性 → 服务+确认
  */
 
 import { select, input, confirm, checkbox } from "@inquirer/prompts";
@@ -36,7 +36,7 @@ export interface UpOptions {
 const SERVICE_KEYS = ["supportFd24hsPolicy", "supportFd48hsPolicy", "supportNfrPolicy", "supportSdrPolicy"] as const;
 type ServiceKey = (typeof SERVICE_KEYS)[number];
 
-const TOTAL_STEPS = 5;
+const TOTAL_STEPS = 7;
 
 function stepHeader(step: number, title: string): void {
   console.log(chalk.cyan(`\n━━━ 步骤 ${step}/${TOTAL_STEPS}: ${title} ━━━\n`));
@@ -45,59 +45,81 @@ function stepHeader(step: number, title: string): void {
 export class UpFlowService {
   private api = getXianyuApi();
 
-  async run(goodsInfoId?: string, options?: UpOptions): Promise<void> {
+  async run(_goodsInfoId?: string, options?: UpOptions): Promise<void> {
     const opts = options ?? {};
 
+    // 店铺选择（优先缓存，非编号步骤）
+    const { shop } = await this.resolveShop(opts.shop);
+
     // 步骤 1: 选择商品
-    let selectedId = goodsInfoId;
-    let selectedItem: SellerGoodsItem | undefined;
-    if (!selectedId) {
-      const result = await this.selectProduct();
-      if (!result) return;
-      selectedId = result.id;
-      selectedItem = result.item;
-    }
-
-    // 步骤 2: 选择平台与店铺
-    stepHeader(2, "选择平台与店铺");
-    const platform = await select({
-      message: "选择平台",
-      choices: [
-        { name: "闲鱼", value: "xianyu" },
-        { name: "抖音", value: "douyin" },
-      ],
-    });
-    const shops = await this.api.getShops(platform);
-    if (!shops.length) {
-      console.log(chalk.red("未找到已授权的店铺，请先在小程序中授权"));
-      return;
-    }
-
-    const shop = await this.selectShop(shops, opts.shop);
-    if (Date.now() > shop.expiresIn) {
-      console.log(chalk.red(`店铺 "${shop.name}" 授权已过期，请重新授权`));
-      return;
-    }
+    stepHeader(1, "选择商品");
+    const productResult = await this.selectProduct();
+    if (!productResult) return;
+    const { id: selectedId, item: selectedItem } = productResult;
 
     // 获取商品详情
     const detailSpinner = ora("获取商品信息...").start();
     const goodsDetail = await this.api.getXyGoodsInfo(selectedId, shop.thirdUserId);
     detailSpinner.succeed("商品信息已获取");
 
-    // 步骤 3: 填写上架信息
-    stepHeader(3, "填写上架信息");
-    const params = await this.collectParams(selectedId, shop, goodsDetail, opts, selectedItem);
+    // 步骤 2: 选择成色
+    stepHeader(2, "选择成色等级");
+    const bizTypeChoices = ITEM_BIZ_TYPES.map(t => ({ name: t.label, value: t.value as string }));
+    const itemBizType = opts.bizType
+      ?? await select({
+        message: "选择商品类型",
+        choices: bizTypeChoices,
+        default: bizTypeChoices.find(c => c.value === goodsDetail.itemBizType)?.value,
+      });
 
-    // 步骤 4: 分类与属性
-    stepHeader(4, "分类与属性");
+    const stuffChoices = Object.entries(STUFF_LABELS).map(([value, label]) => ({ name: label, value }));
+    const stuffStatus = opts.stuffStatus
+      ?? await select({
+        message: "选择成色等级",
+        choices: stuffChoices,
+        default: stuffChoices.find(c => c.value === goodsDetail.stuffStatus)?.value,
+      });
+
+    // 步骤 3: 商品描述
+    stepHeader(3, "商品描述");
+    const descInput: { message: string; default?: string; validate?: (v: string) => string | boolean } = { message: "商品描述" };
+    if (goodsDetail.desc) descInput.default = goodsDetail.desc;
+    const desc = opts.desc ?? await input(descInput);
+
+    // 步骤 4: 选择类目
+    stepHeader(4, "选择类目");
     const { categoryId, channelCatId } = await this.selectCategory(opts.catId, opts.channelCatId);
-    params.categoryId = categoryId;
-    params.channelCatId = channelCatId;
-    const itemAttrList = await this.selectProps(channelCatId, goodsDetail);
-    params.itemAttrList = itemAttrList;
 
-    // 服务保障（仅严选）
-    if (params.itemBizType !== "2") {
+    // 步骤 5: 售价
+    stepHeader(5, "售价");
+    const priceInput: { message: string; default?: string; validate: (v: string) => string | boolean } = { message: "售价", validate: v => v ? true : "请输入售价" };
+    if (goodsDetail.reservePrice) priceInput.default = goodsDetail.reservePrice;
+    const reservePrice = opts.price ?? await input(priceInput);
+
+    let barcode: string | undefined;
+    if (itemBizType === "15") {
+      const barcodeInput: { message: string; default?: string; validate: (v: string) => string | boolean } = { message: "商品扣码", validate: v => v ? true : "严选商品必须输入扣码" };
+      if (goodsDetail.barcode) barcodeInput.default = goodsDetail.barcode;
+      barcode = opts.barcode ?? await input(barcodeInput);
+    }
+
+    // 步骤 6: 选择属性
+    stepHeader(6, "选择属性");
+    const itemAttrList = await this.selectProps(channelCatId, goodsDetail);
+
+    // 步骤 7: 服务保障 + 确认提交
+    stepHeader(7, "确认提交");
+
+    const divisionId = await this.selectDivision();
+
+    const apiAfterSalesDo = {
+      supportFd24hsPolicy: false,
+      supportFd48hsPolicy: false,
+      supportNfrPolicy: false,
+      supportSdrPolicy: false,
+    };
+
+    if (itemBizType !== "2") {
       const services = await checkbox({
         message: "选择服务保障",
         choices: [
@@ -108,12 +130,30 @@ export class UpFlowService {
         ],
       });
       for (const key of services as ServiceKey[]) {
-        params.apiAfterSalesDo[key] = true;
+        apiAfterSalesDo[key] = true;
       }
     }
 
-    // 步骤 5: 确认提交
-    stepHeader(5, "确认提交");
+    const { price: _price, ...detailRest } = goodsDetail;
+    const params: XyGoodsUpParams = {
+      ...detailRest,
+      goodsInfoId: selectedId,
+      account: shop.thirdUserId,
+      itemBizType: itemBizType as string,
+      reservePrice: reservePrice as string,
+      originalPrice: reservePrice as string,
+      stuffStatus: stuffStatus as string,
+      desc: desc as string,
+      divisionId,
+      categoryId,
+      channelCatId,
+      goodsNo: goodsDetail.goodsNo ?? selectedItem?.goodsNo ?? "",
+      size: goodsDetail.size ?? selectedItem?.size ?? "",
+      itemAttrList,
+      apiAfterSalesDo,
+      ...(barcode ? { barcode } : {}),
+    };
+
     await this.displaySummary(shop, params);
 
     const confirmed = await confirm({ message: "确认提交上架？", default: true });
@@ -124,7 +164,6 @@ export class UpFlowService {
 
     console.log(chalk.cyan("\n提交上架中..."));
     try {
-      console.log('params', params);
       const result = await this.api.upGoods(params);
       console.log(chalk.green(`\n上架成功！${result.result ?? ""}`));
     } catch (error) {
@@ -133,10 +172,58 @@ export class UpFlowService {
     }
   }
 
+  // ==================== 店铺选择（缓存优先） ====================
+
+  private async resolveShop(preferredShopId?: string): Promise<{ shop: XyShop; platform: string }> {
+    const storage = createStorageService();
+    const cached = await storage.getShop();
+
+    if (cached && !preferredShopId) {
+      console.log(chalk.gray(`  缓存店铺: ${cached.name} (${cached.thirdUserId}) [${cached.platform}]`));
+      const useCached = await confirm({ message: "使用缓存的店铺？", default: true });
+      if (useCached) {
+        const shops = await this.api.getShops(cached.platform);
+        const found = shops.find(s => s.thirdUserId === cached.thirdUserId);
+        if (found && Date.now() <= found.expiresIn) {
+          console.log(chalk.green(`  已选择店铺: { name: "${found.name}", thirdUserId: "${found.thirdUserId}" }\n`));
+          return { shop: found, platform: cached.platform };
+        }
+        console.log(chalk.yellow("  缓存店铺已过期或不可用，请重新选择"));
+      }
+    }
+
+    const platform = await select({
+      message: "选择平台",
+      choices: [
+        { name: "闲鱼", value: "xianyu" },
+        { name: "抖音", value: "douyin" },
+      ],
+    });
+    const shops = await this.api.getShops(platform);
+    if (!shops.length) {
+      console.log(chalk.red("未找到已授权的店铺，请先在小程序中授权"));
+      process.exit(1);
+    }
+
+    const shop = await this.selectShop(shops, preferredShopId);
+    if (Date.now() > shop.expiresIn) {
+      console.log(chalk.red(`店铺 "${shop.name}" 授权已过期，请重新授权`));
+      process.exit(1);
+    }
+
+    await storage.saveShop({
+      thirdUserId: shop.thirdUserId,
+      name: shop.name,
+      platform,
+    });
+    console.log(chalk.green(`  已选择店铺: { name: "${shop.name}", thirdUserId: "${shop.thirdUserId}" }\n`));
+
+    return { shop, platform };
+  }
+
   // ==================== 步骤 1: 选择商品 ====================
 
   private async selectProduct(): Promise<{ id: string; item: SellerGoodsItem } | null> {
-    stepHeader(1, "选择商品");
     const spinner = ora("加载商品列表...").start();
 
     let page = 1;
@@ -166,16 +253,13 @@ export class UpFlowService {
     });
 
     const item = allItems.find(i => i.id === selected)!;
-    console.log(chalk.green(`\n  已选择: ${item.name}`));
+    console.log(chalk.green(`\n  已选择: { id: "${item.id}", name: "${item.name}" }`));
     console.log(chalk.gray(`  货号: ${item.goodsNo || "-"}  规格: ${item.size || "-"}  售价: ¥${item.price}`));
-    if (item.image) {
-      console.log(chalk.gray(`  图片: ${item.image}`));
-    }
 
     return { id: selected, item };
   }
 
-  // ==================== 步骤 2: 选择店铺 ====================
+  // ==================== 选择店铺 ====================
 
   private async selectShop(shops: XyShop[], preferredShopId?: string): Promise<XyShop> {
     const activeShops = shops.filter(s => Date.now() <= s.expiresIn);
@@ -205,72 +289,7 @@ export class UpFlowService {
     }) as Promise<XyShop>;
   }
 
-  // ==================== 步骤 3: 收集上架参数 ====================
-
-  private async collectParams(
-    goodsInfoId: string,
-    shop: XyShop,
-    detail: XyGoodsDetail,
-    options: UpOptions,
-    selectedItem?: SellerGoodsItem,
-  ): Promise<XyGoodsUpParams> {
-    const bizTypeChoices = ITEM_BIZ_TYPES.map(t => ({ name: t.label, value: t.value as string }));
-    const itemBizType = options.bizType
-      ?? await select({
-        message: "选择商品类型",
-        choices: bizTypeChoices,
-        default: bizTypeChoices.find(c => c.value === detail.itemBizType)?.value,
-      });
-
-    const stuffChoices = Object.entries(STUFF_LABELS).map(([value, label]) => ({ name: label, value }));
-    const stuffStatus = options.stuffStatus
-      ?? await select({
-        message: "选择成色等级",
-        choices: stuffChoices,
-        default: stuffChoices.find(c => c.value === detail.stuffStatus)?.value,
-      });
-
-    const descInput: { message: string; default?: string; validate?: (v: string) => string | boolean } = { message: "商品描述" };
-    if (detail.desc) descInput.default = detail.desc;
-    const desc = options.desc ?? await input(descInput);
-
-    const priceInput: { message: string; default?: string; validate: (v: string) => string | boolean } = { message: "售价", validate: v => v ? true : "请输入售价" };
-    if (detail.reservePrice) priceInput.default = detail.reservePrice;
-    const reservePrice = options.price ?? await input(priceInput);
-
-    let barcode: string | undefined;
-    if (itemBizType === "15") {
-      const barcodeInput: { message: string; default?: string; validate: (v: string) => string | boolean } = { message: "商品扣码", validate: v => v ? true : "严选商品必须输入扣码" };
-      if (detail.barcode) barcodeInput.default = detail.barcode;
-      barcode = options.barcode ?? await input(barcodeInput);
-    }
-
-    const divisionId = await this.selectDivision();
-
-    return {
-      ...detail,
-      goodsInfoId,
-      account: shop.thirdUserId,
-      itemBizType: itemBizType as string,
-      reservePrice: reservePrice as string,
-      originalPrice: reservePrice as string,
-      stuffStatus: stuffStatus as string,
-      desc: desc as string,
-      divisionId,
-      goodsNo: detail.goodsNo ?? selectedItem?.goodsNo ?? "",
-      size: detail.size ?? selectedItem?.size ?? "",
-      categoryId: "",
-      channelCatId: "",
-      itemAttrList: [],
-      apiAfterSalesDo: {
-        supportFd24hsPolicy: false,
-        supportFd48hsPolicy: false,
-        supportNfrPolicy: false,
-        supportSdrPolicy: false,
-      },
-      ...(barcode ? { barcode } : {}),
-    };
-  }
+  // ==================== 选择发货地址 ====================
 
   private async selectDivision(): Promise<string> {
     const storage = createStorageService();
@@ -308,7 +327,7 @@ export class UpFlowService {
     return areaCode;
   }
 
-  // ==================== 步骤 4: 分类与属性 ====================
+  // ==================== 步骤 4: 选择类目 ====================
 
   private async selectCategory(
     preferredCatId?: string,
@@ -355,6 +374,8 @@ export class UpFlowService {
     }
     return Array.from(map.values());
   }
+
+  // ==================== 步骤 6: 选择属性 ====================
 
   private async selectProps(channelCatId: string, detail: XyGoodsDetail): Promise<ItemAttr[]> {
     const propsSpinner = ora("加载属性...").start();
@@ -465,7 +486,7 @@ export class UpFlowService {
     return { propId: prop.propId, valueId: brand.valueId, valueName: brand.valueName };
   }
 
-  // ==================== 步骤 5: 确认摘要 ====================
+  // ==================== 步骤 7: 确认摘要 ====================
 
   private async displaySummary(shop: XyShop, params: XyGoodsUpParams): Promise<void> {
     console.log(chalk.white("  店铺:   ") + chalk.yellow(shop.name));

@@ -39,9 +39,9 @@ export function createListCommand(): Command {
 
       console.log(chalk.cyan(`\n寄售商品列表${statusFilter} (共 ${result.total} 条):\n`));
       console.log(
-        chalk.gray("  " + "状态".padEnd(6) + "名称".padEnd(30) + "货号".padEnd(16) + "规格".padEnd(10) + "售价".padStart(8) + "  闲鱼状态"),
+        chalk.gray("  " + "ID".padEnd(8) + "状态".padEnd(6) + "名称".padEnd(30) + "货号".padEnd(16) + "规格".padEnd(10) + "售价".padStart(8) + "  闲鱼状态"),
       );
-      console.log(chalk.gray("  " + "─".repeat(80)));
+      console.log(chalk.gray("  " + "─".repeat(90)));
 
       for (const item of result.items) {
         displayGoodsItem(item);
@@ -68,7 +68,8 @@ function displayGoodsItem(item: SellerGoodsItem): void {
   const xyPrice = item.xySaleChannel ? `¥${item.xySaleChannel.price}` : "";
 
   console.log(
-    chalk.white(`  ${item.statusName.padEnd(6)}`) +
+    chalk.gray(`${item.id}`.padEnd(8 + 2)) +
+    chalk.white(`${item.statusName.padEnd(6)}`) +
     chalk.bold((item.name ?? "").padEnd(30)) +
     chalk.gray(`${item.goodsNo || "-"}`.padEnd(16)) +
     chalk.gray(`${item.size || "-"}`.padEnd(10)) +

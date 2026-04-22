@@ -7,7 +7,7 @@ import path from "node:path";
 import os from "node:os";
 import { stat, mkdir } from "node:fs/promises";
 import type { UserInfo } from "../../types/auth.js";
-import type { IStorageService, LocalConfig, StoredCredentials, StoredAddress } from "./storage-service.interface.js";
+import type { IStorageService, LocalConfig, StoredCredentials, StoredAddress, StoredShop } from "./storage-service.interface.js";
 import { StorageError } from "../../errors/index.js";
 
 // ==================== 常量 ====================
@@ -172,7 +172,7 @@ export class StorageService implements IStorageService {
     const config = await this.loadConfig();
     if (config.credentials) {
       config.credentials.token = token;
-      config.credentials.expire = expire;
+      if (expire !== undefined) config.credentials.expire = expire;
       await this.saveConfig(config);
     }
   }
@@ -182,7 +182,8 @@ export class StorageService implements IStorageService {
    */
   async getAddress(): Promise<StoredAddress | null> {
     const config = await this.loadConfig();
-    return config.address ?? null;
+    if (!config.address || !config.address.divisionId) return null;
+    return config.address;
   }
 
   /**
@@ -191,6 +192,24 @@ export class StorageService implements IStorageService {
   async saveAddress(address: StoredAddress): Promise<void> {
     const config = await this.loadConfig();
     config.address = address;
+    await this.saveConfig(config);
+  }
+
+  /**
+   * 获取缓存的店铺
+   */
+  async getShop(): Promise<StoredShop | null> {
+    const config = await this.loadConfig();
+    if (!config.shop || !config.shop.thirdUserId) return null;
+    return config.shop;
+  }
+
+  /**
+   * 保存店铺选择
+   */
+  async saveShop(shop: StoredShop): Promise<void> {
+    const config = await this.loadConfig();
+    config.shop = shop;
     await this.saveConfig(config);
   }
 }

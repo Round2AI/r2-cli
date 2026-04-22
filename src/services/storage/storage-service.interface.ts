@@ -29,6 +29,15 @@ export interface StoredAddress {
 }
 
 /**
+ * 存储的店铺信息接口
+ */
+export interface StoredShop {
+  thirdUserId: string;
+  name: string;
+  platform: string;
+}
+
+/**
  * 本地配置文件内容接口
  */
 export interface LocalConfig {
@@ -36,6 +45,8 @@ export interface LocalConfig {
   credentials: StoredCredentials | null;
   /** 发货地址 */
   address?: StoredAddress;
+  /** 缓存的店铺 */
+  shop?: StoredShop;
 }
 
 /**
