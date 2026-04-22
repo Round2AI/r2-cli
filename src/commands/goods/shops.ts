@@ -1,5 +1,5 @@
 /**
- * 闲鱼店铺列表命令
+ * 店铺列表命令
  */
 
 import { Command } from "commander";

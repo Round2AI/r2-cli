@@ -1,5 +1,5 @@
 /**
- * 闲鱼商品改价命令
+ * 商品改价命令
  */
 
 import { Command } from "commander";
@@ -9,7 +9,7 @@ import { handleCommandError } from "./shared.js";
 
 export function createPriceCommand(): Command {
   const command = new Command("price");
-  command.description("修改闲鱼商品售价");
+  command.description("修改商品售价");
 
   command.argument("<id>", "商品渠道 ID");
   command.requiredOption("--price <amount>", "新售价");

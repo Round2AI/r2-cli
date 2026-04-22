@@ -1,5 +1,5 @@
 /**
- * 闲鱼商品下架/重新上架命令
+ * 商品下架/重新上架命令
  */
 
 import { Command } from "commander";
@@ -9,7 +9,7 @@ import { handleCommandError } from "./shared.js";
 
 export function createDownCommand(): Command {
   const command = new Command("down");
-  command.description("下架闲鱼商品");
+  command.description("下架商品");
 
   command.argument("<ids...>", "商品渠道 ID（多个用空格分隔）");
   command.action(async (ids: string[]) => {
@@ -29,7 +29,7 @@ export function createDownCommand(): Command {
 
 export function createReUpCommand(): Command {
   const command = new Command("reup");
-  command.description("重新上架闲鱼商品");
+  command.description("重新上架商品");
 
   command.argument("<ids...>", "商品渠道 ID（多个用空格分隔）");
   command.action(async (ids: string[]) => {

@@ -1,5 +1,5 @@
 /**
- * 闲鱼商品上架命令
+ * 商品上架命令
  */
 
 import { Command } from "commander";
@@ -8,11 +8,11 @@ import { handleCommandError } from "./shared.js";
 
 export function createUpCommand(): Command {
   const command = new Command("up");
-  command.description("上架商品到闲鱼（不传 ID 则从列表选择）");
+  command.description("上架商品（不传 ID 则从列表选择）");
 
   command.argument("[goodsInfoId]", "商品 ID（可选，不传则从列表选择）");
-  command.option("--shop <shopId>", "闲鱼店铺 ID");
-  command.option("--biz-type <type>", "商品类型: 15=闲鱼严选, 2=普通商品");
+  command.option("--shop <shopId>", "店铺 ID");
+  command.option("--biz-type <type>", "商品类型: 15=严选, 2=普通商品");
   command.option("--stuff <status>", "成色: 100/99/95/90/-1");
   command.option("--desc <desc>", "商品描述");
   command.option("--price <price>", "售价");

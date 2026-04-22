@@ -7,31 +7,17 @@ import esbuild from 'esbuild';
 import fs from 'fs-extra';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { config as dotenvConfig } from 'dotenv';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const rootDir = path.dirname(__dirname);
 
-// 从 .env 文件加载配置
-function loadEnvFile(filePath) {
-  try {
-    const content = fs.readFileSync(filePath, 'utf-8');
-    const vars = {};
-    for (const line of content.split('\n')) {
-      const match = line.match(/^\s*([A-Z_]+)\s*=\s*'?([^']*)'?\s*$/);
-      if (match) vars[match[1]] = match[2];
-    }
-    return vars;
-  } catch {
-    return {};
-  }
-}
-
 const nodeEnv = process.env.NODE_ENV || 'development';
 const isProd = nodeEnv === 'production';
 const envFile = isProd ? '.env.production' : '.env';
-const env = loadEnvFile(path.join(rootDir, envFile));
-const apiUrl = process.env.R2_API_URL || env.SERVER_BASEURL || 'https://api.qiuxietang.com';
+dotenvConfig({ path: path.join(rootDir, envFile) });
+const apiUrl = process.env.R2_API_URL || process.env.SERVER_BASEURL || 'https://api.qiuxietang.com';
 
 // 入口点配置
 const entryPoints = {
