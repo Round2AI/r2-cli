@@ -42,64 +42,84 @@ output-format: code
 
 1. **店铺选择**（缓存优先）— 有缓存直接确认，无缓存则选平台+店铺
 2. **选择商品** — 从待同步列表中选择
-3. **选择成色** — 商品类型 + 成色等级
+3. **选择成色** — 成色等级（商品类型固定为普通商品）
 4. **商品描述** — 输入描述
 5. **选择类目** — 主类目 → 子类目
-6. **售价** — 输入售价 + 扣码（严选商品）
+6. **售价** — 输入售价
 7. **选择属性** — 品牌/尺码/成色自动匹配
-8. **服务保障 + 确认** — 选择服务（仅严选），展示摘要确认
+8. **确认提交** — 展示摘要确认
+
+> 目前仅支持普通商品（bizType=2），严选商品暂不支持。
 
 ## AI Agent 分步上架流程
 
 Agent 无法操作交互式选择器，使用子命令逐步执行：
 
 ```
-1. goods up info [id]        → 获取商品列表/详情 + 店铺 + 地址 + 预填值
-2. goods up address --set    → （仅地址为 null 时）设置发货地址
-3. goods up categories       → 获取分类树
-4. goods up props <catId>    → 获取分类属性 + 品牌搜索
-5. goods up submit ...       → 提交上架
+1. goods list --status wait     → 获取待上架商品列表
+2. goods up info <id>           → 获取商品详情 + 店铺 + 地址 + 预填值
+3. goods up address ...         → （仅地址为 null 时）设置发货地址
+4. goods up categories          → 获取分类树
+5. goods up props <catId>       → 获取分类属性 + 品牌搜索
+6. goods up submit ...          → 提交上架
 ```
 
-### 第1步：获取商品详情
+### 第1步：获取待上架商品列表
 
 ```bash
-# 列出待上架商品
-npm run dev -- goods up info
-# 返回: { goods: [{ id, name, image, goodsNo, size, price, status }], total }
+npm run dev -- goods list --status wait
+# 表格输出：ID、名称、货号、规格、售价
+```
 
-# 获取指定商品详情
+### 第2步：获取商品详情
+
+```bash
 npm run dev -- goods up info <goodsInfoId>
-# 返回: { shops, selectedShop, goodsDetail, prefill, address }
+# 返回: { shops, selectedShop, goodsDetail(含goodsInfoId), prefill, address }
 ```
 
 **prefill 字段**（建议值，Agent 可参考或调整）：
 
 | 字段 | 说明 | 可选值 |
 |------|------|--------|
-| `itemBizType` | 商品类型 | `"15"`=严选, `"2"`=普通 |
 | `stuffStatus` | 成色 | `"100"`全新, `"-1"`准新, `"99"`99新, `"95"`95新, `"90"`9新 |
-| `reservePrice` | 建议售价 | 金额字符串 |
+| `reservePrice` | 建议售价 | 金额 |
 | `desc` | 商品描述 | 文本 |
-| `barcode` | 扣码 | 严选商品必填 |
 | `brandName` | 品牌名 | 用于品牌属性搜索 |
 | `size` | 规格/尺码 | 用于尺码属性匹配 |
 
-**address**：为 `null` 时需先执行 `goods up address --set`。
+**address**：为 `null` 时需先执行 `goods up address --save`。
 
 选项：`--shop <shopId>` `-p, --platform <xianyu|douyin>`
 
-### 第2步：设置发货地址（如需要）
+### 第3步：设置发货地址（如需要）
+
+非交互式（Agent 推荐）：
+
+```bash
+# 列出省份
+npm run dev -- goods up address --provinces
+# 列出城市
+npm run dev -- goods up address --cities <省份名>
+# 列出地区
+npm run dev -- goods up address --areas <城市名> --province <省份名>
+# 保存地址
+npm run dev -- goods up address --save --province <省> --city <市> --area-code <code>
+```
+
+交互式（人类使用）：
 
 ```bash
 npm run dev -- goods up address --set
-# 交互选择省→市→区，返回: { saved: { divisionId, province, city, area } }
-
-npm run dev -- goods up address
-# 查看: { address: { divisionId, ... } } 或 { address: null }
 ```
 
-### 第3步：获取分类列表
+查看当前地址：
+
+```bash
+npm run dev -- goods up address
+```
+
+### 第4步：获取分类列表
 
 ```bash
 npm run dev -- goods up categories
@@ -108,7 +128,7 @@ npm run dev -- goods up categories
 
 先选主类目（catId），再选子类目（channelCatId）。
 
-### 第4步：获取分类属性
+### 第5步：获取分类属性
 
 ```bash
 npm run dev -- goods up props <channelCatId> --brand <keyword>
@@ -118,43 +138,52 @@ npm run dev -- goods up props <channelCatId> --brand <keyword>
 - 品牌属性传 `--brand` 会返回 `matched` 匹配结果
 - Agent 应优先使用 `matched` 中的值
 
-### 第5步：提交上架
+### 第6步：提交上架
 
 ```bash
+# 1. 保存 goodsDetail 到文件（从 info 输出中提取 goodsDetail 字段）
+# 2. 保存属性列表到文件
+# 3. 调用 submit
+
 npm run dev -- goods up submit \
-  --goods-id <id> \
-  --account <shopThirdUserId> \
-  --biz-type <15|2> \
-  --price <amount> \
-  --stuff <100|99|95|90|-1> \
-  --desc <desc> \
+  --data @detail.json \
   --division-id <id> \
   --cat-id <catId> \
   --channel-cat-id <channelCatId> \
-  --attrs-file <path> \
-  --services-file <path>
+  --goods-no <货号> \
+  --size <规格> \
+  --attrs @attrs.json \
+  --services @services.json
 ```
 
-**必填参数**：`--goods-id`, `--account`, `--biz-type`, `--price`, `--stuff`, `--desc`, `--division-id`, `--cat-id`, `--channel-cat-id`
+**`--data`**：goodsDetail JSON（`@file.json` 从文件读取，或直接传 JSON 字符串）。goodsDetail 中已包含 `goodsInfoId`、`account`、`imageList`、`spBizType` 等全量字段，会透传给上架接口。
 
-**可选参数**：
-- `--barcode` — 严选商品（bizType=15）必填
-- `--goods-no` — 货号
-- `--size` — 规格
-- `--title` — 标题
-- `--attrs` / `--attrs-file` — 属性列表 JSON（文件优先）
-- `--services` / `--services-file` — 服务保障 JSON（文件优先）
+**必填参数**：`--data`、`--division-id`、`--cat-id`、`--channel-cat-id`
 
-**services 字段**：`supportFd24hsPolicy`, `supportFd48hsPolicy`, `supportNfrPolicy`, `supportSdrPolicy`
+**可选覆盖参数**：
+- `--price <amount>` — 覆盖售价
+- `--stuff <status>` — 覆盖成色
+- `--desc <desc>` — 覆盖描述
+- `--goods-no <no>` — 货号
+- `--size <size>` — 规格
+- `--title <title>` — 标题
+- `--attrs <json>` — 属性列表 JSON（`@file.json` 从文件读取）
+- `--services <json>` — 服务保障 JSON（`@file.json` 从文件读取）
+
+**attrs 格式**：
+```json
+[
+  { "propId": "xxx", "valueId": "yyy", "valueName": "JORDAN" }
+]
+```
 
 ## 缓存
 
 - **店铺**：首次选择后缓存到 `~/.r2-cli/config.json`，下次自动使用
-- **地址**：`address --set` 或交互式设置后缓存
+- **地址**：`address --save` 或交互式设置后缓存
 
 ## 业务约束
 
 - 排除商品原始 `price`，只用用户确认的 `reservePrice` 和 `originalPrice`
-- 严选商品（bizType=15）必须输入扣码
-- 普通商品（bizType=2）不显示服务保障选项
-- Windows 下 `--desc` 含空格会被 shell 拆分，建议用文件方式传 JSON
+- 目前仅支持普通商品（itemBizType=2）
+- Windows 下 JSON 参数建议用 `@file.json` 方式传

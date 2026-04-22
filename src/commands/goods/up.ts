@@ -295,11 +295,8 @@ function createUpSubmitCommand(): Command {
           apiAfterSalesDo,
         };
 
-        // TODO: 正式提交
-        // console.log(JSON.stringify(params, null, 2));
         const result = await api.upGoods(params);
         console.log(JSON.stringify({ success: true, result }, null, 2));
-        return;
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error);
         console.log(JSON.stringify({ success: false, error: msg }));
