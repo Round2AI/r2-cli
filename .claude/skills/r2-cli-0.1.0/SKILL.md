@@ -81,6 +81,46 @@ node dist/cli.js <command> [args]
 - `--channel-cat-id <id>` — 渠道分类ID
 - `--barcode <barcode>` — 扣码（严选商品必填）
 
+### goods up 分步执行（AI Agent 模式）
+
+AI Agent 无法操作交互式选择器，使用以下子命令逐步上架：
+
+#### 第1步：获取商品详情
+```bash
+npm run dev -- goods up info <goodsInfoId>
+# 返回 JSON：商品详情 + 店铺信息 + 缓存地址
+# 选项：--shop <shopId>  -p, --platform <xianyu|douyin>
+```
+
+#### 第2步：获取分类列表
+```bash
+npm run dev -- goods up categories
+# 返回 JSON：分类树（catId → children → channelCatId）
+```
+
+#### 第3步：获取分类属性
+```bash
+npm run dev -- goods up props <channelCatId> --brand <keyword>
+# 返回 JSON：属性列表 + 值列表，品牌属性会返回 matched 匹配结果
+```
+
+#### 第4步：提交上架
+```bash
+npm run dev -- goods up submit \
+  --goods-id <id> \
+  --account <shopThirdUserId> \
+  --biz-type <15|2> \
+  --price <amount> \
+  --stuff <100|99|95|90|-1> \
+  --desc <desc> \
+  --division-id <id> \
+  --cat-id <catId> \
+  --channel-cat-id <id> \
+  --barcode <barcode> \
+  --attrs '[{"propId":"xxx","valueId":"yyy","valueName":"运动鞋"}]'
+# 返回 JSON：{ success: true, result: "..." } 或 { success: false, error: "..." }
+```
+
 ## 上架流程（交互式5步）
 
 `goods up` 是一个交互式向导，步骤：
