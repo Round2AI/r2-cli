@@ -23,6 +23,7 @@
   ],
   "files": [
     "dist",
+    ".claude/skills/r2-cli-0.1.0",
     "package.json",
     "README.md"
   ],

@@ -11,16 +11,20 @@
 
 import { Command } from "commander";
 import chalk from "chalk";
-import type { UserInfo, QRCodeStatus, GenerateQRCodeData } from "../../types/auth.js";
+import path from "node:path";
+import os from "node:os";
+import fs from "node:fs";
+import type { UserInfo, GenerateQRCodeData } from "../../types/auth.js";
 import { poll } from "../../utils/polling.js";
 import { type IQRCodeAuthApi, ApiClientService, QRCodeAuthApiService } from "../../services/api/index.js";
 import { createStorageService, StorageService } from "../../services/storage/index.js";
-import { AuthError, PollingError } from "../../errors/index.js";
+import { AuthError } from "../../errors/index.js";
 
-// 动态导入 qrcode（CommonJS）
+// 动态导入（CommonJS 包）
 import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
-const QRCode = require("qrcode");
+const QRCode = require("qrcode-terminal");
+const QRCodeLib = require("qrcode");
 
 // ==================== 登录服务 ====================
 
@@ -47,7 +51,7 @@ class LoginService {
     console.log(chalk.green("✅ 二维码已生成\n"));
 
     // 2. 显示二维码
-    this.displayQRCode(qrData);
+    await this.displayQRCode(qrData);
 
     // 3. 轮询登录状态
     const expireTimeMs = Number.parseInt(qrData.expireTime, 10);
@@ -107,22 +111,21 @@ class LoginService {
   /**
    * 显示二维码
    */
-  private displayQRCode(qrData: GenerateQRCodeData): void {
-    console.log(chalk.yellow("📱 请使用 第二回合APP 扫描二维码登录\n"));
+  private async displayQRCode(qrData: GenerateQRCodeData): Promise<void> {
+    const qrContent = `r2://auth/login?qrToken=${qrData.qrContent}`;
 
-    // 使用 qrcode 显示二维码
-    // QRCode.toString(`r2://auth/login?qrToken=${qrData.qrContent}`, { small: true });
-    QRCode.toString(`r2://auth/login?qrToken=${qrData.qrContent}`, { type: "terminal" }, function (err: any, url: any) {
-      console.log(url);
-    });
+    console.log(chalk.yellow("📱 请使用 第二回合 扫描二维码登录\n"));
 
-    // const expireTimeMs = Number.parseInt(qrData.expireTime, 10);
-    // const pollIntervalMs = Number.parseInt(qrData.pollInterval, 10);
+    // 终端显示
+    QRCode.generate(qrContent, { small: true });
 
-    // console.log(chalk.gray("\n二维码内容: ") + chalk.white(qrData.qrContent));
-    // console.log(chalk.gray("过期时间: ") + chalk.white(`${expireTimeMs / 1000} 秒`));
-    // console.log(chalk.gray("轮询间隔: ") + chalk.white(`${pollIntervalMs} 毫秒`));
+    // 保存到 ~/.r2-cli/qrcode.png
+    const configDir = path.join(os.homedir(), ".r2-cli");
+    fs.mkdirSync(configDir, { recursive: true });
+    const qrPath = path.join(configDir, "qrcode.png");
+    await QRCodeLib.toFile(qrPath, qrContent, { width: 300, margin: 2 });
 
+    console.log(chalk.gray(`\n  二维码已保存到: ${qrPath}`));
     console.log(chalk.yellow("\n⏳ 等待扫码..."));
   }
 
@@ -130,12 +133,12 @@ class LoginService {
    * 显示用户信息
    */
   private displayUserInfo(userInfo: UserInfo): void {
+    const maskedMobile = userInfo.mobile.replace(/(\d{3})\d{4}(\d{4})/, "$1****$2");
+
     console.log(chalk.white("━━━━━━━━━━━━━━━━━━━━━━━━━━━━"));
     console.log(chalk.cyan("用户信息:"));
-    console.log(chalk.white("  用户名: ") + chalk.yellow(userInfo.username));
-    console.log(chalk.white("  昵称: ") + chalk.yellow(userInfo.nickname));
-    console.log(chalk.white("  手机号: ") + chalk.yellow(userInfo.mobile));
-    console.log(chalk.white("  用户ID: ") + chalk.yellow(userInfo.userId.toString()));
+    console.log(chalk.white("  昵称:   ") + chalk.yellow(userInfo.nickname));
+    console.log(chalk.white("  手机号: ") + chalk.yellow(maskedMobile));
     console.log(chalk.white("━━━━━━━━━━━━━━━━━━━━━━━━━━━━"));
   }
 

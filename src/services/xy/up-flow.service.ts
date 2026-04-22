@@ -7,6 +7,7 @@ import { select, input, confirm, checkbox } from "@inquirer/prompts";
 import chalk from "chalk";
 import ora from "ora";
 import { getXianyuApi } from "./xianyu-api.service.js";
+import { createStorageService } from "../storage/index.js";
 import type {
   XyShop,
   SellerGoodsItem,
@@ -57,9 +58,16 @@ export class UpFlowService {
       selectedItem = result.item;
     }
 
-    // 步骤 2: 获取店铺
-    stepHeader(2, "选择店铺");
-    const shops = await this.api.getShops();
+    // 步骤 2: 选择平台与店铺
+    stepHeader(2, "选择平台与店铺");
+    const platform = await select({
+      message: "选择平台",
+      choices: [
+        { name: "闲鱼", value: "xianyu" },
+        { name: "抖音", value: "douyin" },
+      ],
+    });
+    const shops = await this.api.getShops(platform);
     if (!shops.length) {
       console.log(chalk.red("未找到已授权的闲鱼店铺，请先在小程序中授权"));
       return;
@@ -106,7 +114,7 @@ export class UpFlowService {
 
     // 步骤 5: 确认提交
     stepHeader(5, "确认提交");
-    this.displaySummary(shop, params);
+    await this.displaySummary(shop, params);
 
     const confirmed = await confirm({ message: "确认提交上架？", default: true });
     if (!confirmed) {
@@ -117,8 +125,8 @@ export class UpFlowService {
     console.log(chalk.cyan("\n提交上架中..."));
     try {
       console.log('params', params);
-      // const result = await this.api.upGoods(params);
-      // console.log(chalk.green(`\n上架成功！${result.result ?? ""}`));
+      const result = await this.api.upGoods(params);
+      console.log(chalk.green(`\n上架成功！${result.result ?? ""}`));
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
       console.log(chalk.red(`\n上架失败: ${msg}`));
@@ -245,6 +253,7 @@ export class UpFlowService {
       account: shop.thirdUserId,
       itemBizType: itemBizType as string,
       reservePrice: reservePrice as string,
+      originalPrice: reservePrice as string,
       stuffStatus: stuffStatus as string,
       desc: desc as string,
       divisionId,
@@ -264,6 +273,15 @@ export class UpFlowService {
   }
 
   private async selectDivision(): Promise<string> {
+    const storage = createStorageService();
+    const saved = await storage.getAddress();
+
+    if (saved) {
+      console.log(chalk.gray(`  发货地址: ${saved.province} ${saved.city} ${saved.area}`));
+      const useSaved = await confirm({ message: "使用上次地址？", default: true });
+      if (useSaved) return saved.divisionId;
+    }
+
     const province = await select({
       message: "选择省份",
       choices: cityData.map(p => ({ name: p.province, value: p })),
@@ -277,6 +295,14 @@ export class UpFlowService {
     const areaCode = await select({
       message: "选择地区",
       choices: city.areas.map(a => ({ name: a.area, value: a.code })),
+    });
+
+    const areaName = city.areas.find(a => a.code === areaCode)?.area ?? "";
+    await storage.saveAddress({
+      divisionId: areaCode,
+      province: province.province,
+      city: city.city,
+      area: areaName,
     });
 
     return areaCode;
@@ -355,9 +381,8 @@ export class UpFlowService {
       if (["尺码", "鞋码"].includes(prop.propName) && detail.size) {
         const matched = prop.propsValues.find(v => v.valueName === detail.size);
         if (matched) {
-          console.log(chalk.gray(`  ${prop.propName}: 自动匹配到 ${detail.size}`));
           const pv = await select({
-            message: `确认${prop.propName}`,
+            message: `确认${prop.propName}（已匹配 ${chalk.green(detail.size)}）`,
             choices: prop.propsValues.map(v => ({ name: v.valueName, value: v })),
             default: matched,
           });
@@ -371,9 +396,8 @@ export class UpFlowService {
         if (label) {
           const matched = prop.propsValues.find(v => v.valueName === label);
           if (matched) {
-            console.log(chalk.gray(`  成色: 自动匹配到 ${label}`));
             const pv = await select({
-              message: "确认成色",
+              message: `确认成色（已匹配 ${chalk.green(label)}）`,
               choices: prop.propsValues.map(v => ({ name: v.valueName, value: v })),
               default: matched,
             });
@@ -405,10 +429,9 @@ export class UpFlowService {
       try {
         const values = await this.api.getPropValues(prop.channelCatId, prop.propId, brandName);
         if (values.length > 0) {
-          console.log(chalk.gray(`  品牌: 自动匹配到 ${values[0]!.valueName}`));
           const MANUAL = "__manual__" as const;
           const value = await select({
-            message: "选择品牌",
+            message: `确认品牌（已匹配 ${chalk.green(values[0]!.valueName)}）`,
             choices: [
               ...values.map(v => ({ name: v.valueName, value: v as XyPropValue | typeof MANUAL })),
               { name: "（手动搜索其他品牌）", value: MANUAL as unknown as XyPropValue },
@@ -444,11 +467,15 @@ export class UpFlowService {
 
   // ==================== 步骤 5: 确认摘要 ====================
 
-  private displaySummary(shop: XyShop, params: XyGoodsUpParams): void {
+  private async displaySummary(shop: XyShop, params: XyGoodsUpParams): Promise<void> {
     console.log(chalk.white("  店铺:   ") + chalk.yellow(shop.name));
     console.log(chalk.white("  类型:   ") + chalk.yellow(ITEM_BIZ_TYPES.find(t => t.value === params.itemBizType)?.label ?? params.itemBizType));
     console.log(chalk.white("  成色:   ") + chalk.yellow(STUFF_LABELS[params.stuffStatus as StuffLevel] ?? params.stuffStatus));
     console.log(chalk.white("  售价:   ") + chalk.yellow(`¥${params.reservePrice}`));
+    const savedAddr = await createStorageService().getAddress();
+    if (savedAddr) {
+      console.log(chalk.white("  地址:   ") + chalk.yellow(`${savedAddr.province} ${savedAddr.city} ${savedAddr.area}`));
+    }
     if (params.desc) {
       console.log(chalk.white("  描述:   ") + chalk.yellow(params.desc.length > 50 ? params.desc.slice(0, 50) + "..." : params.desc));
     }

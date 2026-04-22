@@ -31,8 +31,8 @@ export class XianyuApiService {
     return params;
   }
 
-  async getShops(): Promise<XyShop[]> {
-    return this.client.get<XyShop[]>("platform/xy/shop/list");
+  async getShops(platform: string = "xianyu"): Promise<XyShop[]> {
+    return this.client.get<XyShop[]>("platform/shop/list", this.toParams({ platform }));
   }
 
   async getSellerGoodsList(params: SellerGoodsListParams): Promise<SellerGoodsListResult> {

@@ -43,7 +43,7 @@ const esbuildConfig = {
   bundle: true,
   platform: 'node',
   format: 'esm',
-  sourcemap: !isProd,
+  sourcemap: false,
   minify: isProd,
   external: [
     'commander',
@@ -59,6 +59,7 @@ const esbuildConfig = {
     'mute-stream',
     'open',
     'qrcode-terminal',
+    'qrcode',
     'mammoth',
     'ora',
     'react',
