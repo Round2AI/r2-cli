@@ -1,5 +1,5 @@
 /**
- * 闲鱼命令组
+ * 商品管理命令组
  */
 
 import { Command } from "commander";
@@ -9,9 +9,9 @@ import { createUpCommand } from "./up.js";
 import { createDownCommand, createReUpCommand } from "./down.js";
 import { createPriceCommand } from "./price.js";
 
-export function createXyCommand(): Command {
-  const command = new Command("xy");
-  command.description("闲鱼商品管理");
+export function createGoodsCommand(): Command {
+  const command = new Command("goods");
+  command.description("商品管理");
 
   command.addCommand(createShopsCommand());
   command.addCommand(createListCommand());

@@ -1,20 +1,20 @@
-# 闲鱼商品上架流程文档
+# 商品上架流程文档
 
 ## 概述
 
-通过 `r2 xy up` 命令将寄售商品上架到闲鱼平台，支持交互式向导和纯参数两种模式。
+通过 `r2 goods up` 命令将寄售商品上架到平台（闲鱼/抖音），支持交互式向导和纯参数两种模式。
 
 ## 命令
 
 ```bash
 # 交互式向导（推荐）：自动加载未同步商品列表，一步步引导
-r2 xy up
+r2 goods up
 
 # 指定商品 ID：跳过商品选择步骤
-r2 xy up <goodsInfoId>
+r2 goods up <goodsInfoId>
 
 # 纯参数模式：跳过所有交互，直接提交
-r2 xy up <goodsInfoId> --shop <shopId> --biz-type 15 --stuff 99 --price 899 --cat-id 12 --channel-cat-id 345
+r2 goods up <goodsInfoId> --shop <shopId> --biz-type 15 --stuff 99 --price 899 --cat-id 12 --channel-cat-id 345
 ```
 
 ### 参数说明
@@ -22,7 +22,7 @@ r2 xy up <goodsInfoId> --shop <shopId> --biz-type 15 --stuff 99 --price 899 --ca
 | 参数 | 必填 | 说明 |
 |------|------|------|
 | `goodsInfoId` | 否 | 商品 ID，不传则从列表选择 |
-| `--shop` | 否 | 闲鱼店铺 ID（thirdUserId） |
+| `--shop` | 否 | 店铺 ID（thirdUserId） |
 | `--biz-type` | 否 | 商品类型：`15`=闲鱼严选，`2`=普通商品 |
 | `--stuff` | 否 | 成色等级：`100`全新 / `-1`准新 / `99`99新 / `95`95新 / `90`9新 |
 | `--price` | 否 | 售价 |
@@ -45,9 +45,9 @@ r2 xy up <goodsInfoId> --shop <shopId> --biz-type 15 --stuff 99 --price 899 --ca
 
 展示商品列表后通过 inquirer 选择，显示信息：商品名称、ID、货号、规格、售价。
 
-### 步骤 2/5：选择店铺
+### 步骤 2/5：选择平台与店铺
 
-选择已授权的闲鱼店铺。
+选择平台（闲鱼/抖音），再选择已授权的店铺。
 
 **API**: `GET /v3/platform/xy/shop/list`
 
@@ -149,11 +149,11 @@ r2 xy up <goodsInfoId> --shop <shopId> --biz-type 15 --stuff 99 --price 899 --ca
 ## 其他命令
 
 ```bash
-r2 xy shops                          # 查看授权店铺列表
-r2 xy list [--status on] [--keyword Nike]  # 寄售商品列表
-r2 xy down <id> [id2...]             # 下架商品（支持批量）
-r2 xy reup <id> [id2...]             # 重新上架（支持批量）
-r2 xy price <id> --price <amount>    # 修改售价
+r2 goods shops                          # 查看授权店铺列表
+r2 goods list [--status on] [--keyword Nike]  # 寄售商品列表
+r2 goods down <id> [id2...]             # 下架商品（支持批量）
+r2 goods reup <id> [id2...]             # 重新上架（支持批量）
+r2 goods price <id> --price <amount>    # 修改售价
 ```
 
 ## 认证

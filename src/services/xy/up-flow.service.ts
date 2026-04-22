@@ -1,5 +1,5 @@
 /**
- * 闲鱼上架流程交互服务
+ * 上架流程交互服务
  * 支持交互式向导和纯参数双模式
  */
 
@@ -69,7 +69,7 @@ export class UpFlowService {
     });
     const shops = await this.api.getShops(platform);
     if (!shops.length) {
-      console.log(chalk.red("未找到已授权的闲鱼店铺，请先在小程序中授权"));
+      console.log(chalk.red("未找到已授权的店铺，请先在小程序中授权"));
       return;
     }
 
@@ -197,7 +197,7 @@ export class UpFlowService {
     }
 
     return select({
-      message: "选择闲鱼店铺",
+      message: "选择店铺",
       choices: shopList.map(s => ({
         name: `${s.name} (ID: ${s.thirdUserId})${Date.now() > s.expiresIn ? " [已过期]" : ""}`,
         value: s,

@@ -1,16 +1,14 @@
 ---
 name: r2-cli
-description: R2-CLI 二手潮奢交易工具。用于闲鱼商品管理（上架/下架/改价/列表）、认证登录、经营分析等。触发关键词：闲鱼、上架、下架、商品列表、改价、xy、r2。
+description: R2-CLI 二手潮奢交易工具。用于商品管理（上架/下架/改价/列表）、认证登录、经营分析等。触发关键词：上架、下架、商品列表、改价、goods、r2。
 triggers:
-  - 闲鱼
   - 上架
   - 下架
   - 商品列表
   - 改价
-  - xy
+  - goods
   - r2
   - 寄售
-  - xianyu
   - r2-cli
 role: specialist
 scope: implementation
@@ -47,25 +45,29 @@ node dist/cli.js <command> [args]
 | `auth logout` | 退出登录 |
 | `auth status` | 查看登录状态和用户信息 |
 
-### 闲鱼管理 `r2 xy`
+### 商品管理 `r2 goods`
 
 | 命令 | 说明 | 示例 |
 |------|------|------|
-| `xy shops` | 查看已授权店铺 | `npm run dev -- xy shops` |
-| `xy list` | 寄售商品列表 | `npm run dev -- xy list --status wait` |
-| `xy up [id]` | 上架到闲鱼（交互式5步向导） | `npm run dev -- xy up` |
-| `xy down <ids...>` | 下架商品（多ID空格分隔） | `npm run dev -- xy down abc123 def456` |
-| `xy reup <ids...>` | 重新上架 | `npm run dev -- xy reup abc123` |
-| `xy price <id> --price <amount>` | 修改售价 | `npm run dev -- xy price abc123 --price 299` |
+| `goods shops` | 查看已授权店铺 | `npm run dev -- goods shops` |
+| `goods list` | 寄售商品列表 | `npm run dev -- goods list --status wait` |
+| `goods up [id]` | 上架商品（交互式5步向导） | `npm run dev -- goods up` |
+| `goods down <ids...>` | 下架商品（多ID空格分隔） | `npm run dev -- goods down abc123 def456` |
+| `goods reup <ids...>` | 重新上架 | `npm run dev -- goods reup abc123` |
+| `goods price <id> --price <amount>` | 修改售价 | `npm run dev -- goods price abc123 --price 299` |
 
-### xy list 选项
+### goods shops 选项
+
+- `-p, --platform <platform>` — 平台：`xianyu`(闲鱼)、`douyin`(抖音)，默认 `xianyu`
+
+### goods list 选项
 
 - `--status <status>` — 状态过滤：`wait`(待上架)、`on`(已上架)、`sold`(已售)、`down`(已下架)
 - `--keyword <keyword>` — 搜索关键词
 - `--page <n>` — 页码（默认 1）
 - `--size <n>` — 每页数量（默认 20）
 
-### xy up 选项
+### goods up 选项
 
 不传商品 ID 时会加载待上架列表让你选择。
 
@@ -81,17 +83,17 @@ node dist/cli.js <command> [args]
 
 ## 上架流程（交互式5步）
 
-`xy up` 是一个交互式向导，步骤：
+`goods up` 是一个交互式向导，步骤：
 
 1. **选择商品** — 从待同步列表中选择（支持分页加载）
-2. **选择店铺** — 显示已授权店铺，过期店铺会标注
+2. **选择平台与店铺** — 先选平台（闲鱼/抖音），再选店铺
 3. **填写信息** — 商品类型、成色、描述、售价、发货地址（地址会缓存到 `~/.r2-cli/config.json`）
 4. **分类与属性** — 选择类目，系统会自动匹配品牌/尺码/成色并高亮提示
 5. **确认提交** — 展示摘要确认
 
 ## 业务约束
 
-- `xy up` 会排除商品原始 `price` 字段，只用用户确认的 `reservePrice` 和 `originalPrice`
+- `goods up` 会排除商品原始 `price` 字段，只用用户确认的 `reservePrice` 和 `originalPrice`
 - 发货地址缓存后下次直接展示确认，不同意可重新选择
 - 严选商品（bizType=2）不显示服务保障选项
 - 严选商品（bizType=15）必须输入扣码
