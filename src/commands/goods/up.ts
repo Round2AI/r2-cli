@@ -47,31 +47,14 @@ export function createUpCommand(): Command {
 function createUpInfoCommand(): Command {
   const cmd = new Command("info");
   cmd.description("获取商品详情（JSON 输出，供 AI Agent 读取）");
-  cmd.argument("[goodsInfoId]", "商品 ID（不传则列出待上架商品）");
+  cmd.argument("<goodsInfoId>", "商品 ID");
   cmd.option("--shop <shopId>", "店铺 ID（不传则自动选择第一个）");
   cmd.option("-p, --platform <platform>", "平台: xianyu/douyin", "xianyu");
 
-  cmd.action(async (goodsInfoId: string | undefined, options: { shop?: string; platform: string }) => {
+  cmd.action(async (goodsInfoId: string, options: { shop?: string; platform: string }) => {
     try {
       const api = getXianyuApi();
       const storage = createStorageService();
-
-      if (!goodsInfoId) {
-        const result = await api.getSellerGoodsList({ status: "wait", page: 1, size: 50 });
-        console.log(JSON.stringify({
-          goods: result.items.map(item => ({
-            id: item.id,
-            name: item.name,
-            image: item.image,
-            goodsNo: item.goodsNo,
-            size: item.size,
-            price: item.price,
-            status: item.status,
-          })),
-          total: result.total,
-        }, null, 2));
-        return;
-      }
 
       // 从缓存读取店铺
       const cached = await storage.getShop();
@@ -81,7 +64,7 @@ function createUpInfoCommand(): Command {
       const shops = await api.getShops(platform);
       let shop = shops[0];
       if (shopId) {
-        shop = shops.find(s => s.thirdUserId === shopId || s.id === shopId) ?? shop;
+        shop = shops.find((s) => s.thirdUserId === shopId || s.id === shopId) ?? shop;
       }
       if (!shop) {
         console.log(JSON.stringify({ error: "没有授权店铺" }));
@@ -91,27 +74,33 @@ function createUpInfoCommand(): Command {
       const detail = await api.getXyGoodsInfo(goodsInfoId, shop.thirdUserId);
       const address = await storage.getAddress();
 
-      console.log(JSON.stringify({
-        shops: shops.map(s => ({
-          name: s.name,
-          thirdUserId: s.thirdUserId,
-          expired: Date.now() > s.expiresIn,
-        })),
-        selectedShop: { name: shop.name, thirdUserId: shop.thirdUserId },
-        goodsDetail: detail,
-        prefill: {
-          itemBizType: detail.itemBizType,
-          stuffStatus: detail.stuffStatus,
-          reservePrice: detail.reservePrice,
-          desc: detail.desc,
-          barcode: detail.barcode,
-          brandName: detail.brandName,
-          size: detail.size,
-          goodsNo: detail.goodsNo,
-          title: detail.title,
-        },
-        address: address ?? null,
-      }, null, 2));
+      console.log(
+        JSON.stringify(
+          {
+            shops: shops.map((s) => ({
+              name: s.name,
+              thirdUserId: s.thirdUserId,
+              expired: Date.now() > s.expiresIn,
+            })),
+            selectedShop: { name: shop.name, thirdUserId: shop.thirdUserId },
+            goodsDetail: { ...detail, goodsInfoId },
+            prefill: {
+              itemBizType: detail.itemBizType,
+              stuffStatus: detail.stuffStatus,
+              reservePrice: detail.reservePrice,
+              desc: detail.desc,
+              barcode: detail.barcode,
+              brandName: detail.brandName,
+              size: detail.size,
+              goodsNo: detail.goodsNo,
+              title: detail.title,
+            },
+            address: address ?? null,
+          },
+          null,
+          2,
+        ),
+      );
     } catch (error) {
       handleCommandError(error);
     }
@@ -133,7 +122,7 @@ function createUpCategoriesCommand(): Command {
       const categories = await api.getCategories(16);
 
       const groups: { catId: string; catName: string; children: { channel: string; channelCatId: string }[] }[] = [];
-      const map = new Map<string, typeof groups[number]>();
+      const map = new Map<string, (typeof groups)[number]>();
 
       for (const cat of categories) {
         if (!map.has(cat.catId)) {
@@ -169,19 +158,26 @@ function createUpPropsCommand(): Command {
 
       const result = [];
       for (const prop of props) {
-        const entry: { propId: string; propName: string; propsValues: { valueId: string; valueName: string }[]; matched?: { valueId: string; valueName: string }[] } = {
+        const entry: {
+          propId: string;
+          propName: string;
+          propsValues: { valueId: string; valueName: string }[];
+          matched?: { valueId: string; valueName: string }[];
+        } = {
           propId: prop.propId,
           propName: prop.propName,
-          propsValues: prop.propsValues.map(v => ({ valueId: v.valueId, valueName: v.valueName })),
+          propsValues: prop.propsValues.map((v) => ({ valueId: v.valueId, valueName: v.valueName })),
         };
 
         if (prop.propName === "品牌" && options.brand) {
           try {
             const values = await api.getPropValues(channelCatId, prop.propId, options.brand);
             if (values.length) {
-              entry.matched = values.map(v => ({ valueId: v.valueId, valueName: v.valueName }));
+              entry.matched = values.map((v) => ({ valueId: v.valueId, valueName: v.valueName }));
             }
-          } catch { /* skip */ }
+          } catch {
+            /* skip */
+          }
         }
 
         result.push(entry);
@@ -198,101 +194,119 @@ function createUpPropsCommand(): Command {
 
 /**
  * 直接提交上架（无交互）
+ * 基于 goodsDetail 全量参数，用 flag 覆盖需要修改的字段
  */
 function createUpSubmitCommand(): Command {
   const cmd = new Command("submit");
-  cmd.description("直接提交上架（所有参数通过 flag 传入，无交互）");
+  cmd.description("直接提交上架");
 
-  cmd.requiredOption("--goods-id <id>", "商品 ID");
-  cmd.requiredOption("--account <shopId>", "店铺 thirdUserId");
-  cmd.requiredOption("--biz-type <type>", "商品类型: 15=严选, 2=普通");
-  cmd.requiredOption("--price <amount>", "售价");
-  cmd.requiredOption("--stuff <status>", "成色: 100/99/95/90/-1");
-  cmd.requiredOption("--desc <desc>", "商品描述");
+  cmd.requiredOption("--data <json>", "goodsDetail JSON（JSON 字符串或 @file.json 从文件读取）");
   cmd.requiredOption("--division-id <id>", "发货地区 ID");
   cmd.requiredOption("--cat-id <catId>", "主类目 ID");
   cmd.requiredOption("--channel-cat-id <id>", "子类目 ID");
-  cmd.option("--barcode <barcode>", "商品扣码");
+  cmd.option("--price <amount>", "覆盖售价");
+  cmd.option("--stuff <status>", "覆盖成色: 100/99/95/90/-1");
+  cmd.option("--desc <desc>", "覆盖描述");
+  cmd.option("--barcode <code>", "覆盖扣码");
+  cmd.option("--title <title>", "覆盖标题");
   cmd.option("--goods-no <no>", "货号");
-  cmd.option("--size <size>", "规格");
-  cmd.option("--title <title>", "商品标题");
-  cmd.option("--attrs <json>", "属性列表 JSON（或 @file.txt 从文件读取）");
-  cmd.option("--attrs-file <path>", "属性列表 JSON 文件路径");
-  cmd.option("--services <json>", "服务保障 JSON");
-  cmd.option("--services-file <path>", "服务保障 JSON 文件路径");
+  cmd.option("--size <size>", "规格/尺码");
+  cmd.option("--attrs <json>", "属性列表 JSON（或 @file.json）");
+  cmd.option("--services <json>", "服务保障 JSON（或 @file.json）");
 
-  cmd.action(async (options: {
-    goodsId: string;
-    account: string;
-    bizType: string;
-    price: string;
-    stuff: string;
-    desc: string;
-    divisionId: string;
-    catId: string;
-    channelCatId: string;
-    barcode?: string;
-    goodsNo?: string;
-    size?: string;
-    title?: string;
-    attrs?: string;
-    attrsFile?: string;
-    services?: string;
-    servicesFile?: string;
-  }) => {
-    try {
-      const api = getXianyuApi();
-      const fs = await import("node:fs/promises");
+  cmd.action(
+    async (options: {
+      data: string;
+      divisionId: string;
+      catId: string;
+      channelCatId: string;
+      price?: string;
+      stuff?: string;
+      desc?: string;
+      barcode?: string;
+      title?: string;
+      goodsNo?: string;
+      size?: string;
+      attrs?: string;
+      services?: string;
+    }) => {
+      try {
+        const api = getXianyuApi();
+        const fs = await import("node:fs/promises");
 
-      let itemAttrList: ItemAttr[] = [];
-      if (options.attrsFile) {
-        itemAttrList = JSON.parse(await fs.readFile(options.attrsFile, "utf-8")) as ItemAttr[];
-      } else if (options.attrs) {
-        itemAttrList = JSON.parse(options.attrs) as ItemAttr[];
+        const parseJsonArg = async (arg: string, label: string): Promise<unknown> => {
+          try {
+            if (arg.startsWith("@")) {
+              return JSON.parse(await fs.readFile(arg.slice(1), "utf-8"));
+            }
+            return JSON.parse(arg);
+          } catch {
+            console.log(JSON.stringify({ success: false, error: `${label} 格式错误或文件不存在` }));
+            process.exit(1);
+          }
+        };
+
+        // 读取 goodsDetail 作为基础参数，排除 price 字段
+        const raw = (await parseJsonArg(options.data, "--data")) as Record<string, unknown>;
+        const { price: _price, ...base } = raw;
+
+        // 属性列表
+        let itemAttrList: ItemAttr[] = [];
+        if (options.attrs) {
+          itemAttrList = (await parseJsonArg(options.attrs, "--attrs")) as ItemAttr[];
+        }
+
+        // 服务保障：以 detail 的为基础，覆盖
+        const detailServices = (base.apiAfterSalesDo ?? {}) as Record<string, boolean>;
+        const apiAfterSalesDo: Record<string, boolean> = {
+          supportFd10msPolicy: false,
+          supportFd24hsPolicy: false,
+          supportFd48hsPolicy: false,
+          supportNfrPolicy: false,
+          supportSdrPolicy: false,
+          supportVnrPolicy: false,
+          supportGpaPolicy: false,
+          ...detailServices,
+        };
+        if (options.services) {
+          Object.assign(apiAfterSalesDo, await parseJsonArg(options.services, "--services"));
+        }
+
+        // flag 覆盖
+        const overrides: Record<string, unknown> = {};
+        if (options.price) {
+          overrides.reservePrice = options.price;
+          overrides.originalPrice = options.price;
+        }
+        if (options.stuff) overrides.stuffStatus = options.stuff;
+        if (options.desc) overrides.desc = options.desc;
+        if (options.barcode) overrides.barcode = options.barcode;
+        if (options.title) overrides.title = options.title;
+        if (options.goodsNo) overrides.goodsNo = options.goodsNo;
+        if (options.size) overrides.size = options.size;
+
+        const params = {
+          ...base,
+          ...overrides,
+          divisionId: options.divisionId,
+          categoryId: options.catId,
+          channelCatId: options.channelCatId,
+          itemAttrList,
+          apiAfterSalesDo,
+        };
+
+        // TODO: 正式提交
+        // console.log(JSON.stringify(params, null, 2));
+        const result = await api.upGoods(params);
+        console.log(JSON.stringify({ success: true, result }, null, 2));
+        return;
+      } catch (error) {
+        const msg = error instanceof Error ? error.message : String(error);
+        console.log(JSON.stringify({ success: false, error: msg }));
+        process.exit(1);
       }
-
-      let servicesObj = {};
-      if (options.servicesFile) {
-        servicesObj = JSON.parse(await fs.readFile(options.servicesFile, "utf-8"));
-      } else if (options.services) {
-        servicesObj = JSON.parse(options.services);
-      }
-
-      const apiAfterSalesDo = {
-        supportFd24hsPolicy: false,
-        supportFd48hsPolicy: false,
-        supportNfrPolicy: false,
-        supportSdrPolicy: false,
-        ...servicesObj,
-      };
-
-      const params = {
-        goodsInfoId: options.goodsId,
-        account: options.account,
-        itemBizType: options.bizType,
-        reservePrice: options.price,
-        originalPrice: options.price,
-        stuffStatus: options.stuff,
-        desc: options.desc,
-        divisionId: options.divisionId,
-        categoryId: options.catId,
-        channelCatId: options.channelCatId,
-        itemAttrList,
-        apiAfterSalesDo,
-        ...(options.barcode ? { barcode: options.barcode } : {}),
-        ...(options.goodsNo ? { goodsNo: options.goodsNo } : {}),
-        ...(options.size ? { size: options.size } : {}),
-        ...(options.title ? { title: options.title } : {}),
-      };
-
-      const result = await api.upGoods(params);
-      console.log(JSON.stringify({ success: true, result }, null, 2));
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : String(error);
-      console.log(JSON.stringify({ success: false, error: msg }));
-      process.exit(1);
-    }
-  });
+    },
+  );
 
   return cmd;
 }
@@ -304,46 +318,148 @@ function createUpAddressCommand(): Command {
   const cmd = new Command("address");
   cmd.description("查看或设置发货地址（JSON 输出）");
   cmd.option("--set", "交互选择地址并保存");
+  cmd.option("--provinces", "列出所有省份");
+  cmd.option("--cities <province>", "列出指定省份的城市");
+  cmd.option("--areas <city>", "列出指定城市的地区（需配合 --province）");
+  cmd.option("--save", "直接保存地址（需配合 --province, --city, --area-code）");
+  cmd.option("--province <name>", "省份名称（配合 --areas 或 --save）");
+  cmd.option("--city <name>", "城市名称（配合 --save）");
+  cmd.option("--area-code <code>", "地区编码（配合 --save）");
 
-  cmd.action(async (options: { set?: boolean }) => {
-    try {
-      const storage = createStorageService();
+  cmd.action(
+    async (options: {
+      set?: boolean;
+      provinces?: boolean;
+      cities?: string;
+      areas?: string;
+      save?: boolean;
+      province?: string;
+      city?: string;
+      areaCode?: string;
+    }) => {
+      try {
+        const storage = createStorageService();
 
-      if (!options.set) {
+        if (options.provinces) {
+          console.log(
+            JSON.stringify(
+              cityData.map((p) => ({ name: p.province, code: p.code })),
+              null,
+              2,
+            ),
+          );
+          return;
+        }
+
+        if (options.cities) {
+          const prov = cityData.find((p) => p.province === options.cities);
+          if (!prov) {
+            console.log(JSON.stringify({ error: `未找到省份: ${options.cities}` }));
+            return;
+          }
+          console.log(
+            JSON.stringify(
+              prov.citys.map((c) => ({ name: c.city, code: c.code })),
+              null,
+              2,
+            ),
+          );
+          return;
+        }
+
+        if (options.areas) {
+          const provName = options.province;
+          if (!provName) {
+            console.log(JSON.stringify({ error: "请用 --province 指定省份" }));
+            return;
+          }
+          const prov = cityData.find((p) => p.province === provName);
+          if (!prov) {
+            console.log(JSON.stringify({ error: `未找到省份: ${provName}` }));
+            return;
+          }
+          const city = prov.citys.find((c) => c.city === options.areas);
+          if (!city) {
+            console.log(JSON.stringify({ error: `未找到城市: ${options.areas}` }));
+            return;
+          }
+          console.log(
+            JSON.stringify(
+              city.areas.map((a) => ({ name: a.area, code: a.code })),
+              null,
+              2,
+            ),
+          );
+          return;
+        }
+
+        if (options.save) {
+          if (!options.province || !options.city || !options.areaCode) {
+            console.log(JSON.stringify({ error: "保存地址需要 --province, --city, --area-code" }));
+            return;
+          }
+          const prov = cityData.find((p) => p.province === options.province);
+          if (!prov) {
+            console.log(JSON.stringify({ error: `未找到省份: ${options.province}` }));
+            return;
+          }
+          const city = prov.citys.find((c) => c.city === options.city);
+          if (!city) {
+            console.log(JSON.stringify({ error: `未找到城市: ${options.city}` }));
+            return;
+          }
+          const area = city.areas.find((a) => a.code === options.areaCode);
+          if (!area) {
+            console.log(JSON.stringify({ error: `未找到地区编码: ${options.areaCode}` }));
+            return;
+          }
+          const saved = {
+            divisionId: area.code,
+            province: prov.province,
+            city: city.city,
+            area: area.area,
+          };
+          await storage.saveAddress(saved);
+          console.log(JSON.stringify({ saved }, null, 2));
+          return;
+        }
+
+        if (options.set) {
+          const province = await select({
+            message: "选择省份",
+            choices: cityData.map((p) => ({ name: p.province, value: p })),
+          });
+
+          const city = await select({
+            message: "选择城市",
+            choices: province.citys.map((c) => ({ name: c.city, value: c })),
+          });
+
+          const areaCode = await select({
+            message: "选择地区",
+            choices: city.areas.map((a) => ({ name: a.area, value: a.code })),
+          });
+
+          const areaName = city.areas.find((a) => a.code === areaCode)?.area ?? "";
+          const saved = {
+            divisionId: areaCode,
+            province: province.province,
+            city: city.city,
+            area: areaName,
+          };
+
+          await storage.saveAddress(saved);
+          console.log(JSON.stringify({ saved }, null, 2));
+          return;
+        }
+
         const address = await storage.getAddress();
         console.log(JSON.stringify({ address }, null, 2));
-        return;
+      } catch (error) {
+        handleCommandError(error);
       }
-
-      const province = await select({
-        message: "选择省份",
-        choices: cityData.map(p => ({ name: p.province, value: p })),
-      });
-
-      const city = await select({
-        message: "选择城市",
-        choices: province.citys.map(c => ({ name: c.city, value: c })),
-      });
-
-      const areaCode = await select({
-        message: "选择地区",
-        choices: city.areas.map(a => ({ name: a.area, value: a.code })),
-      });
-
-      const areaName = city.areas.find(a => a.code === areaCode)?.area ?? "";
-      const saved = {
-        divisionId: areaCode,
-        province: province.province,
-        city: city.city,
-        area: areaName,
-      };
-
-      await storage.saveAddress(saved);
-      console.log(JSON.stringify({ saved }, null, 2));
-    } catch (error) {
-      handleCommandError(error);
-    }
-  });
+    },
+  );
 
   return cmd;
 }

@@ -11,7 +11,7 @@ import type {
   XyCategory,
   XyProp,
   XyPropValue,
-  XyGoodsUpParams,
+
 } from "../../types/xianyu.js";
 
 export class XianyuApiService {
@@ -60,7 +60,7 @@ export class XianyuApiService {
     return this.client.get<XyPropValue[]>("platform/xy/props/value", params);
   }
 
-  async upGoods(params: XyGoodsUpParams): Promise<{ result: string }> {
+  async upGoods(params: Record<string, unknown>): Promise<{ result: string }> {
     return this.client.post<{ result: string }>("mms/seller/xy/goods/up", params);
   }
 

@@ -64,13 +64,7 @@ export class UpFlowService {
 
     // 步骤 2: 选择成色
     stepHeader(2, "选择成色等级");
-    const bizTypeChoices = ITEM_BIZ_TYPES.map(t => ({ name: t.label, value: t.value as string }));
-    const itemBizType = opts.bizType
-      ?? await select({
-        message: "选择商品类型",
-        choices: bizTypeChoices,
-        default: bizTypeChoices.find(c => c.value === goodsDetail.itemBizType)?.value,
-      });
+    const itemBizType = "2";
 
     const stuffChoices = Object.entries(STUFF_LABELS).map(([value, label]) => ({ name: label, value }));
     const stuffStatus = opts.stuffStatus

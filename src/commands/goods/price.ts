@@ -16,6 +16,12 @@ export function createPriceCommand(): Command {
 
   command.action(async (id: string, options: { price: string }) => {
     try {
+      const priceNum = Number(options.price);
+      if (isNaN(priceNum) || priceNum <= 0) {
+        console.log(chalk.red("请输入有效的价格（正数）"));
+        return;
+      }
+
       const api = getXianyuApi();
       console.log(chalk.cyan(`正在修改价格...`));
 

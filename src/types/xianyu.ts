@@ -126,10 +126,13 @@ export interface ItemAttr {
 }
 
 export interface AfterSalesDo {
-  supportFd24hsPolicy: boolean;
-  supportFd48hsPolicy: boolean;
-  supportNfrPolicy: boolean;
-  supportSdrPolicy: boolean;
+  supportFd10msPolicy?: boolean;
+  supportFd24hsPolicy?: boolean;
+  supportFd48hsPolicy?: boolean;
+  supportNfrPolicy?: boolean;
+  supportSdrPolicy?: boolean;
+  supportVnrPolicy?: boolean;
+  supportGpaPolicy?: boolean;
 }
 
 export interface XyGoodsUpParams {
