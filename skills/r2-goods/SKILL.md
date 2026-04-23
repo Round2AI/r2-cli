@@ -1,34 +1,36 @@
 ---
 name: r2-goods
-description: R2-CLI 商品管理专家。用于商品上架、下架、改价、列表等操作，支持交互式向导和 AI Agent 分步执行。触发关键词：上架、下架、商品列表、改价、goods、商品。
-triggers:
-  - 上架
-  - 下架
-  - 商品列表
-  - 改价
-  - goods
-  - 商品
-  - 寄售
-  - 上架商品
-role: specialist
-scope: implementation
-output-format: code
+description: R2-CLI 商品管理专家。用于商品上架、下架、改价、列表等操作，支持交互式向导和 AI Agent 分步执行（上架、下架、商品列表、改价、goods、商品、寄售）。
 ---
 
 # R2-Goods Skill
 
 商品管理专家，理解闲鱼/抖音商品上架全流程，能指导 AI Agent 正确调用 CLI 命令完成商品操作。
 
+## 安装与调用方式
+
+全局安装：
+```bash
+npm install -g @round2ai/r2-cli@latest
+```
+
+自动检测命令前缀（首次使用时执行一次）：
+1. 项目目录有 `package.json`（name 含 r2-cli）→ 使用 `npm run dev --`
+2. 存在 `dist/cli.js` → 使用 `node dist/cli.js`
+3. `r2 --version` 成功 → 使用 `r2`
+
+以下文档使用 `r2` 作为前缀，根据检测结果替换。
+
 ## 命令概览
 
 | 命令 | 说明 |
 |------|------|
-| `goods shops` | 查看已授权店铺（`-p xianyu/douyin`） |
-| `goods list` | 寄售商品列表（`--status wait/on/sold/down`） |
-| `goods up` | 交互式上架向导（7步） |
-| `goods down <ids...>` | 下架商品（支持批量） |
-| `goods reup <ids...>` | 重新上架（支持批量） |
-| `goods price <id> --price <amount>` | 修改售价 |
+| `r2 goods shops` | 查看已授权店铺（`-p xianyu/douyin`） |
+| `r2 goods list` | 寄售商品列表（`--status wait/on/sold/down`） |
+| `r2 goods up` | 交互式上架向导（7步） |
+| `r2 goods down <ids...>` | 下架商品（支持批量） |
+| `r2 goods reup <ids...>` | 重新上架（支持批量） |
+| `r2 goods price <id> --price <amount>` | 修改售价 |
 
 ## goods list 选项
 
@@ -38,7 +40,7 @@ output-format: code
 
 ## 交互式上架（7步）
 
-`goods up` 直接进入交互式向导：
+`r2 goods up` 直接进入交互式向导：
 
 1. **店铺选择**（缓存优先）— 有缓存直接确认，无缓存则选平台+店铺
 2. **选择商品** — 从待同步列表中选择
@@ -56,25 +58,25 @@ output-format: code
 Agent 无法操作交互式选择器，使用子命令逐步执行：
 
 ```
-1. goods list --status wait     → 获取待上架商品列表
-2. goods up info <id>           → 获取商品详情 + 店铺 + 地址 + 预填值
-3. goods up address ...         → （仅地址为 null 时）设置发货地址
-4. goods up categories          → 获取分类树
-5. goods up props <catId>       → 获取分类属性 + 品牌搜索
-6. goods up submit ...          → 提交上架
+1. r2 goods list --status wait     → 获取待上架商品列表
+2. r2 goods up info <id>           → 获取商品详情 + 店铺 + 地址 + 预填值
+3. r2 goods up address ...         → （仅地址为 null 时）设置发货地址
+4. r2 goods up categories          → 获取分类树
+5. r2 goods up props <catId>       → 获取分类属性 + 品牌搜索
+6. r2 goods up submit ...          → 提交上架
 ```
 
 ### 第1步：获取待上架商品列表
 
 ```bash
-npm run dev -- goods list --status wait
+r2 goods list --status wait
 # 表格输出：ID、名称、货号、规格、售价
 ```
 
 ### 第2步：获取商品详情
 
 ```bash
-npm run dev -- goods up info <goodsInfoId>
+r2 goods up info <goodsInfoId>
 # 返回: { shops, selectedShop, goodsDetail(含goodsInfoId), prefill, address }
 ```
 
@@ -88,7 +90,7 @@ npm run dev -- goods up info <goodsInfoId>
 | `brandName` | 品牌名 | 用于品牌属性搜索 |
 | `size` | 规格/尺码 | 用于尺码属性匹配 |
 
-**address**：为 `null` 时需先执行 `goods up address --save`。
+**address**：为 `null` 时需先执行 `r2 goods up address --save`。
 
 选项：`--shop <shopId>` `-p, --platform <xianyu|douyin>`
 
@@ -98,31 +100,31 @@ npm run dev -- goods up info <goodsInfoId>
 
 ```bash
 # 列出省份
-npm run dev -- goods up address --provinces
+r2 goods up address --provinces
 # 列出城市
-npm run dev -- goods up address --cities <省份名>
+r2 goods up address --cities <省份名>
 # 列出地区
-npm run dev -- goods up address --areas <城市名> --province <省份名>
+r2 goods up address --areas <城市名> --province <省份名>
 # 保存地址
-npm run dev -- goods up address --save --province <省> --city <市> --area-code <code>
+r2 goods up address --save --province <省> --city <市> --area-code <code>
 ```
 
 交互式（人类使用）：
 
 ```bash
-npm run dev -- goods up address --set
+r2 goods up address --set
 ```
 
 查看当前地址：
 
 ```bash
-npm run dev -- goods up address
+r2 goods up address
 ```
 
 ### 第4步：获取分类列表
 
 ```bash
-npm run dev -- goods up categories
+r2 goods up categories
 # 返回: [{ catId, catName, children: [{ channel, channelCatId }] }]
 ```
 
@@ -131,7 +133,7 @@ npm run dev -- goods up categories
 ### 第5步：获取分类属性
 
 ```bash
-npm run dev -- goods up props <channelCatId> --brand <keyword>
+r2 goods up props <channelCatId> --brand <keyword>
 # 返回: [{ propId, propName, propsValues: [{ valueId, valueName }], matched? }]
 ```
 
@@ -145,7 +147,7 @@ npm run dev -- goods up props <channelCatId> --brand <keyword>
 # 2. 保存属性列表到文件
 # 3. 调用 submit
 
-npm run dev -- goods up submit \
+r2 goods up submit \
   --data @detail.json \
   --division-id <id> \
   --cat-id <catId> \

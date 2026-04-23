@@ -60,7 +60,7 @@ R2-CLI 是面向二手潮奢交易场景的 CLI 工具，将业务能力以 CLI 
 
 ### 错误处理
 - `src/errors/index.ts` — `R2Error` → `ApiError`（含 `status`、`response`）、`AuthError`、`StorageError`、`PollingError`、`CliError`
-- `src/commands/goods/shared.ts` — `handleCommandError()` 按错误类型分发：AuthError → 登录提示，ApiError → 消息 + 状态码，其他 → 通用处理
+- `src/commands/shared.ts` — `handleCommandError()` 按错误类型分发：AuthError → 登录提示，ApiError → 消息 + 状态码，其他 → 通用处理
 
 ### 构建系统
 - `scripts/build.js` — esbuild。通过 dotenv 读取 `.env` / `.env.production`。用 `cross-env NODE_ENV` 选择环境。`process.env.R2_API_URL` 构建时注入。所有运行时依赖（commander、chalk、@inquirer/*、ora、react、ink 等）externalize。
@@ -69,6 +69,12 @@ R2-CLI 是面向二手潮奢交易场景的 CLI 工具，将业务能力以 CLI 
 ### 关键类型
 - `src/types/auth.ts` — `UserInfo`、`QRCodeStatus`、`GenerateQRCodeData`、`QRCodeStatusData`
 - `src/types/xianyu.ts` — `XyShop`、`SellerGoodsItem`、`XyGoodsDetail`、`XyGoodsUpParams`、`ItemAttr`、`StuffLevel`、`ITEM_BIZ_TYPES`、`STUFF_LABELS`
+
+### 终端 UI 组件 (`src/components/`)
+- `GoodsTable.tsx` — 商品列表表格（Ink + React）
+- `ShopsTable.tsx` — 店铺列表表格
+- `UserInfoCard.tsx` — 用户信息卡片
+- 使用 `render(React.createElement(...))` 挂载，仅在结构化数据展示时使用；简单状态提示保持 chalk。
 
 ### Skill 体系
 

@@ -1,27 +1,32 @@
 ---
 name: r2-auth
-description: R2-CLI 认证登录专家。两步式扫码登录：生成二维码图片 + 轮询确认。触发关键词：登录、login、auth、扫码。
-triggers:
-  - 登录
-  - login
-  - auth
-  - 扫码
-  - 二维码
-role: specialist
-scope: implementation
-output-format: code
+description: R2-CLI 认证登录专家。两步式扫码登录：生成二维码图片 + 轮询确认。用于登录、login、auth、扫码、二维码场景。
 ---
 
 # R2-Auth Skill
 
 两步式扫码登录，专为 AI Agent 设计。第一步生成二维码，Agent 将 unicodeQR 直接输出到聊天窗口展示给用户；第二步轮询等待用户扫码确认。
 
+## 安装与调用方式
+
+全局安装：
+```bash
+npm install -g @round2ai/r2-cli@latest
+```
+
+自动检测命令前缀（首次使用时执行一次）：
+1. 项目目录有 `package.json`（name 含 r2-cli）→ 使用 `npm run dev --`
+2. 存在 `dist/cli.js` → 使用 `node dist/cli.js`
+3. `r2 --version` 成功 → 使用 `r2`
+
+以下文档使用 `r2` 作为前缀，根据检测结果替换。
+
 ## 登录流程（两步）
 
 ### 第1步：生成二维码
 
 ```bash
-npm run dev -- auth login qr
+r2 auth login qr
 ```
 
 输出 JSON：
@@ -42,7 +47,7 @@ npm run dev -- auth login qr
 **关键**：输出二维码后，Agent 必须立即在后台启动轮询，不要等待用户回复。
 
 ```bash
-npm run dev -- auth login poll --token <qrToken> --expire <expireTimeMs> --interval <pollIntervalMs>
+r2 auth login poll --token <qrToken> --expire <expireTimeMs> --interval <pollIntervalMs>
 ```
 
 使用 Bash 工具的 `run_in_background: true` 启动轮询，然后用 `TaskOutput` 阻塞等待结果。参数取自第1步返回的 JSON 字段。
@@ -68,13 +73,13 @@ npm run dev -- auth login poll --token <qrToken> --expire <expireTimeMs> --inter
 
 | 命令 | 说明 |
 |------|------|
-| `auth status` | 查看登录状态 |
-| `auth logout` | 退出登录 |
+| `r2 auth status` | 查看登录状态 |
+| `r2 auth logout` | 退出登录 |
 
 ## 人类一键登录
 
 ```bash
-npm run dev -- auth login
+r2 auth login
 ```
 
 直接在终端显示 unicode 二维码，适合人类在 CLI 中使用。
