@@ -83,9 +83,9 @@ function createUpInfoCommand(): Command {
               expired: Date.now() > s.expiresIn,
             })),
             selectedShop: { name: shop.name, thirdUserId: shop.thirdUserId },
-            goodsDetail: { ...detail, goodsInfoId },
+            goodsDetail: { ...detail, goodsInfoId, itemBizType: "2" },
             prefill: {
-              itemBizType: detail.itemBizType,
+              itemBizType: "2",
               stuffStatus: detail.stuffStatus,
               reservePrice: detail.reservePrice,
               desc: detail.desc,
