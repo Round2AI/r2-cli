@@ -14,7 +14,9 @@
       "mcp__plugin_context7_context7__resolve-library-id",
       "Bash(npm uninstall *)",
       "Bash(npm install *)",
-      "Bash(git rm *)"
+      "Bash(git rm *)",
+      "Bash(curl *)",
+      "Bash(git push *)"
     ]
   }
 }

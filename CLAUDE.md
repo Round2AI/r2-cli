@@ -56,6 +56,8 @@ R2-CLI 是面向二手潮奢交易场景的 CLI 工具，将业务能力以 CLI 
 - **人类模式**：`auth login` — 生成二维码、终端显示 unicode、轮询直到确认
 - **Agent 模式**：`auth login qr`（第 1 步：生成二维码 → JSON 输出）然后 `auth login poll --token <> --expire <> --interval <>`（第 2 步：轮询直到确认 → JSON 输出）
 
+**重要**：当用户在 Claude Code 会话中请求登录时，必须按 `skills/r2-auth/SKILL.md` 的两步式流程执行（生成二维码 → 将 unicodeQR 输出到聊天窗口 → 后台启动轮询），不要直接使用 `auth login` 交互式命令。
+
 ### 错误处理
 - `src/errors/index.ts` — `R2Error` → `ApiError`（含 `status`、`response`）、`AuthError`、`StorageError`、`PollingError`、`CliError`
 - `src/commands/goods/shared.ts` — `handleCommandError()` 按错误类型分发：AuthError → 登录提示，ApiError → 消息 + 状态码，其他 → 通用处理
