@@ -21,7 +21,7 @@ const apiUrl = process.env.R2_API_URL || process.env.SERVER_BASEURL || 'https://
 
 // 入口点配置
 const entryPoints = {
-  cli: 'src/entrypoints/cli.tsx',
+  cli: 'src/entrypoints/r2-cli.tsx',
 };
 
 // esbuild 配置
@@ -42,9 +42,7 @@ const esbuildConfig = {
     '@inquirer/confirm',
     '@inquirer/checkbox',
     'mute-stream',
-    'open',
     'qrcode',
-    'mammoth',
     'ora',
     'react',
     'ink',
@@ -62,23 +60,6 @@ const esbuildConfig = {
   },
   treeShaking: true,
   splitting: false,
-  plugins: [
-    {
-      name: 'remove-shebang',
-      setup(build) {
-        build.onEnd(async (result) => {
-          if (!result.errors.length) {
-            for (const output of result.outputFiles || []) {
-              const isCliFile = output.path.includes('cli.js');
-              if (!isCliFile && output.text.startsWith('#!/usr/bin/env node')) {
-                output.text = output.text.replace('#!/usr/bin/env node\n', '');
-              }
-            }
-          }
-        });
-      }
-    }
-  ]
 };
 
 /**

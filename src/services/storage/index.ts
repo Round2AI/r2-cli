@@ -53,16 +53,8 @@ export class StorageService implements IStorageService {
       const config = JSON.parse(content) as LocalConfig;
       this.config = config;
       return config;
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-        // 文件不存在，返回空配置
-        return { credentials: null };
-      }
-      throw new StorageError(
-        "Failed to load config",
-        this.configPath,
-        (error as NodeJS.ErrnoException).code,
-      );
+    } catch {
+      return { credentials: null };
     }
   }
 

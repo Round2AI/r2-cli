@@ -38,7 +38,7 @@ R2-CLI 是面向二手潮奢交易场景的 CLI 工具，将业务能力以 CLI 
 - `api-client.interface.ts` — `IApiClient`、`IQRCodeAuthApi`、`ApiConfig`、`ApiResponse<T>`
 
 **本地存储** (`src/services/storage/`)：
-- `index.ts` — `StorageService`，文件存储位于 `~/.r2-cli/config.json`。管理凭证（token + userInfo + expire）、缓存地址（province/city/area/divisionId）、缓存店铺（thirdUserId + name + platform）。
+- `index.ts` — `StorageService`（`createStorageService()` 单例），文件存储位于 `~/.r2-cli/config.json`。管理凭证（token + userInfo + expire）、缓存地址（province/city/area/divisionId）、缓存店铺（thirdUserId + name + platform）。`loadConfig()` 对文件不存在或 JSON 解析失败均返回空配置。
 - `storage-service.interface.ts` — `StoredCredentials`（含可选 `expire`）、`StoredAddress`、`StoredShop`、`LocalConfig`
 
 **领域服务** (`src/services/xy/`)：
@@ -60,7 +60,7 @@ R2-CLI 是面向二手潮奢交易场景的 CLI 工具，将业务能力以 CLI 
 
 ### 错误处理
 - `src/errors/index.ts` — `R2Error` → `ApiError`（含 `status`、`response`）、`AuthError`、`StorageError`、`PollingError`、`CliError`
-- `src/commands/shared.ts` — `handleCommandError()` 按错误类型分发：AuthError → 登录提示，ApiError → 消息 + 状态码，其他 → 通用处理
+- `src/commands/shared.ts` — `handleCommandError()` 按错误类型分发：AuthError → 登录提示，ApiError → 消息 + 状态码，StorageError → 配置异常提示，其他 → 通用处理
 
 ### 构建系统
 - `scripts/build.js` — esbuild。通过 dotenv 读取 `.env` / `.env.production`。用 `cross-env NODE_ENV` 选择环境。`process.env.R2_API_URL` 构建时注入。所有运行时依赖（commander、chalk、@inquirer/*、ora、react、ink 等）externalize。

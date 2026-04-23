@@ -3,7 +3,7 @@
  */
 
 import chalk from "chalk";
-import { AuthError, ApiError } from "../errors/index.js";
+import { AuthError, ApiError, StorageError } from "../errors/index.js";
 
 export function handleCommandError(error: unknown): never {
   if (error instanceof AuthError) {
@@ -14,6 +14,10 @@ export function handleCommandError(error: unknown): never {
     if (error.status) {
       console.error(chalk.gray(`  状态码: ${error.status}`));
     }
+  } else if (error instanceof StorageError) {
+    console.error(chalk.red(`配置文件异常: ${error.message}`));
+    if (error.path) console.error(chalk.gray(`  路径: ${error.path}`));
+    console.error(chalk.yellow("请尝试重新登录: r2 auth login\n"));
   } else {
     const msg = error instanceof Error ? error.message : String(error);
     console.error(chalk.red(`操作失败: ${msg}`));
