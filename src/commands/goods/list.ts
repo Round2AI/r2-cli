@@ -4,9 +4,11 @@
 
 import { Command } from "commander";
 import chalk from "chalk";
+import React from "react";
+import { render } from "ink";
 import { getXianyuApi } from "../../services/xy/xianyu-api.service.js";
-import { handleCommandError } from "./shared.js";
-import type { GoodsStatus, SellerGoodsItem } from "../../types/xianyu.js";
+import { handleCommandError } from "../shared.js";
+import { GoodsTable } from "../../components/GoodsTable.js";
 
 export function createListCommand(): Command {
   const command = new Command("list");
@@ -19,6 +21,22 @@ export function createListCommand(): Command {
 
   command.action(async (options: { status?: string; keyword?: string; page?: string; size?: string }) => {
     try {
+      if (options.status && !["wait", "on", "sold", "down"].includes(options.status)) {
+        console.log(chalk.red("状态必须是: wait/on/sold/down"));
+        return;
+      }
+
+      const pageNum = Number(options.page);
+      const sizeNum = Number(options.size);
+      if (options.page && (!Number.isInteger(pageNum) || pageNum < 1)) {
+        console.log(chalk.red("页码必须是正整数"));
+        return;
+      }
+      if (options.size && (!Number.isInteger(sizeNum) || sizeNum < 1)) {
+        console.log(chalk.red("每页数量必须是正整数"));
+        return;
+      }
+
       const api = getXianyuApi();
       const params: Record<string, unknown> = {
         page: Number(options.page) || 1,
@@ -26,55 +44,24 @@ export function createListCommand(): Command {
       };
       if (options.status) params.status = options.status;
       if (options.keyword) params.key = options.keyword;
-      const result = await api.getSellerGoodsList(params as import("../../types/xianyu.js").SellerGoodsListParams);
+      const result = await api.getSellerGoodsList(params);
 
       if (!result.items.length) {
         console.log(chalk.yellow("暂无商品"));
         return;
       }
 
-      const statusFilter = options.status
-        ? ` (状态: ${options.status})`
-        : "";
-
-      console.log(chalk.cyan(`\n寄售商品列表${statusFilter} (共 ${result.total} 条):\n`));
-      console.log(
-        chalk.gray("  " + "ID".padEnd(8) + "状态".padEnd(6) + "名称".padEnd(30) + "货号".padEnd(16) + "规格".padEnd(10) + "售价".padStart(8) + "  闲鱼状态"),
+      render(
+        React.createElement(GoodsTable, {
+          items: result.items,
+          total: result.total,
+          statusFilter: options.status || "",
+        }),
       );
-      console.log(chalk.gray("  " + "─".repeat(90)));
-
-      for (const item of result.items) {
-        displayGoodsItem(item);
-      }
     } catch (error) {
       handleCommandError(error);
     }
   });
 
   return command;
-}
-
-function displayGoodsItem(item: SellerGoodsItem): void {
-  const xyStatus = item.xySaleChannel
-    ? item.xySaleChannel.sold === 1
-      ? "已出售"
-      : item.xySaleChannel.status === "on"
-        ? "已上架"
-        : "已下架"
-    : item.status === "wait"
-      ? chalk.yellow("待上架")
-      : "-";
-
-  const xyPrice = item.xySaleChannel ? `¥${item.xySaleChannel.price}` : "";
-
-  console.log(
-    chalk.gray(`${item.id}`.padEnd(8 + 2)) +
-    chalk.white(`${item.statusName.padEnd(6)}`) +
-    chalk.bold((item.name ?? "").padEnd(30)) +
-    chalk.gray(`${item.goodsNo || "-"}`.padEnd(16)) +
-    chalk.gray(`${item.size || "-"}`.padEnd(10)) +
-    chalk.green(`¥${item.price}`.padStart(8)) +
-    chalk.gray("  " + xyStatus) +
-    (xyPrice ? chalk.gray(`  ${xyPrice}`) : ""),
-  );
 }

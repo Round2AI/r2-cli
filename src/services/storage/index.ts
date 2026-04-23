@@ -5,7 +5,6 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import os from "node:os";
-import { stat, mkdir } from "node:fs/promises";
 import type { UserInfo } from "../../types/auth.js";
 import type { IStorageService, LocalConfig, StoredCredentials, StoredAddress, StoredShop } from "./storage-service.interface.js";
 import { StorageError } from "../../errors/index.js";
@@ -78,11 +77,10 @@ export class StorageService implements IStorageService {
 
     try {
       // 检查目录是否存在，不存在则创建
-      await stat(dirPath);
+      await fs.stat(dirPath);
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-        // 目录不存在，创建目录
-        await mkdir(dirPath, { recursive: true });
+        await fs.mkdir(dirPath, { recursive: true });
       } else {
         throw new StorageError(
           "Failed to create directory",
@@ -219,6 +217,9 @@ export class StorageService implements IStorageService {
 /**
  * 创建存储服务
  */
+let instance: StorageService | null = null;
+
 export function createStorageService(): StorageService {
-  return new StorageService();
+  if (!instance) instance = new StorageService();
+  return instance;
 }

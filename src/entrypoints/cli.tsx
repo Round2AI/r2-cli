@@ -6,7 +6,7 @@
  */
 
 import { Command } from "commander";
-import fse from "fs-extra";
+import { readFileSync } from "node:fs";
 import path from "node:path";
 import chalk from "chalk";
 import figlet from "figlet";
@@ -31,8 +31,8 @@ function setupCliApp(): Command {
 
   // 从 import.meta.dirname 旁边的 package.json 读版本号
   try {
-    const pkgJson = fse.readJSONSync(
-      path.join(import.meta.dirname, "../../package.json"),
+    const pkgJson = JSON.parse(
+      readFileSync(path.join(import.meta.dirname, "../../package.json"), "utf-8"),
     );
     program.version(pkgJson.version, "-v, --version");
   } catch {
@@ -50,14 +50,6 @@ function setupCliApp(): Command {
     displayWelcomeMessage();
     program.help();
   });
-
-  program
-    .command("chat")
-    .description("启动 AI 聊天模式")
-    .option("--stream", "使用流式响应")
-    .action(async (options) => {
-      console.log(chalk.blue("🚀 启动 AI 聊天模式..."));
-    });
 
   setupCommands(program);
 

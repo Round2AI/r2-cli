@@ -1,3 +1,5 @@
+import React from "react";
+import { render } from "ink";
 import { Command } from "commander";
 import chalk from "chalk";
 import path from "node:path";
@@ -8,6 +10,8 @@ import { poll } from "../../utils/polling.js";
 import { type IQRCodeAuthApi, ApiClientService, QRCodeAuthApiService } from "../../services/api/index.js";
 import { createStorageService, StorageService } from "../../services/storage/index.js";
 import { AuthError } from "../../errors/index.js";
+import { handleCommandError } from "../shared.js";
+import { UserInfoCard } from "../../components/UserInfoCard.js";
 
 import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
@@ -158,13 +162,7 @@ class LoginService {
    * 显示用户信息
    */
   private displayUserInfo(userInfo: UserInfo): void {
-    const maskedMobile = userInfo.mobile.replace(/(\d{3})\d{4}(\d{4})/, "$1****$2");
-
-    console.log(chalk.white("━━━━━━━━━━━━━━━━━━━━━━━━━━━━"));
-    console.log(chalk.cyan("用户信息:"));
-    console.log(chalk.white("  昵称:   ") + chalk.yellow(userInfo.nickname));
-    console.log(chalk.white("  手机号: ") + chalk.yellow(maskedMobile));
-    console.log(chalk.white("━━━━━━━━━━━━━━━━━━━━━━━━━━━━"));
+    render(React.createElement(UserInfoCard, { userInfo }));
   }
 
   /**
@@ -172,12 +170,6 @@ class LoginService {
    */
   private async saveCredentials(token: string, userInfo: UserInfo): Promise<void> {
     await this.storage.saveCredentials(token, userInfo);
-
-    const credentials = await this.storage.getCredentials();
-    // console.log(chalk.gray("\n💾 凭证已保存到: " + this.storage.getConfigPath()));
-    // console.log(chalk.gray(`   Token: ${token.substring(0, 20)}...`));
-    // console.log(chalk.gray(`   用户: ${userInfo.nickname} (${userInfo.username})`));
-    // console.log(chalk.gray(`   保存时间: ${new Date(credentials!.timestamp).toLocaleString()}`));
   }
 
   /**
@@ -196,8 +188,6 @@ class LoginService {
    * 查看登录状态
    */
   async status(): Promise<void> {
-    console.log(chalk.cyan("\n📊 查看登录状态...\n"));
-
     const isLoggedIn = await this.storage.isLoggedIn();
 
     if (!isLoggedIn) {
@@ -211,10 +201,7 @@ class LoginService {
     const daysSinceLogin = Math.floor((Date.now() - credentials!.timestamp) / (1000 * 60 * 60 * 24));
 
     console.log(chalk.green("✅ 已登录\n"));
-    this.displayUserInfo(userInfo);
-    console.log(chalk.gray("\n📅 最后登录: " + lastLogin.toLocaleString()));
-    console.log(chalk.gray("   距离今天: " + daysSinceLogin + " 天前"));
-    // console.log(chalk.gray("\n💾 配置文件: " + this.storage.getConfigPath()));
+    render(React.createElement(UserInfoCard, { userInfo, lastLogin, daysSinceLogin }));
   }
 
   /**
@@ -222,7 +209,6 @@ class LoginService {
    */
   private async clearCredentials(): Promise<void> {
     await this.storage.clearCredentials();
-    // console.log(chalk.gray("💾 凭证已从 " + this.storage.getConfigPath() + " 清除"));
   }
 }
 
@@ -312,9 +298,7 @@ export function createLoginCommand(): Command {
       await loginService.login(controller.signal);
       clearTimeout(timeout);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      console.error(chalk.red(`❌ ${errorMessage}`));
-      process.exit(1);
+      handleCommandError(error);
     }
   });
 
@@ -333,9 +317,7 @@ export function createLogoutCommand(): Command {
       const loginService = new LoginService();
       await loginService.logout();
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      console.error(chalk.red(`❌ ${errorMessage}`));
-      process.exit(1);
+      handleCommandError(error);
     }
   });
 
@@ -354,9 +336,7 @@ export function createStatusCommand(): Command {
       const loginService = new LoginService();
       await loginService.status();
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      console.error(chalk.red(`❌ ${errorMessage}`));
-      process.exit(1);
+      handleCommandError(error);
     }
   });
 

@@ -101,11 +101,15 @@ export class ApiClientService implements IApiClient {
    */
   private async request<T = unknown>(path: string, config: RequestConfig): Promise<T> {
     const url = this.buildUrl(path);
-    const { method, headers, body } = config;
+    const { method, headers, body, timeout = 30000 } = config;
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeout);
 
     const init: RequestInit = {
       method,
       headers: { ...this.buildHeaders(), ...headers },
+      signal: controller.signal,
     };
 
     if (body !== undefined) {
@@ -116,31 +120,20 @@ export class ApiClientService implements IApiClient {
       console.log(`[API ${method}]`, url, body);
     }
 
-    const response = await fetch(url, init);
-    return this.handleResponse<T>(response);
+    try {
+      const response = await fetch(url, init);
+      return this.handleResponse<T>(response);
+    } finally {
+      clearTimeout(timer);
+    }
   }
 
   /**
    * GET 请求
    */
   async get<T = unknown>(path: string, params?: URLSearchParams): Promise<T> {
-    let url = this.buildUrl(path);
-
-    if (params && params.size > 0) {
-      url += `?${params.toString()}`;
-    }
-
-    const init: RequestInit = {
-      method: "GET",
-      headers: this.buildHeaders(),
-    };
-
-    if (this.config.debug) {
-      console.log(`[API GET]`, url);
-    }
-
-    const response = await fetch(url, init);
-    return this.handleResponse<T>(response);
+    const fullPath = params && params.size > 0 ? `${path}?${params.toString()}` : path;
+    return this.request<T>(fullPath, { method: "GET" });
   }
 
   /**

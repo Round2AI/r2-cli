@@ -64,16 +64,16 @@ export class XianyuApiService {
     return this.client.post<{ result: string }>("mms/seller/xy/goods/up", params);
   }
 
-  async batchDown(goodsChannelIds: string): Promise<unknown> {
-    return this.client.get<unknown>("mms/seller/xy/goods/batch/down", this.toParams({ goodsChannelIds }));
+  async batchDown(goodsChannelIds: string): Promise<Record<string, unknown>> {
+    return this.client.get("mms/seller/xy/goods/batch/down", this.toParams({ goodsChannelIds }));
   }
 
-  async batchReUp(goodsChannelIds: string): Promise<unknown> {
-    return this.client.get<unknown>("mms/seller/xy/goods/reUp", this.toParams({ goodsChannelIds }));
+  async batchReUp(goodsChannelIds: string): Promise<Record<string, unknown>> {
+    return this.client.get("mms/seller/xy/goods/reUp", this.toParams({ goodsChannelIds }));
   }
 
-  async updatePrice(id: string, price: string): Promise<unknown> {
-    return this.client.post<unknown>("mms/seller/xy/goods/update/price", { id, price });
+  async updatePrice(id: string, price: string): Promise<Record<string, unknown>> {
+    return this.client.post("mms/seller/xy/goods/update/price", { id, price });
   }
 }
 

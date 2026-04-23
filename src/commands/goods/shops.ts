@@ -2,10 +2,13 @@
  * 店铺列表命令
  */
 
+import React from "react";
+import { render } from "ink";
 import { Command } from "commander";
 import chalk from "chalk";
 import { getXianyuApi } from "../../services/xy/xianyu-api.service.js";
 import { handleCommandError } from "./shared.js";
+import { ShopsTable } from "../../components/ShopsTable.js";
 
 export function createShopsCommand(): Command {
   const command = new Command("shops");
@@ -24,17 +27,7 @@ export function createShopsCommand(): Command {
         return;
       }
 
-      console.log(chalk.cyan(`\n${platformName}授权店铺:\n`));
-
-      for (const shop of shops) {
-        const expired = Date.now() > shop.expiresIn;
-        const status = expired ? chalk.red("已过期") : chalk.green("授权中");
-        const expireDate = new Date(shop.expiresIn).toLocaleDateString();
-
-        console.log(chalk.white(`  ${shop.name}`));
-        console.log(chalk.gray(`    ID: ${shop.thirdUserId}  状态: ${status}  到期: ${expireDate}`));
-      }
-      console.log();
+      render(React.createElement(ShopsTable, { shops, platform: options.platform }));
     } catch (error) {
       handleCommandError(error);
     }

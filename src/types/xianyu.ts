@@ -115,7 +115,6 @@ export const STUFF_LABELS: Record<StuffLevel, string> = {
 };
 
 export const ITEM_BIZ_TYPES = [
-  // { label: "闲鱼严选", value: "15" },
   { label: "普通商品", value: "2" },
 ] as const;
 

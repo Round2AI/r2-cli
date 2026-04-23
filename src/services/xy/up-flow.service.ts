@@ -24,7 +24,6 @@ import cityData from "./citys.json" with { type: "json" };
 
 export interface UpOptions {
   shop?: string;
-  bizType?: string;
   stuffStatus?: string;
   desc?: string;
   price?: string;

@@ -12,6 +12,7 @@ import { UpFlowService } from "../../services/xy/up-flow.service.js";
 import { getXianyuApi } from "../../services/xy/xianyu-api.service.js";
 import { createStorageService } from "../../services/storage/index.js";
 import { handleCommandError } from "./shared.js";
+import { parseJsonArg } from "../../utils/index.js";
 import type { ItemAttr } from "../../types/xianyu.js";
 import cityData from "../../services/xy/citys.json" with { type: "json" };
 
@@ -232,19 +233,6 @@ function createUpSubmitCommand(): Command {
     }) => {
       try {
         const api = getXianyuApi();
-        const fs = await import("node:fs/promises");
-
-        const parseJsonArg = async (arg: string, label: string): Promise<unknown> => {
-          try {
-            if (arg.startsWith("@")) {
-              return JSON.parse(await fs.readFile(arg.slice(1), "utf-8"));
-            }
-            return JSON.parse(arg);
-          } catch {
-            console.log(JSON.stringify({ success: false, error: `${label} 格式错误或文件不存在` }));
-            process.exit(1);
-          }
-        };
 
         // 读取 goodsDetail 作为基础参数，排除 price 字段
         const raw = (await parseJsonArg(options.data, "--data")) as Record<string, unknown>;

@@ -87,4 +87,29 @@ export interface IStorageService {
    * 检查是否已登录
    */
   isLoggedIn(): Promise<boolean>;
+
+  /**
+   * 更新 token（刷新后使用）
+   */
+  updateToken(token: string, expire?: number): Promise<void>;
+
+  /**
+   * 获取缓存的发货地址
+   */
+  getAddress(): Promise<StoredAddress | null>;
+
+  /**
+   * 保存发货地址
+   */
+  saveAddress(address: StoredAddress): Promise<void>;
+
+  /**
+   * 获取缓存的店铺
+   */
+  getShop(): Promise<StoredShop | null>;
+
+  /**
+   * 保存店铺选择
+   */
+  saveShop(shop: StoredShop): Promise<void>;
 }

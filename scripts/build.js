@@ -4,7 +4,7 @@
  */
 
 import esbuild from 'esbuild';
-import fs from 'fs-extra';
+import fs from 'node:fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { config as dotenvConfig } from 'dotenv';
@@ -35,7 +35,6 @@ const esbuildConfig = {
     'commander',
     'chalk',
     'figlet',
-    'fs-extra',
     '@inquirer/prompts',
     '@inquirer/core',
     '@inquirer/input',
@@ -44,7 +43,6 @@ const esbuildConfig = {
     '@inquirer/checkbox',
     'mute-stream',
     'open',
-    'qrcode-terminal',
     'qrcode',
     'mammoth',
     'ora',
@@ -88,8 +86,8 @@ const esbuildConfig = {
  */
 async function cleanDist() {
   const distDir = path.join(rootDir, 'dist');
-  await fs.remove(distDir);
-  await fs.ensureDir(distDir);
+  await fs.rm(distDir, { recursive: true, force: true });
+  await fs.mkdir(distDir, { recursive: true });
   console.log('🧹 清理输出目录完成');
 }
 
@@ -134,9 +132,11 @@ async function copyFiles() {
     const src = path.join(rootDir, file);
     const dest = path.join(rootDir, 'dist', file);
 
-    if (await fs.pathExists(src)) {
+    try {
       await fs.copyFile(src, dest);
       console.log(`📄 已复制 ${file}`);
+    } catch {
+      // file doesn't exist, skip
     }
   }
 }
