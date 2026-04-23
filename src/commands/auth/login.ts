@@ -1,14 +1,3 @@
-/**
- * 扫码登录命令实现
- *
- * 参考 claude-code 的查询执行模式，实现完整的扫码登录流程：
- * 1. 生成二维码
- * 2. 显示二维码（使用终端 ASCII 艺术或链接）
- * 3. 轮询查询状态
- * 4. 等待用户扫码确认
- * 5. 保存登录凭证
- */
-
 import { Command } from "commander";
 import chalk from "chalk";
 import path from "node:path";
@@ -20,17 +9,25 @@ import { type IQRCodeAuthApi, ApiClientService, QRCodeAuthApiService } from "../
 import { createStorageService, StorageService } from "../../services/storage/index.js";
 import { AuthError } from "../../errors/index.js";
 
-// 动态导入（CommonJS 包）
 import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
-const QRCode = require("qrcode-terminal");
 const QRCodeLib = require("qrcode");
+
+// ==================== 类型 ====================
+
+export interface QRCodeResult {
+  qrData: GenerateQRCodeData;
+  unicodeQR: string;
+  qrPath: string;
+}
+
+export interface LoginResult {
+  userInfo: UserInfo;
+  token: string;
+}
 
 // ==================== 登录服务 ====================
 
-/**
- * 登录服务类
- */
 class LoginService {
   private authApi: IQRCodeAuthApi;
   private storage: StorageService;
@@ -41,25 +38,26 @@ class LoginService {
   }
 
   /**
-   * 执行扫码登录
+   * 步骤1: 生成二维码，返回 unicode 文本 + qrData（不含轮询）
    */
-  async login(signal?: AbortSignal): Promise<{ userInfo: UserInfo; token: string }> {
-    console.log(chalk.cyan("\n🔐 正在启动扫码登录..."));
-
-    // 1. 生成二维码
+  async generateQR(): Promise<QRCodeResult> {
     const qrData = await this.authApi.generateQRCode();
-    console.log(chalk.green("✅ 二维码已生成\n"));
+    const { unicodeQR, qrPath } = await this.renderQRCode(qrData);
+    return { qrData, unicodeQR, qrPath };
+  }
 
-    // 2. 显示二维码
-    await this.displayQRCode(qrData);
-
-    // 3. 轮询登录状态
-    const expireTimeMs = Number.parseInt(qrData.expireTime, 10);
-    const pollIntervalMs = Number.parseInt(qrData.pollInterval, 10);
-
+  /**
+   * 步骤2: 轮询登录状态，确认后保存凭证
+   */
+  async waitForLogin(
+    qrToken: string,
+    expireTimeMs: number,
+    pollIntervalMs: number,
+    signal?: AbortSignal,
+  ): Promise<LoginResult> {
     try {
       const result = await poll(
-        () => this.authApi.getQRCodeStatus(qrData.qrToken),
+        () => this.authApi.getQRCodeStatus(qrToken),
         {
           interval: pollIntervalMs,
           timeout: expireTimeMs,
@@ -85,48 +83,75 @@ class LoginService {
         signal ?? undefined,
       );
 
-      // 4. 保存登录凭证
       if (result.token && result.userInfo) {
         await this.saveCredentials(result.token, result.userInfo);
-
-        console.log(chalk.green("\n✅ 登录成功！\n"));
-        this.displayUserInfo(result.userInfo);
-
         return { userInfo: result.userInfo, token: result.token };
       }
 
       throw new AuthError("登录失败: 未获取到凭证");
     } catch (error) {
-      console.log("error", error);
-      console.log(chalk.red("\n❌ 登录失败\n"));
-
-      if (error instanceof Error) {
-        throw error;
-      }
-
+      if (error instanceof Error) throw error;
       throw new AuthError("登录失败: 未知错误");
     }
   }
 
   /**
-   * 显示二维码
+   * 一键登录（CLI 用：串联 generateQR + waitForLogin）
    */
-  private async displayQRCode(qrData: GenerateQRCodeData): Promise<void> {
+  async login(signal?: AbortSignal): Promise<LoginResult> {
+    console.log(chalk.cyan("\n🔐 正在启动扫码登录..."));
+
+    const { qrData, unicodeQR, qrPath } = await this.generateQR();
+    console.log(chalk.green("✅ 二维码已生成\n"));
+    console.log("\n📱 请使用 第二回合 扫描二维码登录\n");
+    console.log(unicodeQR);
+    console.log(chalk.gray(`  二维码已保存到: ${qrPath}`));
+    console.log(chalk.yellow("\n⏳ 等待扫码...\n"));
+
+    const expireTimeMs = Number.parseInt(qrData.expireTime, 10);
+    const pollIntervalMs = Number.parseInt(qrData.pollInterval, 10);
+
+    try {
+      const result = await this.waitForLogin(qrData.qrToken, expireTimeMs, pollIntervalMs, signal);
+      console.log(chalk.green("\n✅ 登录成功！\n"));
+      this.displayUserInfo(result.userInfo);
+      return result;
+    } catch (error) {
+      console.log("error", error);
+      console.log(chalk.red("\n❌ 登录失败\n"));
+      throw error;
+    }
+  }
+
+  /**
+   * 渲染二维码（PNG + Unicode 半块字符）
+   */
+  private async renderQRCode(qrData: GenerateQRCodeData): Promise<{ unicodeQR: string; qrPath: string }> {
     const qrContent = `r2://auth/login?qrToken=${qrData.qrContent}`;
 
-    console.log(chalk.yellow("📱 请使用 第二回合 扫描二维码登录\n"));
-
-    // 终端显示
-    QRCode.generate(qrContent, { small: true });
-
-    // 保存到 ~/.r2-cli/qrcode.png
     const configDir = path.join(os.homedir(), ".r2-cli");
     fs.mkdirSync(configDir, { recursive: true });
     const qrPath = path.join(configDir, "qrcode.png");
     await QRCodeLib.toFile(qrPath, qrContent, { width: 300, margin: 2 });
 
-    console.log(chalk.gray(`\n  二维码已保存到: ${qrPath}`));
-    console.log(chalk.yellow("\n⏳ 等待扫码..."));
+    const qrMatrix = QRCodeLib.create(qrContent, { errorCorrectionLevel: "L" });
+    const size = qrMatrix.modules.size;
+    const data = qrMatrix.modules.data;
+
+    let unicodeQR = "";
+    for (let row = 0; row < size; row += 2) {
+      for (let col = 0; col < size; col++) {
+        const top = data[row * size + col];
+        const bottom = row + 1 < size ? data[(row + 1) * size + col] : false;
+        if (top && bottom) unicodeQR += "█";
+        else if (top) unicodeQR += "▀";
+        else if (bottom) unicodeQR += "▄";
+        else unicodeQR += " ";
+      }
+      unicodeQR += "\n";
+    }
+
+    return { unicodeQR, qrPath };
   }
 
   /**
@@ -201,28 +226,86 @@ class LoginService {
   }
 }
 
+export { LoginService };
+
 // ==================== 命令工厂 ====================
 
 /**
  * 创建登录命令
+ *
+ * - `auth login`          一键登录（人类用）
+ * - `auth login qr`       生成二维码，输出 JSON（AI Agent 用）
+ * - `auth login poll`     轮询登录状态（AI Agent 用）
  */
 export function createLoginCommand(): Command {
   const command = new Command("login");
   command.description("扫码登录 Round2AI 账户");
 
-  command.option("--timeout <ms>", "超时时间（毫秒）", "300000");
-  command.option("--debug", "启用调试模式", false);
+  // ---- qr 子命令 ----
+  const qrCmd = new Command("qr")
+    .description("生成登录二维码（返回 JSON，供 AI Agent 使用）")
+    .action(async () => {
+      try {
+        const service = new LoginService();
+        const { qrData, unicodeQR, qrPath } = await service.generateQR();
+        const output = {
+          qrToken: qrData.qrToken,
+          expireTimeMs: Number.parseInt(qrData.expireTime, 10),
+          pollIntervalMs: Number.parseInt(qrData.pollInterval, 10),
+          qrPath,
+          unicodeQR,
+        };
+        console.log(JSON.stringify(output, null, 2));
+      } catch (error) {
+        const msg = error instanceof Error ? error.message : String(error);
+        console.error(JSON.stringify({ success: false, error: msg }));
+        process.exit(1);
+      }
+    });
 
-  command.action(async (options: { timeout?: string; debug?: boolean }) => {
+  // ---- poll 子命令 ----
+  const pollCmd = new Command("poll")
+    .description("轮询登录状态（供 AI Agent 使用）")
+    .requiredOption("--token <qrToken>", "二维码 token")
+    .option("--expire <ms>", "过期时间（毫秒）", "300000")
+    .option("--interval <ms>", "轮询间隔（毫秒）", "1000")
+    .action(async (options: { token: string; expire: string; interval: string }) => {
+      try {
+        const service = new LoginService();
+        const controller = new AbortController();
+        const timeout = setTimeout(
+          () => controller.abort(),
+          Number.parseInt(options.expire, 10),
+        );
+
+        const result = await service.waitForLogin(
+          options.token,
+          Number.parseInt(options.expire, 10),
+          Number.parseInt(options.interval, 10),
+          controller.signal,
+        );
+        clearTimeout(timeout);
+        console.log(JSON.stringify({ success: true, ...result }));
+      } catch (error) {
+        const msg = error instanceof Error ? error.message : String(error);
+        console.error(JSON.stringify({ success: false, error: msg }));
+        process.exit(1);
+      }
+    });
+
+  command.addCommand(qrCmd);
+  command.addCommand(pollCmd);
+
+  // ---- 默认 action（无子命令时走一键登录）----
+  command.option("--timeout <ms>", "超时时间（毫秒）", "300000");
+
+  command.action(async (options: { timeout?: string }) => {
     try {
       const loginService = new LoginService();
       const controller = new AbortController();
 
-      // 设置超时
       const timeout = setTimeout(
-        () => {
-          controller.abort();
-        },
+        () => controller.abort(),
         Number.parseInt(options.timeout ?? "300000", 10),
       );
 
