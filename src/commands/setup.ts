@@ -12,6 +12,7 @@ import { createRiskCommand } from "./inventory/risk.js";
 import { createChatCommand } from "./ai/chat.js";
 import { createSkillsCommand } from "./ai/skills.js";
 import { createGoodsCommand } from "./goods/index.js";
+import { createUninstallCommand } from "./uninstall.js";
 
 /** 未实现命令的统一提示 */
 function notImplemented(name: string): void {
@@ -90,6 +91,9 @@ export function setupCommands(program: Command): void {
     .option("--store <store>", "店铺代码")
     .option("--horizon <horizon>", "预测周期")
     .action(() => notImplemented("decide"));
+
+  // ==================== 卸载命令 ====================
+  program.addCommand(createUninstallCommand());
 
   // ==================== AI Agent 集成命令 ====================
   program

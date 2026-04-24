@@ -5,7 +5,7 @@
 import { Command } from "commander";
 import { createShopsCommand } from "./shops.js";
 import { createListCommand } from "./list.js";
-import { createUpCommand } from "./up.js";
+import { createUpCommand } from "./up/index.js";
 import { createDownCommand, createReUpCommand } from "./down.js";
 import { createPriceCommand } from "./price.js";
 

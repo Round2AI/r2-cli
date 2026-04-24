@@ -23,7 +23,7 @@ export class AuthenticatedApiClient {
     const token = await storage.getToken();
 
     if (!token) {
-      throw new AuthError("请先运行 r2 auth login 登录");
+      throw new AuthError("请先运行 r2-cli auth login 登录");
     }
 
     this.client.setToken(token);
@@ -57,12 +57,12 @@ export class AuthenticatedApiClient {
         } catch {
           this.isRefreshing = false;
           await this.onAuthExpired();
-          throw new AuthError("登录已过期，请运行 r2 auth login 重新登录");
+          throw new AuthError("登录已过期，请运行 r2-cli auth login 重新登录");
         }
       }
 
       await this.onAuthExpired();
-      throw new AuthError("登录已过期，请运行 r2 auth login 重新登录");
+      throw new AuthError("登录已过期，请运行 r2-cli auth login 重新登录");
     }
   }
 

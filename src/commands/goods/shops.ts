@@ -3,11 +3,11 @@
  */
 
 import React from "react";
-import { render } from "ink";
 import { Command } from "commander";
 import chalk from "chalk";
 import { getXianyuApi } from "../../services/xy/xianyu-api.service.js";
-import { handleCommandError } from "./shared.js";
+import { handleCommandError } from "../shared.js";
+import { renderOnce } from "../../utils/index.js";
 import { ShopsTable } from "../../components/ShopsTable.js";
 
 export function createShopsCommand(): Command {
@@ -27,7 +27,7 @@ export function createShopsCommand(): Command {
         return;
       }
 
-      render(React.createElement(ShopsTable, { shops, platform: options.platform }));
+      renderOnce(React.createElement(ShopsTable, { shops, platform: options.platform }));
     } catch (error) {
       handleCommandError(error);
     }

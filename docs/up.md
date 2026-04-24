@@ -2,19 +2,19 @@
 
 ## 概述
 
-通过 `r2 goods up` 命令将寄售商品上架到平台（闲鱼/抖音），支持交互式向导和纯参数两种模式。
+通过 `r2-cli goods up` 命令将寄售商品上架到平台（闲鱼/抖音），支持交互式向导和纯参数两种模式。
 
 ## 命令
 
 ```bash
 # 交互式向导（推荐）：自动加载未同步商品列表，一步步引导
-r2 goods up
+r2-cli goods up
 
 # 指定商品 ID：跳过商品选择步骤
-r2 goods up <goodsInfoId>
+r2-cli goods up <goodsInfoId>
 
 # 纯参数模式：跳过所有交互，直接提交
-r2 goods up <goodsInfoId> --shop <shopId> --biz-type 15 --stuff 99 --price 899 --cat-id 12 --channel-cat-id 345
+r2-cli goods up <goodsInfoId> --shop <shopId> --biz-type 15 --stuff 99 --price 899 --cat-id 12 --channel-cat-id 345
 ```
 
 ### 参数说明
@@ -149,11 +149,11 @@ r2 goods up <goodsInfoId> --shop <shopId> --biz-type 15 --stuff 99 --price 899 -
 ## 其他命令
 
 ```bash
-r2 goods shops                          # 查看授权店铺列表
-r2 goods list [--status on] [--keyword Nike]  # 寄售商品列表
-r2 goods down <id> [id2...]             # 下架商品（支持批量）
-r2 goods reup <id> [id2...]             # 重新上架（支持批量）
-r2 goods price <id> --price <amount>    # 修改售价
+r2-cli goods shops                          # 查看授权店铺列表
+r2-cli goods list [--status on] [--keyword Nike]  # 寄售商品列表
+r2-cli goods down <id> [id2...]             # 下架商品（支持批量）
+r2-cli goods reup <id> [id2...]             # 重新上架（支持批量）
+r2-cli goods price <id> --price <amount>    # 修改售价
 ```
 
 ## 认证
@@ -161,8 +161,8 @@ r2 goods price <id> --price <amount>    # 修改售价
 所有闲鱼命令需要先登录：
 
 ```bash
-r2 auth login    # 扫码登录
-r2 auth status   # 查看登录状态
+r2-cli auth login    # 扫码登录
+r2-cli auth status   # 查看登录状态
 ```
 
 Token 存储在 `~/.r2-cli/config.json`，过期或无效时自动提示重新登录。

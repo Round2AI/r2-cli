@@ -1,4 +1,17 @@
 export { poll, sleep, type PollingOptions } from "./polling.js";
+import type { GoodsStatus } from "../types/xianyu.js";
+import { CliError } from "../errors/index.js";
+import React from "react";
+import { render } from "ink";
+import type { ComponentType } from "react";
+
+/**
+ * 渲染 Ink 组件并立即卸载（一次性输出，不阻塞 stdout）
+ */
+export function renderOnce<P extends Record<string, unknown>>(component: React.ReactElement<P>): void {
+  const instance = render(component);
+  instance.unmount();
+}
 
 /**
  * 解析 JSON 命令行参数
@@ -14,4 +27,24 @@ export async function parseJsonArg<T = unknown>(arg: string, label: string): Pro
   } catch {
     throw new Error(`${label} 格式错误或文件不存在`);
   }
+}
+
+/** 有效的商品状态 */
+export const VALID_STATUSES = ["wait", "on", "sold", "down"] as const;
+
+/** 校验商品状态 */
+export function validateStatus(status: GoodsStatus): void {
+  if (status && !VALID_STATUSES.includes(status)) {
+    throw new CliError("状态必须是: wait/on/sold/down");
+  }
+}
+
+/** 校验正整数参数，返回解析后的数字或 null */
+export function validatePositiveInt(value: string | undefined, label: string): number | null {
+  if (!value) return null;
+  const num = Number(value);
+  if (!Number.isInteger(num) || num < 1) {
+    throw new CliError(`${label}必须是正整数`);
+  }
+  return num;
 }

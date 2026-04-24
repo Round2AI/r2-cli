@@ -16,17 +16,17 @@ npm install -g @round2ai/r2-cli@latest
 
 自动检测命令前缀（首次使用时执行一次）：
 1. 项目目录有 `package.json`（name 含 r2-cli）→ 使用 `npm run dev --`
-2. 存在 `dist/cli.js` → 使用 `node dist/cli.js`
-3. `r2 --version` 成功 → 使用 `r2`
+2. 存在 `dist/r2-cli.js` → 使用 `node dist/r2-cli.js`
+3. `r2-cli --version` 成功 → 使用 `r2-cli`
 
-以下文档使用 `r2` 作为前缀，根据检测结果替换。
+以下文档使用 `r2-cli` 作为前缀，根据检测结果替换。
 
 ## 登录流程（两步）
 
 ### 第1步：生成二维码
 
 ```bash
-r2 auth login qr
+r2-cli auth login qr
 ```
 
 输出 JSON：
@@ -47,7 +47,7 @@ r2 auth login qr
 **关键**：输出二维码后，Agent 必须立即在后台启动轮询，不要等待用户回复。
 
 ```bash
-r2 auth login poll --token <qrToken> --expire <expireTimeMs> --interval <pollIntervalMs>
+r2-cli auth login poll --token <qrToken> --expire <expireTimeMs> --interval <pollIntervalMs>
 ```
 
 使用 Bash 工具的 `run_in_background: true` 启动轮询，然后用 `TaskOutput` 阻塞等待结果。参数取自第1步返回的 JSON 字段。
@@ -73,13 +73,13 @@ r2 auth login poll --token <qrToken> --expire <expireTimeMs> --interval <pollInt
 
 | 命令 | 说明 |
 |------|------|
-| `r2 auth status` | 查看登录状态 |
-| `r2 auth logout` | 退出登录 |
+| `r2-cli auth status` | 查看登录状态 |
+| `r2-cli auth logout` | 退出登录 |
 
 ## 人类一键登录
 
 ```bash
-r2 auth login
+r2-cli auth login
 ```
 
 直接在终端显示 unicode 二维码，适合人类在 CLI 中使用。

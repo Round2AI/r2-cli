@@ -11,6 +11,7 @@ import path from "node:path";
 import chalk from "chalk";
 import figlet from "figlet";
 import { setupCommands } from "../commands/setup.js";
+import { checkForUpdate } from "../services/update-check/index.js";
 
 function displayWelcomeMessage(): void {
   console.log(
@@ -27,17 +28,24 @@ function displayWelcomeMessage(): void {
 function setupCliApp(): Command {
   const program = new Command();
 
-  program.name("r2").description("R2-CLI，向 AI 开放二手潮奢交易全链路能力");
+  program.name("r2-cli").description("R2-CLI，向 AI 开放二手潮奢交易全链路能力");
 
-  // 从 import.meta.dirname 旁边的 package.json 读版本号
-  try {
-    const pkgJson = JSON.parse(
-      readFileSync(path.join(import.meta.dirname, "../../package.json"), "utf-8"),
-    );
-    program.version(pkgJson.version, "-v, --version");
-  } catch {
-    program.version("0.0.0", "-v, --version");
+  // 从 package.json 读版本号（优先 dist/ 同目录，回退 src/entrypoints/ 上两级）
+  const pkgPaths = [
+    path.join(import.meta.dirname, "package.json"),
+    path.join(import.meta.dirname, "../../package.json"),
+  ];
+  let version = "0.0.0";
+  for (const p of pkgPaths) {
+    try {
+      version = JSON.parse(readFileSync(p, "utf-8")).version;
+      break;
+    } catch { /* next */ }
   }
+  program.version(version, "-v, --version");
+
+  // 异步版本更新检查（不阻塞命令执行）
+  const updateCheckPromise = checkForUpdate(version);
 
   program.configureOutput({
     writeErr: (str) => {
@@ -53,7 +61,7 @@ function setupCliApp(): Command {
 
   setupCommands(program);
 
-  return program;
+  return { program, updateCheckPromise };
 }
 
 // SIGINT 优雅退出
@@ -62,5 +70,6 @@ process.on("SIGINT", () => {
   process.exit(130);
 });
 
-const program = setupCliApp();
+const { program, updateCheckPromise } = setupCliApp();
 program.parse(process.argv);
+updateCheckPromise.catch(() => {});

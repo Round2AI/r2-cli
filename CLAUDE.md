@@ -9,12 +9,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 npm run dev
 npm run dev -- goods list
 
-# 构建（esbuild，输出到 dist/cli.js）
+# 构建（esbuild，输出到 dist/r2-cli.js）
 npm run build          # 开发环境：读取 .env
 npm run build:prod     # 生产环境：读取 .env.production，minified
 
 # 运行构建产物
-node dist/cli.js --help
+node dist/r2-cli.js --help
 ```
 
 未配置测试框架。
@@ -26,7 +26,7 @@ R2-CLI 是面向二手潮奢交易场景的 CLI 工具，将业务能力以 CLI 
 **双模架构**：每个交互式流程都有一组对应的 JSON 输出子命令供 AI Agent 调用。例如 `goods up`（7 步交互向导）对应 `goods up info`/`categories`/`props`/`submit`（JSON 原子操作）。
 
 ### 入口流程
-1. `src/entrypoints/cli.tsx` — CLI 入口，初始化 Commander、SIGINT 处理
+1. `src/entrypoints/r2-cli.tsx` — CLI 入口，初始化 Commander、SIGINT 处理
 2. `src/commands/setup.ts` — 注册所有域命令（auth、goods、business、inventory、ai）
 3. `src/commands/*/` 各目录下的命令工厂函数返回 `Command` 实例
 
@@ -39,11 +39,15 @@ R2-CLI 是面向二手潮奢交易场景的 CLI 工具，将业务能力以 CLI 
 
 **本地存储** (`src/services/storage/`)：
 - `index.ts` — `StorageService`（`createStorageService()` 单例），文件存储位于 `~/.r2-cli/config.json`。管理凭证（token + userInfo + expire）、缓存地址（province/city/area/divisionId）、缓存店铺（thirdUserId + name + platform）。`loadConfig()` 对文件不存在或 JSON 解析失败均返回空配置。
-- `storage-service.interface.ts` — `StoredCredentials`（含可选 `expire`）、`StoredAddress`、`StoredShop`、`LocalConfig`
+- `types.ts` — `StoredCredentials`（含可选 `expire`）、`StoredAddress`、`StoredShop`、`LocalConfig`、`IStorageService`
 
 **领域服务** (`src/services/xy/`)：
 - `xianyu-api.service.ts` — 闲鱼 API 封装，`getXianyuApi()` 单例。使用 `AuthenticatedApiClient`。
-- `up-flow.service.ts` — 7 步交互式上架向导，使用 `@inquirer/prompts`。自动匹配品牌/尺码/成色。
+- `up-flow/` — 7 步交互式上架向导，使用 `@inquirer/prompts`。自动匹配品牌/尺码/成色。`index.ts` 导出 `UpFlowService`，各步骤函数拆分在 `select-shop.ts`、`select-goods.ts`、`select-category.ts`、`select-props.ts`、`summary.ts`。
+
+**认证服务** (`src/services/auth/`)：
+- `login.service.ts` — `LoginService`（QR 生成 + 轮询 + 人类登录 + 状态/登出）
+- `index.ts` — 重导出
 
 **AI 服务** (`src/services/ai/`)：
 - `alibaba.ts` — 阿里百炼 AI，支持 SSE 流式
@@ -51,20 +55,21 @@ R2-CLI 是面向二手潮奢交易场景的 CLI 工具，将业务能力以 CLI 
 
 ### 认证流程
 
-`src/commands/auth/login.ts` → `LoginService`：
+`src/services/auth/login.service.ts` → `LoginService`：
 
-- **人类模式**：`auth login` — 生成二维码、终端显示 unicode、轮询直到确认
-- **Agent 模式**：`auth login qr`（第 1 步：生成二维码 → JSON 输出）然后 `auth login poll --token <> --expire <> --interval <>`（第 2 步：轮询直到确认 → JSON 输出）
+- **人类模式**：`r2-cli auth login` — 生成二维码、终端显示 unicode、轮询直到确认
+- **Agent 模式**：`r2-cli auth login qr`（第 1 步：生成二维码 → JSON 输出）然后 `r2-cli auth login poll --token <> --expire <> --interval <>`（第 2 步：轮询直到确认 → JSON 输出）
 
-**重要**：当用户在 Claude Code 会话中请求登录时，必须按 `skills/r2-auth/SKILL.md` 的两步式流程执行（生成二维码 → 将 unicodeQR 输出到聊天窗口 → 后台启动轮询），不要直接使用 `auth login` 交互式命令。
+**重要**：当用户在 Claude Code 会话中请求登录时，必须按 `skills/r2-auth/SKILL.md` 的两步式流程执行（生成二维码 → 将 unicodeQR 输出到聊天窗口 → 后台启动轮询），不要直接使用 `r2-cli auth login` 交互式命令。
 
 ### 错误处理
 - `src/errors/index.ts` — `R2Error` → `ApiError`（含 `status`、`response`）、`AuthError`、`StorageError`、`PollingError`、`CliError`
 - `src/commands/shared.ts` — `handleCommandError()` 按错误类型分发：AuthError → 登录提示，ApiError → 消息 + 状态码，StorageError → 配置异常提示，其他 → 通用处理
+- `src/commands/goods/up/` — 上架命令拆分为 `index.ts`（父命令+交互向导）+ `info.ts`/`categories.ts`/`props.ts`/`submit.ts`/`address.ts`（Agent 子命令）
 
 ### 构建系统
 - `scripts/build.js` — esbuild。通过 dotenv 读取 `.env` / `.env.production`。用 `cross-env NODE_ENV` 选择环境。`process.env.R2_API_URL` 构建时注入。所有运行时依赖（commander、chalk、@inquirer/*、ora、react、ink 等）externalize。
-- `scripts/dev.js` — 用 `stdio: 'inherit'` 启动 `tsx src/entrypoints/cli.tsx`，保证交互式 prompt 可用
+- `scripts/dev.js` — 用 `stdio: 'inherit'` 启动 `tsx src/entrypoints/r2-cli.tsx`，保证交互式 prompt 可用
 
 ### 关键类型
 - `src/types/auth.ts` — `UserInfo`、`QRCodeStatus`、`GenerateQRCodeData`、`QRCodeStatusData`
@@ -74,7 +79,8 @@ R2-CLI 是面向二手潮奢交易场景的 CLI 工具，将业务能力以 CLI 
 - `GoodsTable.tsx` — 商品列表表格（Ink + React）
 - `ShopsTable.tsx` — 店铺列表表格
 - `UserInfoCard.tsx` — 用户信息卡片
-- 使用 `render(React.createElement(...))` 挂载，仅在结构化数据展示时使用；简单状态提示保持 chalk。
+- 使用 `renderOnce(React.createElement(...))` 挂载（render + immediate unmount），仅在结构化数据展示时使用；简单状态提示保持 chalk。
+- `index.ts` — barrel export 所有组件
 
 ### Skill 体系
 

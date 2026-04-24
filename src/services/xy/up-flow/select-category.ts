@@ -1,0 +1,57 @@
+/**
+ * 类目选择步骤
+ */
+
+import { select } from "@inquirer/prompts";
+import ora from "ora";
+import type { XyCategory, XyCategoryGroup } from "../../../types/xianyu.js";
+import { getXianyuApi } from "../xianyu-api.service.js";
+
+type XyApi = ReturnType<typeof getXianyuApi>;
+
+export async function selectCategory(
+  api: XyApi,
+  preferredCatId?: string,
+  preferredChannelCatId?: string,
+): Promise<{ categoryId: string; channelCatId: string }> {
+  if (preferredCatId && preferredChannelCatId) {
+    return { categoryId: preferredCatId, channelCatId: preferredChannelCatId };
+  }
+
+  const catSpinner = ora("加载类目...").start();
+  const categories = await api.getCategories(16);
+  const groups = groupCategories(categories);
+  catSpinner.succeed(`加载 ${categories.length} 个类目`);
+
+  const group = (await select({
+    message: "选择分类",
+    choices: groups.map((g) => ({ name: g.label, value: g })),
+  })) as XyCategoryGroup;
+
+  if (group.children.length <= 1) {
+    const child = group.children[0];
+    return { categoryId: group.value, channelCatId: child?.value ?? "" };
+  }
+
+  const sub = await select({
+    message: "选择子分类",
+    choices: group.children.map((c) => ({ name: c.label, value: c })),
+  });
+
+  return { categoryId: group.value, channelCatId: (sub as { value: string }).value };
+}
+
+export function groupCategories(categories: XyCategory[]): XyCategoryGroup[] {
+  const map = new Map<string, XyCategoryGroup>();
+  for (const cat of categories) {
+    if (!map.has(cat.catId)) {
+      map.set(cat.catId, { label: cat.catName, value: cat.catId, children: [] });
+    }
+    map.get(cat.catId)!.children.push({
+      label: cat.channel,
+      value: cat.channelCatId,
+      channelCatId: cat.channelCatId,
+    });
+  }
+  return Array.from(map.values());
+}

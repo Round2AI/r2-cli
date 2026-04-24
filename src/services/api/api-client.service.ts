@@ -77,7 +77,7 @@ export class ApiClientService implements IApiClient {
   private async handleResponse<T>(response: Response): Promise<T> {
     if (!response.ok) {
       if (response.status === 401) {
-        throw new AuthError("登录已过期或未登录，请运行 r2 auth login");
+        throw new AuthError("登录已过期或未登录，请运行 r2-cli auth login");
       }
       const errorText = await response.text();
       throw new ApiError(errorText || `${response.status} ${response.statusText}`, response.status);

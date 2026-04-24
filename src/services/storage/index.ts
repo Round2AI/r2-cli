@@ -6,7 +6,7 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import type { UserInfo } from "../../types/auth.js";
-import type { IStorageService, LocalConfig, StoredCredentials, StoredAddress, StoredShop } from "./storage-service.interface.js";
+import type { IStorageService, LocalConfig, StoredCredentials, StoredAddress, StoredShop } from "./types.js";
 import { StorageError } from "../../errors/index.js";
 
 // ==================== 常量 ====================

@@ -5,7 +5,7 @@
 import { Command } from "commander";
 import chalk from "chalk";
 import { getXianyuApi } from "../../services/xy/xianyu-api.service.js";
-import { handleCommandError } from "./shared.js";
+import { handleCommandError } from "../shared.js";
 
 function createBatchCommand(
   name: string,

@@ -5,10 +5,10 @@
 import { Command } from "commander";
 import chalk from "chalk";
 import React from "react";
-import { render } from "ink";
 import { getXianyuApi } from "../../services/xy/xianyu-api.service.js";
 import { handleCommandError } from "../shared.js";
 import { GoodsTable } from "../../components/GoodsTable.js";
+import { validateStatus, validatePositiveInt, renderOnce } from "../../utils/index.js";
 
 export function createListCommand(): Command {
   const command = new Command("list");
@@ -21,27 +21,12 @@ export function createListCommand(): Command {
 
   command.action(async (options: { status?: string; keyword?: string; page?: string; size?: string }) => {
     try {
-      if (options.status && !["wait", "on", "sold", "down"].includes(options.status)) {
-        console.log(chalk.red("状态必须是: wait/on/sold/down"));
-        return;
-      }
-
-      const pageNum = Number(options.page);
-      const sizeNum = Number(options.size);
-      if (options.page && (!Number.isInteger(pageNum) || pageNum < 1)) {
-        console.log(chalk.red("页码必须是正整数"));
-        return;
-      }
-      if (options.size && (!Number.isInteger(sizeNum) || sizeNum < 1)) {
-        console.log(chalk.red("每页数量必须是正整数"));
-        return;
-      }
+      validateStatus(options.status);
+      const page = validatePositiveInt(options.page, "页码") ?? 1;
+      const size = validatePositiveInt(options.size, "每页数量") ?? 20;
 
       const api = getXianyuApi();
-      const params: Record<string, unknown> = {
-        page: Number(options.page) || 1,
-        size: Number(options.size) || 20,
-      };
+      const params: Record<string, unknown> = { page, size };
       if (options.status) params.status = options.status;
       if (options.keyword) params.key = options.keyword;
       const result = await api.getSellerGoodsList(params);
@@ -51,7 +36,7 @@ export function createListCommand(): Command {
         return;
       }
 
-      render(
+      renderOnce(
         React.createElement(GoodsTable, {
           items: result.items,
           total: result.total,
