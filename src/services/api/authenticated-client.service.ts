@@ -9,6 +9,7 @@ import { AuthError } from "../../errors/index.js";
 
 export class AuthenticatedApiClient {
   private client: ApiClientService;
+  private storage = createStorageService();
   private tokenLoaded = false;
   private refreshPromise: Promise<void> | null = null;
 
@@ -19,7 +20,7 @@ export class AuthenticatedApiClient {
   private async ensureAuthenticated(): Promise<void> {
     if (this.tokenLoaded && this.client.isTokenSet()) return;
 
-    const storage = createStorageService();
+    const storage = this.storage;
     const token = await storage.getToken();
 
     if (!token) {
@@ -33,15 +34,14 @@ export class AuthenticatedApiClient {
   private async onAuthExpired(): Promise<void> {
     this.tokenLoaded = false;
     this.client.setToken(null);
-    const storage = createStorageService();
+    const storage = this.storage;
     await storage.clearCredentials();
   }
 
   private async doRefresh(): Promise<void> {
     const oldToken = this.client.getToken()!;
     const { token: newToken, expire } = await this.client.refreshToken(oldToken);
-    const storage = createStorageService();
-    await storage.updateToken(newToken, expire);
+    await this.storage.updateToken(newToken, expire);
     this.client.setToken(newToken);
   }
 

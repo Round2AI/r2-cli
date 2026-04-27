@@ -3,7 +3,7 @@
  */
 
 import { Command } from "commander";
-import { getXianyuApi } from "../../../services/xy/xianyu-api.service.js";
+import { getXianyuApi } from "../../../services/platform/xianyu-api.service.js";
 import { createStorageService } from "../../../services/storage/index.js";
 
 export function createUpInfoCommand(): Command {
@@ -53,8 +53,6 @@ export function createUpInfoCommand(): Command {
               desc: detail.desc,
               barcode: detail.barcode,
               brandName: detail.brandName,
-              size: detail.size,
-              goodsNo: detail.goodsNo,
               title: detail.title,
             },
             address: address ?? null,

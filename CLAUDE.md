@@ -30,19 +30,20 @@ R2-CLI 是面向二手潮奢交易场景的 CLI 工具，将业务能力以 CLI 
 2. `src/commands/setup.ts` — 注册所有域命令（auth、goods、uninstall）
 3. `src/commands/*/` 各目录下的命令工厂函数返回 `Command` 实例
 4. `src/commands/uninstall.ts` — 一键卸载：删除 `~/.r2-cli/` + `npm uninstall -g @round2ai/r2-cli`
+5. 未实现的命令统一调用 `notImplemented(name)`（从 `shared.ts` 导入），禁止输出虚假功能信息
 
 ### 服务层
 
 **API 客户端** (`src/services/api/`)：
-- `api-client.service.ts` — 基于 `fetch` 的 HTTP 客户端，处理响应信封 `{ success, status, data, msg }`。Base URL 来自 `process.env.R2_API_URL`（构建时由 esbuild define 注入）。含 `refreshToken()` 调用 `user/refresh` 端点（10s 超时）。
-- `authenticated-client.service.ts` — 包装 `ApiClientService`。自动从 Storage 加载 token，401 时用 `refreshPromise` 共享模式刷新（并发请求共享同一个刷新 Promise，避免竞态清除凭证）。刷新也失败才清除凭证并提示重新登录。
+- `api-client.service.ts` — 基于 `fetch` 的 HTTP 客户端，处理响应信封 `{ success, status, data, msg }`。Base URL 来自 `process.env.R2_API_URL`（构建时由 esbuild define 注入）。含 `refreshToken()` 调用 `user/refresh` 端点（10s 超时）。Debug 日志输出到 stderr（`console.error`），不污染 stdout。
+- `authenticated-client.service.ts` — 包装 `ApiClientService`。Storage 引用在构造函数中初始化。401 时用 `refreshPromise` 共享模式刷新（并发请求共享同一个刷新 Promise，避免竞态清除凭证）。刷新也失败才清除凭证并提示重新登录。
 - `api-client.interface.ts` — `IApiClient`、`IQRCodeAuthApi`、`ApiConfig`、`ApiResponse<T>`
 
 **本地存储** (`src/services/storage/`)：
-- `index.ts` — `StorageService`（`createStorageService()` 单例），文件存储位于 `~/.r2-cli/config.json`。管理凭证（token + userInfo + expire）、缓存地址（province/city/area/divisionId）、缓存店铺（thirdUserId + name + platform）。`loadConfig()` 对文件不存在或 JSON 解析失败均返回空配置。
+- `index.ts` — `StorageService`（`createStorageService()` 单例），文件存储位于 `~/.r2-cli/config.json`。带内存缓存（`configLoaded` 标记，避免每次操作重复 I/O）+ 目录创建缓存（`dirEnsured`）。`isLoggedIn()`/`getToken()`/`getCredentials()` 自动检查 token 过期（`expire` 字段，5 分钟安全边际），过期返回 null/false。
 - `types.ts` — `StoredCredentials`（含可选 `expire`）、`StoredAddress`、`StoredShop`、`LocalConfig`、`IStorageService`
 
-**领域服务** (`src/services/xy/`)：
+**领域服务** (`src/services/platform/`)：
 - `xianyu-api.service.ts` — 闲鱼 API 封装，`getXianyuApi()` 单例。使用 `AuthenticatedApiClient`。
 - `up-flow/` — 7 步交互式上架向导，使用 `@inquirer/prompts`。自动匹配品牌/尺码/成色。`index.ts` 导出 `UpFlowService`，各步骤函数拆分在 `select-shop.ts`、`select-goods.ts`、`select-category.ts`、`select-props.ts`、`summary.ts`。
 
@@ -55,7 +56,7 @@ R2-CLI 是面向二手潮奢交易场景的 CLI 工具，将业务能力以 CLI 
 - 在 `r2-cli.tsx` 中立即启动（不 await），`program.parse()` 之后 `.catch(() => {})` 确保不阻塞。
 
 **AI 服务** (`src/services/ai/`)：
-- `alibaba.ts` — 阿里百炼 AI，支持 SSE 流式
+- `alibaba.ts` — 阿里百炼 AI，支持 SSE 流式。所有 fetch 调用有 30s 超时（SSE 读取 120s）。构造函数验证 `ALIBABA_API_KEY` 非空。`callApi()` 检查 `response.ok`。
 - `index.ts` — `MultiAIService` 门面，导出单例 `aiService`
 
 ### 认证流程
@@ -69,15 +70,15 @@ R2-CLI 是面向二手潮奢交易场景的 CLI 工具，将业务能力以 CLI 
 
 ### 错误处理
 - `src/errors/index.ts` — `R2Error` → `ApiError`（含 `status`、`response`）、`AuthError`、`StorageError`、`PollingError`、`CliError`
-- `src/commands/shared.ts` — `handleCommandError()` 按错误类型分发：AuthError → 登录提示，ApiError → 消息 + 状态码，StorageError → 配置异常提示，其他 → 通用处理。用于交互式命令。
+- `src/commands/shared.ts` — `handleCommandError()` 按错误类型分发（交互式命令用）；`notImplemented(name)` 统一未实现命令提示。
 - `src/commands/goods/up/` — 上架命令拆分为 `index.ts`（父命令+交互向导）+ `info.ts`/`categories.ts`/`props.ts`/`submit.ts`/`address.ts`（Agent 子命令）
 - Agent 子命令错误统一输出 `JSON.stringify({ success: false, error: msg })` + `process.exit(1)`，不使用 `handleCommandError`（后者输出人类可读文本到 stderr）
 - 交互式流程（`up-flow/`）禁止使用 `process.exit()`，必须 `throw new CliError()` 让上层捕获
 
 ### 构建系统
-- `scripts/build.js` — esbuild。通过 dotenv 读取 `.env` / `.env.production`。用 `cross-env NODE_ENV` 选择环境。`process.env.R2_API_URL` 构建时注入。所有运行时依赖（commander、chalk、@inquirer/*、ora、react、ink 等）externalize。输出 `dist/cli.js`，同时复制 `package.json` 和 `README.md`。
+- `scripts/build.js` — esbuild。通过 dotenv 读取 `.env` / `.env.production`。用 `cross-env NODE_ENV` 选择环境。`process.env.R2_API_URL` 构建时注入。所有运行时依赖（commander、chalk、@inquirer/*、ora、react、ink 等）externalize。输出 `dist/r2-cli.js`，同时复制 `package.json` 和 `README.md`。
 - `scripts/dev.js` — 用 `stdio: 'inherit'` 启动 `tsx src/entrypoints/r2-cli.tsx`，保证交互式 prompt 可用
-- 版本号读取：优先 `dist/package.json`（构建产物旁），回退 `../../package.json`（源码目录），均失败 fallback `"0.0.0"` 并输出 stderr 警告
+- 版本号读取：优先 `../package.json`（npm 安装后指向包根目录），其次 `../../package.json`（开发模式指向项目根目录），最后 fallback `dist/package.json`
 
 ### 关键类型
 - `src/types/auth.ts` — `UserInfo`、`QRCodeStatus`、`GenerateQRCodeData`、`QRCodeStatusData`

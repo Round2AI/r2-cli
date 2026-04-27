@@ -3,7 +3,6 @@
  */
 
 import { Command } from "commander";
-import chalk from "chalk";
 
 import { createLoginCommand, createLogoutCommand, createStatusCommand } from "./auth/login.js";
 import { createPricingCommand } from "./business/pricing.js";
@@ -13,11 +12,7 @@ import { createChatCommand } from "./ai/chat.js";
 import { createSkillsCommand } from "./ai/skills.js";
 import { createGoodsCommand } from "./goods/index.js";
 import { createUninstallCommand } from "./uninstall.js";
-
-/** 未实现命令的统一提示 */
-function notImplemented(name: string): void {
-  console.log(chalk.yellow(`⚠️  "${name}" 功能开发中，暂不可用`));
-}
+import { notImplemented } from "./shared.js";
 
 export function setupCommands(program: Command): void {
   // ==================== 认证命令 ====================
@@ -99,12 +94,5 @@ export function setupCommands(program: Command): void {
   program
     .command("agent")
     .description("AI Agent 集成")
-    .action(() => {
-      console.log(chalk.blue("AI Agent 集成"));
-      console.log(chalk.green("支持的 AI Agent 框架:"));
-      console.log(chalk.green("   - Claude Code"));
-      console.log(chalk.green("   - OpenClaw"));
-      console.log(chalk.green("   - Codex"));
-      console.log(chalk.yellow("安装: npx skills add Round2AI/r2-cli --all -y"));
-    });
+    .action(() => notImplemented("agent"));
 }

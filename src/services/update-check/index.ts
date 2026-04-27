@@ -12,29 +12,36 @@ const REGISTRY_URLS = [
 ];
 const FETCH_TIMEOUT_MS = 5000;
 
+/** 从单个 registry URL 获取最新版本号 */
+async function fetchVersionFromRegistry(url: string): Promise<string | null> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  try {
+    const res = await fetch(url, { signal: controller.signal });
+    if (!res.ok) return null;
+    return ((await res.json()) as { version?: string }).version ?? null;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/** 并行请求多个 registry，返回第一个成功的版本号 */
 async function fetchLatestVersion(): Promise<string | null> {
-  for (const url of REGISTRY_URLS) {
-    try {
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
-      const res = await fetch(url, { signal: controller.signal });
-      clearTimeout(timer);
-      if (!res.ok) continue;
-      const data = (await res.json()) as { version?: string };
-      return data.version ?? null;
-    } catch {
-      continue;
-    }
+  const results = await Promise.allSettled(REGISTRY_URLS.map(fetchVersionFromRegistry));
+  for (const r of results) {
+    if (r.status === "fulfilled" && r.value) return r.value;
   }
   return null;
 }
 
+/** semver 三段式比较，latest > current 时返回 true */
 function isNewer(latest: string, current: string): boolean {
   const la = latest.split(".").map(Number);
   const cu = current.split(".").map(Number);
   for (let i = 0; i < 3; i++) {
-    if ((la[i] ?? 0) > (cu[i] ?? 0)) return true;
-    if ((la[i] ?? 0) < (cu[i] ?? 0)) return false;
+    if ((la[i] ?? 0) !== (cu[i] ?? 0)) return (la[i] ?? 0) > (cu[i] ?? 0);
   }
   return false;
 }

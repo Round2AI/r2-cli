@@ -3,12 +3,12 @@ import type { GoodsStatus } from "../types/xianyu.js";
 import { CliError } from "../errors/index.js";
 import React from "react";
 import { render } from "ink";
-import type { ComponentType } from "react";
 
 /**
  * 渲染 Ink 组件并立即卸载（一次性输出，不阻塞 stdout）
  */
-export function renderOnce<P extends Record<string, unknown>>(component: React.ReactElement<P>): void {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function renderOnce(component: React.ReactElement<any>): void {
   const instance = render(component);
   instance.unmount();
 }
@@ -34,8 +34,8 @@ export async function parseJsonArg<T = unknown>(arg: string, label: string): Pro
 export const VALID_STATUSES = ["wait", "on", "sold", "down"] as const;
 
 /** 校验商品状态 */
-export function validateStatus(status: GoodsStatus): void {
-  if (status && !VALID_STATUSES.includes(status)) {
+export function validateStatus(status: string | undefined): void {
+  if (status && !VALID_STATUSES.includes(status as typeof VALID_STATUSES[number])) {
     throw new CliError("状态必须是: wait/on/sold/down");
   }
 }

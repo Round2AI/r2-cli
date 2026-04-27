@@ -5,7 +5,6 @@
 import { Command } from "commander";
 import { select } from "@inquirer/prompts";
 import { createStorageService } from "../../../services/storage/index.js";
-import { handleCommandError } from "../../shared.js";
 import cityData from "../../../assets/citys.json" with { type: "json" };
 
 export function createUpAddressCommand(): Command {
@@ -150,7 +149,9 @@ export function createUpAddressCommand(): Command {
         const address = await storage.getAddress();
         console.log(JSON.stringify({ address }, null, 2));
       } catch (error) {
-        handleCommandError(error);
+        const msg = error instanceof Error ? error.message : String(error);
+        console.log(JSON.stringify({ success: false, error: msg }));
+        process.exit(1);
       }
     },
   );

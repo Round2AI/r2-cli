@@ -48,27 +48,3 @@ export interface QRCodeStatusData {
   /** 登录成功后的token */
   token: string | null;
 }
-
-// ==================== 认证相关 ====================
-
-/** 登录凭证 */
-export interface AuthToken {
-  /** 访问令牌 */
-  token: string;
-  /** 刷新令牌 */
-  refreshToken?: string;
-  /** 过期时间（毫秒） */
-  expiresIn?: number;
-}
-
-/** 认证状态 */
-export interface AuthState {
-  /** 是否已登录 */
-  isLoggedIn: boolean;
-  /** 当前登录用户信息 */
-  userInfo: UserInfo | null;
-  /** 当前访问令牌 */
-  token: string | null;
-  /** 最后登录时间戳 */
-  lastLoginTime: number | null;
-}

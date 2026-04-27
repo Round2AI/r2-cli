@@ -7,19 +7,15 @@ description: R2-CLI 商品管理专家。用于商品上架、下架、改价、
 
 商品管理专家，理解闲鱼/抖音商品上架全流程，能指导 AI Agent 正确调用 CLI 命令完成商品操作。
 
-## 安装与调用方式
+## 安装
 
-全局安装：
 ```bash
 npm install -g @round2ai/r2-cli@latest
 ```
 
-自动检测命令前缀（首次使用时执行一次）：
-1. 项目目录有 `package.json`（name 含 r2-cli）→ 使用 `npm run dev --`
-2. 存在 `dist/r2-cli.js` → 使用 `node dist/r2-cli.js`
-3. `r2-cli --version` 成功 → 使用 `r2-cli`
+## 命令前缀
 
-以下文档使用 `r2-cli` 作为前缀，根据检测结果替换。
+见 **r2-cli** skill 的"命令前缀自动检测"章节。以下文档使用 `r2-cli` 作为前缀，根据检测结果替换。
 
 ## 命令概览
 
@@ -36,7 +32,7 @@ npm install -g @round2ai/r2-cli@latest
 
 - `--status <status>` — `wait`(待上架)、`on`(已上架)、`sold`(已售)、`down`(已下架)
 - `--keyword <keyword>` — 搜索关键词
-- `--page <n>` / `--size <n>` — 分页
+- `--page <n>` / `--size <n>` — 分页（size 上限 100）
 
 ## 交互式上架（7步）
 
@@ -47,7 +43,7 @@ npm install -g @round2ai/r2-cli@latest
 3. **选择成色** — 成色等级（商品类型固定为普通商品）
 4. **商品描述** — 输入描述
 5. **选择类目** — 主类目 → 子类目
-6. **售价** — 输入售价
+6. **售价** — 输入售价（必须为正数）
 7. **选择属性** — 品牌/尺码/成色自动匹配
 8. **确认提交** — 展示摘要确认
 
@@ -88,7 +84,8 @@ r2-cli goods up info <goodsInfoId>
 | `reservePrice` | 建议售价 | 金额 |
 | `desc` | 商品描述 | 文本 |
 | `brandName` | 品牌名 | 用于品牌属性搜索 |
-| `size` | 规格/尺码 | 用于尺码属性匹配 |
+
+> `size`（规格/尺码）和 `goodsNo`（货号）来自 `goods list` 的 `SellerGoodsItem`，不在 info prefill 中。
 
 **address**：为 `null` 时需先执行 `r2-cli goods up address --save`。
 
@@ -143,10 +140,6 @@ r2-cli goods up props <channelCatId> --brand <keyword>
 ### 第6步：提交上架
 
 ```bash
-# 1. 保存 goodsDetail 到文件（从 info 输出中提取 goodsDetail 字段）
-# 2. 保存属性列表到文件
-# 3. 调用 submit
-
 r2-cli goods up submit \
   --data @detail.json \
   --division-id <id> \
@@ -176,7 +169,6 @@ r2-cli goods up submit \
 ```json
 [
   { "propId": "xxx", "valueId": "yyy", "valueName": "JORDAN" }
-]
 ```
 
 ## 缓存

@@ -14,8 +14,8 @@ import { StorageError } from "../../errors/index.js";
 /** 配置文件名 */
 const CONFIG_FILE_NAME = ".r2-cli";
 
-/** 配置文件版本 */
-const CONFIG_VERSION = "1.0.0";
+/** Token 过期安全边际（5 分钟） */
+const TOKEN_EXPIRY_MARGIN_MS = 5 * 60 * 1000;
 
 // ==================== 存储服务 ====================
 
@@ -25,15 +25,13 @@ const CONFIG_VERSION = "1.0.0";
 export class StorageService implements IStorageService {
   private configPath: string;
   private config: LocalConfig;
+  private configLoaded = false;
+  private dirEnsured = false;
 
   constructor() {
-    // 获取用户主目录
     const homeDir = os.homedir();
-    // 创建 .r2-cli 目录
     const configDir = path.join(homeDir, CONFIG_FILE_NAME);
-    // 配置文件路径
     this.configPath = path.join(configDir, "config.json");
-
     this.config = { credentials: null };
   }
 
@@ -45,17 +43,40 @@ export class StorageService implements IStorageService {
   }
 
   /**
-   * 加载配置
+   * 加载配置（带内存缓存）
    */
   private async loadConfig(): Promise<LocalConfig> {
+    if (this.configLoaded) return this.config;
+
     try {
       const content = await fs.readFile(this.configPath, "utf-8");
-      const config = JSON.parse(content) as LocalConfig;
-      this.config = config;
-      return config;
+      this.config = JSON.parse(content) as LocalConfig;
+      this.configLoaded = true;
+      return this.config;
     } catch {
-      return { credentials: null };
+      this.config = { credentials: null };
+      this.configLoaded = true;
+      return this.config;
     }
+  }
+
+  /**
+   * 确保配置目录存在（仅执行一次）
+   */
+  private async ensureDir(): Promise<void> {
+    if (this.dirEnsured) return;
+
+    const dirPath = path.dirname(this.configPath);
+    try {
+      await fs.stat(dirPath);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+        await fs.mkdir(dirPath, { recursive: true });
+      } else {
+        throw new StorageError("Failed to create directory", dirPath, (error as NodeJS.ErrnoException).code);
+      }
+    }
+    this.dirEnsured = true;
   }
 
   /**
@@ -63,34 +84,23 @@ export class StorageService implements IStorageService {
    */
   private async saveConfig(config: LocalConfig): Promise<void> {
     this.config = config;
+    await this.ensureDir();
+
     const content = JSON.stringify(config, null, 2);
-
-    const dirPath = path.dirname(this.configPath);
-
-    try {
-      // 检查目录是否存在，不存在则创建
-      await fs.stat(dirPath);
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-        await fs.mkdir(dirPath, { recursive: true });
-      } else {
-        throw new StorageError(
-          "Failed to create directory",
-          dirPath,
-          (error as NodeJS.ErrnoException).code,
-        );
-      }
-    }
-
     try {
       await fs.writeFile(this.configPath, content, "utf-8");
+      this.configLoaded = true;
     } catch (error) {
-      throw new StorageError(
-        "Failed to save config",
-        this.configPath,
-        (error as NodeJS.ErrnoException).code,
-      );
+      throw new StorageError("Failed to save config", this.configPath, (error as NodeJS.ErrnoException).code);
     }
+  }
+
+  /**
+   * 检查凭证是否已过期
+   */
+  private isTokenExpired(cred: StoredCredentials): boolean {
+    if (!cred.expire) return false;
+    return Date.now() >= cred.expire - TOKEN_EXPIRY_MARGIN_MS;
   }
 
   /**
@@ -106,8 +116,7 @@ export class StorageService implements IStorageService {
     let config: LocalConfig;
     try {
       config = await this.loadConfig();
-    } catch (error) {
-      // 如果文件不存在，创建空配置
+    } catch {
       config = { credentials: null };
     }
     config.credentials = credentials;
@@ -119,6 +128,8 @@ export class StorageService implements IStorageService {
    */
   async getCredentials(): Promise<StoredCredentials | null> {
     const config = await this.loadConfig();
+    if (!config.credentials) return null;
+    if (this.isTokenExpired(config.credentials)) return null;
     return config.credentials;
   }
 
@@ -206,9 +217,6 @@ export class StorageService implements IStorageService {
 
 // ==================== 工厂函数 ====================
 
-/**
- * 创建存储服务
- */
 let instance: StorageService | null = null;
 
 export function createStorageService(): StorageService {

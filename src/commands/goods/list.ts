@@ -5,7 +5,7 @@
 import { Command } from "commander";
 import chalk from "chalk";
 import React from "react";
-import { getXianyuApi } from "../../services/xy/xianyu-api.service.js";
+import { getXianyuApi } from "../../services/platform/xianyu-api.service.js";
 import { handleCommandError } from "../shared.js";
 import { GoodsTable } from "../../components/GoodsTable.js";
 import { validateStatus, validatePositiveInt, renderOnce } from "../../utils/index.js";

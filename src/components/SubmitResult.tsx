@@ -9,8 +9,11 @@ interface SubmitResultProps {
 export function SubmitResult({ success, message }: SubmitResultProps) {
   return (
     <Box flexDirection="column" paddingY={1}>
-      <Text color={success ? "green" : "red"}>
-        {success ? "✓ " : "✗ "}{message}
+      <Text>
+        <Text color={success ? "green" : "red"} bold>
+          {success ? "●" : "▲"}
+        </Text>
+        <Text color={success ? "green" : "red"}>{` ${message}`}</Text>
       </Text>
     </Box>
   );

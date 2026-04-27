@@ -3,7 +3,7 @@
  */
 
 import { Command } from "commander";
-import { getXianyuApi } from "../../../services/xy/xianyu-api.service.js";
+import { getXianyuApi } from "../../../services/platform/xianyu-api.service.js";
 import { DEFAULT_SP_BIZ_TYPE } from "../../../types/xianyu.js";
 
 export function createUpCategoriesCommand(): Command {

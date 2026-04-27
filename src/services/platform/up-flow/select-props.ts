@@ -10,7 +10,7 @@ import { getXianyuApi } from "../xianyu-api.service.js";
 
 type XyApi = ReturnType<typeof getXianyuApi>;
 
-export async function selectProps(api: XyApi, channelCatId: string, detail: XyGoodsDetail): Promise<ItemAttr[]> {
+export async function selectProps(api: XyApi, channelCatId: string, detail: XyGoodsDetail, size?: string): Promise<ItemAttr[]> {
   const propsSpinner = ora("加载属性...").start();
   const props = await api.getProps(channelCatId);
   if (!props.length) {
@@ -38,11 +38,11 @@ export async function selectProps(api: XyApi, channelCatId: string, detail: XyGo
       continue;
     }
 
-    if (["尺码", "鞋码"].includes(prop.propName) && detail.size) {
-      const matched = prop.propsValues.find((v) => v.valueName === detail.size);
+    if (["尺码", "鞋码"].includes(prop.propName) && size) {
+      const matched = prop.propsValues.find((v) => v.valueName === size);
       if (matched) {
         const pv = await select({
-          message: `确认${prop.propName}（已匹配 ${chalk.green(detail.size)}）`,
+          message: `确认${prop.propName}（已匹配 ${chalk.green(size)}）`,
           choices: prop.propsValues.map((v) => ({ name: v.valueName, value: v })),
           default: matched,
         });

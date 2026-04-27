@@ -67,6 +67,51 @@ export interface SellerGoodsItem {
   gmtCreate: string;
   /** 闲鱼渠道信息，null表示未上架到闲鱼 */
   xySaleChannel: XySaleChannel | null;
+  /** SKU ID */
+  goodsInfoSkuId: string;
+  /** 商品类型 shallow=浅库存 */
+  type: string;
+  /** 成色等级 super_new=全新 */
+  grade: string;
+  /** 数量 */
+  amount: 0;
+  /** 渠道上架状态 on=在售 */
+  channelStatus: string;
+  /** 竞价底价 */
+  bidPrice: 0;
+  /** 一级分类ID */
+  cate1Id: string;
+  /** 一级分类名称 */
+  cate1Name: string;
+  /** 二级分类ID */
+  cate2Id: string;
+  /** 二级分类名称 */
+  cate2Name: string;
+  /** 三级分类ID */
+  cate3Id: string;
+  /** 三级分类名称 */
+  cate3Name: string;
+  /** 品牌ID */
+  brandId: string;
+  /** 品牌名称 */
+  brand: string;
+  /** 活动信息 */
+  activityGoodsInfo: {
+    /** 活动ID */
+    activityId: string;
+    /** 活动商品ID */
+    activityGoodsId: string;
+    /** 活动状态 ing=进行中 */
+    status: string;
+    /** 活动类型 down_buy=降价购买 */
+    type: string;
+  };
+  /** 是否卖家包邮 */
+  sellerPay: boolean;
+  /** 订单商品类型名称 */
+  orderGoodsTypeName: string;
+  /** 竞价次数 */
+  auctionCount: number;
 }
 
 /** 寄售商品列表查询参数 */

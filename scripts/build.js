@@ -21,7 +21,7 @@ const apiUrl = process.env.R2_API_URL || process.env.SERVER_BASEURL || 'https://
 
 // 入口点配置
 const entryPoints = {
-  cli: 'src/entrypoints/r2-cli.tsx',
+  'r2-cli': 'src/entrypoints/r2-cli.tsx',
 };
 
 // esbuild 配置
@@ -48,7 +48,6 @@ const esbuildConfig = {
     'ink',
     'react-dom',
     'react-devtools-core',
-    '@types/react',
     'uuid'
   ],
   banner: {
@@ -80,7 +79,7 @@ async function buildEntryPoint(name, entry) {
   console.log(`🔨 构建 ${name} -> ${path.relative(rootDir, outputDir)}`);
 
   const config = { ...esbuildConfig };
-  if (name === 'cli') {
+  if (name === 'r2-cli') {
     config.banner = {
       js: '#!/usr/bin/env node\n',
     };
@@ -91,6 +90,7 @@ async function buildEntryPoint(name, entry) {
       ...config,
       entryPoints: [path.join(rootDir, entry)],
       outdir: outputDir,
+      // 保持原始文件名，不加 outdir 的 hash 前缀
       // outdir 会自动生成文件名，不需要 outfile
     });
     console.log(`✅ ${name} 构建成功`);

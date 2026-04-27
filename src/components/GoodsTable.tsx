@@ -1,5 +1,5 @@
 import React from "react";
-import { Box, Text, useStdout } from "ink";
+import { Box, Text } from "ink";
 import type { SellerGoodsItem } from "../types/xianyu.js";
 
 interface GoodsTableProps {
@@ -22,25 +22,25 @@ function Header() {
   return (
     <Box flexDirection="row" paddingBottom={0}>
       <Box width={10}>
-        <Text color="gray"> ID</Text>
+        <Text bold color="white">ID</Text>
       </Box>
       <Box width={8}>
-        <Text color="gray">状态</Text>
+        <Text bold color="white">状态</Text>
       </Box>
       <Box width={50}>
-        <Text color="gray">名称</Text>
+        <Text bold color="white">名称</Text>
       </Box>
       <Box width={16}>
-        <Text color="gray">货号</Text>
+        <Text bold color="white">货号</Text>
       </Box>
       <Box width={8}>
-        <Text color="gray">规格</Text>
+        <Text bold color="white">规格</Text>
       </Box>
       <Box width={10} justifyContent="flex-end">
-        <Text color="gray">售价</Text>
+        <Text bold color="white">售价</Text>
       </Box>
       <Box width={10} justifyContent="flex-end">
-        <Text color="gray">闲鱼</Text>
+        <Text bold color="white">闲鱼</Text>
       </Box>
     </Box>
   );
@@ -81,16 +81,17 @@ function Row({ item }: { item: SellerGoodsItem }) {
 }
 
 export function GoodsTable({ items, total, statusFilter }: GoodsTableProps) {
-  const label = statusFilter ? ` (状态: ${statusFilter})` : "";
+  const label = statusFilter ? ` (${statusFilter})` : "";
 
   return (
-    <Box flexDirection="column" paddingY={1}>
-      <Text color="cyan">
-        寄售商品列表{label} (共 {total} 条):
-      </Text>
+    <Box flexDirection="column" marginTop={1} borderStyle="round" borderColor="gray" paddingX={1}>
+      <Box flexDirection="row">
+        <Text bold color="cyan">寄售商品列表{label}</Text>
+        <Text color="gray">{" · "}{total} 条</Text>
+      </Box>
       <Box flexDirection="column" marginTop={1}>
         <Header />
-        <Text color="gray"> {"─".repeat(72)}</Text>
+        <Text color="gray">{"─".repeat(72)}</Text>
         {items.map((item) => (
           <Row key={item.id} item={item} />
         ))}

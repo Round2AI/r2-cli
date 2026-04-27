@@ -7,19 +7,15 @@ description: R2-CLI 认证登录专家。两步式扫码登录：生成二维码
 
 两步式扫码登录，专为 AI Agent 设计。第一步生成二维码，Agent 将 unicodeQR 直接输出到聊天窗口展示给用户；第二步轮询等待用户扫码确认。
 
-## 安装与调用方式
+## 安装
 
-全局安装：
 ```bash
 npm install -g @round2ai/r2-cli@latest
 ```
 
-自动检测命令前缀（首次使用时执行一次）：
-1. 项目目录有 `package.json`（name 含 r2-cli）→ 使用 `npm run dev --`
-2. 存在 `dist/r2-cli.js` → 使用 `node dist/r2-cli.js`
-3. `r2-cli --version` 成功 → 使用 `r2-cli`
+## 命令前缀
 
-以下文档使用 `r2-cli` 作为前缀，根据检测结果替换。
+见 **r2-cli** skill 的"命令前缀自动检测"章节。以下文档使用 `r2-cli` 作为前缀，根据检测结果替换。
 
 ## 登录流程（两步）
 

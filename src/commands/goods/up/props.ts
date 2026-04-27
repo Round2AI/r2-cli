@@ -3,7 +3,7 @@
  */
 
 import { Command } from "commander";
-import { getXianyuApi } from "../../../services/xy/xianyu-api.service.js";
+import { getXianyuApi } from "../../../services/platform/xianyu-api.service.js";
 
 export function createUpPropsCommand(): Command {
   const cmd = new Command("props");

@@ -55,12 +55,7 @@ export class LoginService {
   /**
    * 步骤2: 轮询登录状态，确认后保存凭证
    */
-  async waitForLogin(
-    qrToken: string,
-    expireTimeMs: number,
-    pollIntervalMs: number,
-    signal?: AbortSignal,
-  ): Promise<LoginResult> {
+  async waitForLogin(qrToken: string, expireTimeMs: number, pollIntervalMs: number, signal?: AbortSignal): Promise<LoginResult> {
     try {
       const result = await poll(
         () => this.authApi.getQRCodeStatus(qrToken),
@@ -140,7 +135,7 @@ export class LoginService {
    * 渲染二维码（PNG + Unicode 半块字符）
    */
   private async renderQRCode(qrData: GenerateQRCodeData): Promise<{ unicodeQR: string; qrPath: string }> {
-    const qrContent = `r2://auth/login?qrToken=${qrData.qrContent}`;
+    const qrContent = `https://m.puresnake.com/r2/auth/login?qrToken=${qrData.qrContent}&from=wechat`;
 
     const configDir = path.join(os.homedir(), ".r2-cli");
     fs.mkdirSync(configDir, { recursive: true });

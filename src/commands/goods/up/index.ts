@@ -7,7 +7,7 @@
  */
 
 import { Command } from "commander";
-import { UpFlowService } from "../../../services/xy/up-flow/index.js";
+import { UpFlowService } from "../../../services/platform/up-flow/index.js";
 import { handleCommandError } from "../../shared.js";
 import { createUpInfoCommand } from "./info.js";
 import { createUpCategoriesCommand } from "./categories.js";

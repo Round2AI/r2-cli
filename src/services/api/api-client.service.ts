@@ -86,7 +86,7 @@ export class ApiClientService implements IApiClient {
     const result = (await response.json()) as ApiResponse<T>;
 
     if (this.config.debug) {
-      console.log("[API Response]", result);
+      console.error("[API Response]", result);
     }
 
     if (!result.success || result.status !== 0) {
@@ -117,7 +117,7 @@ export class ApiClientService implements IApiClient {
     }
 
     if (this.config.debug) {
-      console.log(`[API ${method}]`, url, body);
+      console.error(`[API ${method}]`, url, body);
     }
 
     try {

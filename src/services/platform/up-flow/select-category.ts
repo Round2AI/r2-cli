@@ -39,12 +39,12 @@ export async function selectCategory(
     return { categoryId: group.value, channelCatId: child.value };
   }
 
-  const sub = await select({
+  const sub = await select<XyCategoryGroup["children"][number]>({
     message: "选择子分类",
     choices: group.children.map((c) => ({ name: c.label, value: c })),
   });
 
-  return { categoryId: group.value, channelCatId: (sub as { value: string }).value };
+  return { categoryId: group.value, channelCatId: sub.value };
 }
 
 export function groupCategories(categories: XyCategory[]): XyCategoryGroup[] {

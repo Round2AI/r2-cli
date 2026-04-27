@@ -4,8 +4,7 @@
  */
 
 import { Command } from "commander";
-import { getXianyuApi } from "../../../services/xy/xianyu-api.service.js";
-import { handleCommandError } from "../../shared.js";
+import { getXianyuApi } from "../../../services/platform/xianyu-api.service.js";
 import { parseJsonArg } from "../../../utils/index.js";
 import type { ItemAttr } from "../../../types/xianyu.js";
 
@@ -95,7 +94,7 @@ export function createUpSubmitCommand(): Command {
           apiAfterSalesDo,
         };
 
-        const result = await api.upGoods(params);
+        const result = await api.upGoods(params as unknown as import("../../../types/xianyu.js").XyGoodsUpParams);
         console.log(JSON.stringify({ success: true, result }, null, 2));
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error);

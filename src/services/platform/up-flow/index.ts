@@ -3,7 +3,7 @@
  * 步骤顺序：店铺(缓存) → 选择商品 → 成色 → 描述 → 类目 → 售价 → 属性 → 服务+确认
  */
 
-import { input, confirm, checkbox } from "@inquirer/prompts";
+import { input, confirm, select } from "@inquirer/prompts";
 import chalk from "chalk";
 import ora from "ora";
 import React from "react";
@@ -29,11 +29,9 @@ export interface UpOptions {
   barcode?: string;
 }
 
-const SERVICE_KEYS = ["supportFd24hsPolicy", "supportFd48hsPolicy", "supportNfrPolicy", "supportSdrPolicy"] as const;
-type ServiceKey = (typeof SERVICE_KEYS)[number];
-
 const TOTAL_STEPS = 7;
 
+/** 打印上架向导步骤标题 */
 function stepHeader(step: number, title: string): void {
   renderOnce(React.createElement(StepHeader, { step, total: TOTAL_STEPS, title }));
 }
@@ -65,7 +63,7 @@ export class UpFlowService {
     const stuffChoices = Object.entries(STUFF_LABELS).map(([value, label]) => ({ name: label, value }));
     const stuffStatus =
       opts.stuffStatus ??
-      (await (await import("@inquirer/prompts")).select({
+      (await select({
         message: "选择成色等级",
         choices: stuffChoices,
         default: stuffChoices.find((c) => c.value === goodsDetail.stuffStatus)?.value,
@@ -92,49 +90,19 @@ export class UpFlowService {
         return true;
       },
     };
-    if (goodsDetail.reservePrice) priceInput.default = goodsDetail.reservePrice as string;
+    if (goodsDetail.reservePrice) priceInput.default = String(goodsDetail.reservePrice);
     const reservePrice = opts.price ?? (await input(priceInput));
-
-    let barcode: string | undefined;
-    if (itemBizType === "15") {
-      const barcodeInput: { message: string; default?: string; validate: (v: string) => string | boolean } = {
-        message: "商品扣码",
-        validate: (v) => (v ? true : "严选商品必须输入扣码"),
-      };
-      if (goodsDetail.barcode) barcodeInput.default = goodsDetail.barcode;
-      barcode = opts.barcode ?? (await input(barcodeInput));
-    }
 
     // 步骤 6: 选择属性
     stepHeader(6, "选择属性");
-    const itemAttrList = await selectProps(this.api, channelCatId, goodsDetail);
+    const itemAttrList = await selectProps(this.api, channelCatId, goodsDetail, selectedItem?.size);
 
     // 步骤 7: 服务保障 + 确认提交
     stepHeader(7, "确认提交");
 
     const divisionId = await selectDivision();
 
-    const apiAfterSalesDo = {
-      supportFd24hsPolicy: false,
-      supportFd48hsPolicy: false,
-      supportNfrPolicy: false,
-      supportSdrPolicy: false,
-    };
-
-    if (itemBizType !== "2") {
-      const services = await checkbox({
-        message: "选择服务保障",
-        choices: [
-          { name: "24小时发货", value: "supportFd24hsPolicy" },
-          { name: "48小时发货", value: "supportFd48hsPolicy" },
-          { name: "描述不符包退", value: "supportNfrPolicy" },
-          { name: "七天无理由", value: "supportSdrPolicy" },
-        ],
-      });
-      for (const key of services as ServiceKey[]) {
-        apiAfterSalesDo[key] = true;
-      }
-    }
+    const apiAfterSalesDo = goodsDetail.apiAfterSalesDo ?? {};
 
     const params: XyGoodsUpParams = {
       ...goodsDetail,
@@ -152,7 +120,6 @@ export class UpFlowService {
       size: selectedItem?.size ?? "",
       itemAttrList,
       apiAfterSalesDo,
-      ...(barcode ? { barcode } : {}),
     };
 
     await displaySummary(shop, params);

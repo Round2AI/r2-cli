@@ -1,25 +1,29 @@
 ---
 name: r2-cli
-description: R2-CLI 二手潮奢交易工具。用于认证登录、基本操作（r2、登录、login、auth、商品、goods）。安装后 AI Agent 可直接调用全部交易能力。
+description: R2-CLI 二手潮奢交易工具。用于认证登录、基本操作（登录、login、auth、商品、goods）。安装后 AI Agent 可直接调用全部交易能力。
 ---
 
 # R2-CLI Skill
 
-R2-CLI 是二手潮奢交易命令行工具，支持商品管理（上架/下架/改价/列表）、认证登录、经营分析等。
+R2-CLI 是二手潮奢交易命令行工具，支持商品管理（上架/下架/改价/列表）、认证登录等。
 
-## 安装与调用方式
+## 安装
 
-全局安装：
 ```bash
 npm install -g @round2ai/r2-cli@latest
 ```
 
-自动检测命令前缀（首次使用时执行一次）：
-1. 项目目录有 `package.json`（name 含 r2-cli）→ 使用 `npm run dev --`
-2. 存在 `dist/r2-cli.js` → 使用 `node dist/r2-cli.js`
-3. `r2-cli --version` 成功 → 使用 `r2-cli`
+## 命令前缀自动检测
+
+首次使用时检测一次，后续所有命令使用检测到的前缀：
+
+1. 项目目录有 `package.json`（name 含 r2-cli）→ `npm run dev --`
+2. 存在 `dist/r2-cli.js` → `node dist/r2-cli.js`
+3. `r2-cli --version` 成功 → `r2-cli`
 
 以下文档使用 `r2-cli` 作为前缀，根据检测结果替换。
+
+> **注意**：部分平台 npm 会拦截 `--help`/`-h` 等 flag，若 `npm run dev -- --help` 显示的是 npm 帮助，改用 `npx tsx src/entrypoints/r2-cli.tsx --help`。
 
 ## 前置条件
 
@@ -49,11 +53,3 @@ npm install -g @round2ai/r2-cli@latest
 
 > 商品管理的详细用法（交互式向导、AI Agent 分步上架）见 **r2-goods** skill。
 > 认证登录的 Agent 两步式流程见 **r2-auth** skill。
-
-## 开发中命令
-
-| 命令 | 说明 |
-|------|------|
-| `r2-cli report generate` | 经营日报/周报 |
-| `r2-cli pricing analyze` | 价格分析建议 |
-| `r2-cli inventory risk` | 风险管理 |

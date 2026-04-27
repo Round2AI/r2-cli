@@ -12,30 +12,27 @@ export function UserInfoCard({ userInfo, lastLogin, daysSinceLogin }: UserInfoCa
   const maskedMobile = userInfo.mobile
     ? userInfo.mobile.replace(/(\d{3})\d{4}(\d{4})/, "$1****$2")
     : "-";
-  const divider = "━".repeat(30);
 
   return (
-    <Box flexDirection="column">
-      <Text color="white">{divider}</Text>
-      <Text color="cyan">用户信息:</Text>
-      <Box flexDirection="row">
-        <Box width={12}>
-          <Text color="white">  昵称:</Text>
+    <Box flexDirection="column" marginTop={1} borderStyle="round" borderColor="gray" paddingX={1}>
+      <Text bold color="cyan">用户信息</Text>
+      <Box flexDirection="row" marginTop={1}>
+        <Box width={10}>
+          <Text color="gray">昵称</Text>
         </Box>
         <Text color="yellow">{userInfo.nickname}</Text>
       </Box>
       <Box flexDirection="row">
-        <Box width={12}>
-          <Text color="white">  手机号:</Text>
+        <Box width={10}>
+          <Text color="gray">手机号</Text>
         </Box>
         <Text color="yellow">{maskedMobile}</Text>
       </Box>
-      <Text color="white">{divider}</Text>
       {lastLogin && (
         <Box flexDirection="column" marginTop={1}>
           <Text color="gray">最后登录: {lastLogin.toLocaleString()}</Text>
           {daysSinceLogin !== undefined && (
-            <Text color="gray">  距离今天: {daysSinceLogin} 天前</Text>
+            <Text color="gray">  距今: {daysSinceLogin} 天</Text>
           )}
         </Box>
       )}

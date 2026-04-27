@@ -15,25 +15,24 @@ import { checkForUpdate } from "../services/update-check/index.js";
 
 function displayWelcomeMessage(): void {
   console.log(
-    chalk.cyan(
+    chalk.cyan.bold(
       figlet.textSync("R2-CLI", {
         font: "Standard",
         horizontalLayout: "full",
       }),
     ),
   );
-  console.log(chalk.gray("向 AI 开放二手潮奢交易全链路能力\n"));
+  console.log(chalk.gray("  向 AI 开放二手潮奢交易全链路能力\n"));
 }
 
-function setupCliApp(): Command {
+function setupCliApp(): { program: Command; updateCheckPromise: Promise<void> } {
   const program = new Command();
 
   program.name("r2-cli").description("R2-CLI，向 AI 开放二手潮奢交易全链路能力");
 
-  // 从 package.json 读版本号（优先 dist/ 同目录，回退 src/entrypoints/ 上两级）
   const pkgPaths = [
-    path.join(import.meta.dirname, "package.json"),
-    path.join(import.meta.dirname, "../../package.json"),
+    path.join(import.meta.dirname, "../../package.json"),  // 项目根目录
+    path.join(import.meta.dirname, "package.json"),        // dist 目录下
   ];
   let version = "0.0.0";
   for (const p of pkgPaths) {
