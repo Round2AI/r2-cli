@@ -24,6 +24,9 @@ export function createShopsCommand(): Command {
 
       if (!shops.length) {
         console.log(chalk.yellow(`未找到已授权的${platformName}店铺`));
+        console.log(chalk.gray("  提示: 请先在第二回合 APP 中授权店铺"));
+        console.log(chalk.gray("  路径: 打开第二回合 APP → 店铺管理 → 选择平台 → 按提示授权"));
+        console.log(chalk.gray("  授权后运行: r2 goods shops 验证"));
         return;
       }
 

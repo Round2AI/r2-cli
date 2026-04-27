@@ -33,6 +33,7 @@ export function createListCommand(): Command {
 
       if (!result.items.length) {
         console.log(chalk.yellow("暂无商品"));
+        console.log(chalk.gray("  提示: 请先在第二回合 APP 或 ERP 中同步商品"));
         return;
       }
 

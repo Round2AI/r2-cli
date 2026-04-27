@@ -72,26 +72,34 @@ export class LoginService {
               case "scanned":
                 console.log(chalk.cyan(`\n🔍 已扫码: ${data.userInfo?.nickname || "未知用户"}`));
                 console.log(chalk.yellow("请在 APP 上确认登录"));
-                break;
+                return false;
               case "confirmed":
                 console.log(chalk.green("\n✅ 用户已确认登录"));
-                break;
+                return true;
               case "expired":
                 console.log(chalk.red("\n⏰ 二维码已过期"));
-                break;
+                return true;
               case "canceled":
                 console.log(chalk.red("\n🚫 用户已取消登录"));
-                break;
+                return true;
+              default:
+                return false;
             }
-            return data.status === "confirmed";
           },
         },
         signal ?? undefined,
       );
 
-      if (result.token && result.userInfo) {
+      if (result.status === "confirmed" && result.token && result.userInfo) {
         await this.saveCredentials(result.token, result.userInfo);
         return { userInfo: result.userInfo, token: result.token };
+      }
+
+      if (result.status === "expired") {
+        throw new AuthError("二维码已过期，请重新登录");
+      }
+      if (result.status === "canceled") {
+        throw new AuthError("用户已取消登录");
       }
 
       throw new AuthError("登录失败: 未获取到凭证");

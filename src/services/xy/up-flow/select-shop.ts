@@ -41,13 +41,19 @@ export async function resolveShop(api: XyApi, preferredShopId?: string): Promise
   });
   const shops = await api.getShops(platform);
   if (!shops.length) {
-    console.log(chalk.red("未找到已授权的店铺，请先在小程序中授权"));
+    console.log(chalk.red("未找到已授权的店铺"));
+    console.log(chalk.yellow("  请先在第二回合 APP 中授权店铺："));
+    console.log(chalk.gray("  1. 打开第二回合 APP"));
+    console.log(chalk.gray("  2. 进入「店铺管理」页面"));
+    console.log(chalk.gray("  3. 选择对应平台，按提示完成授权"));
+    console.log(chalk.gray("  4. 授权后运行: r2 goods shops 验证"));
     process.exit(1);
   }
 
   const shop = await selectShop(shops, preferredShopId);
   if (Date.now() > shop.expiresIn) {
-    console.log(chalk.red(`店铺 "${shop.name}" 授权已过期，请重新授权`));
+    console.log(chalk.red(`店铺 "${shop.name}" 授权已过期`));
+    console.log(chalk.gray("  请在第二回合 APP 中重新授权该店铺"));
     process.exit(1);
   }
 

@@ -11,7 +11,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const rootDir = path.dirname(__dirname);
 
-const child = spawn('npx', ['tsx', 'src/entrypoints/cli.tsx', ...process.argv.slice(2)], {
+const child = spawn('npx', ['tsx', 'src/entrypoints/r2-cli.tsx', ...process.argv.slice(2)], {
   cwd: rootDir,
   stdio: 'inherit',
   shell: true,
