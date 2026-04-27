@@ -4,7 +4,6 @@
 
 import { Command } from "commander";
 import { getXianyuApi } from "../../../services/xy/xianyu-api.service.js";
-import { handleCommandError } from "../../shared.js";
 
 export function createUpPropsCommand(): Command {
   const cmd = new Command("props");
@@ -46,7 +45,9 @@ export function createUpPropsCommand(): Command {
 
       console.log(JSON.stringify(result, null, 2));
     } catch (error) {
-      handleCommandError(error);
+      const msg = error instanceof Error ? error.message : String(error);
+      console.log(JSON.stringify({ success: false, error: msg }));
+      process.exit(1);
     }
   });
 

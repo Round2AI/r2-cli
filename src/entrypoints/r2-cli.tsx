@@ -42,6 +42,9 @@ function setupCliApp(): Command {
       break;
     } catch { /* next */ }
   }
+  if (version === "0.0.0") {
+    console.error(chalk.yellow("Warning: unable to read version from package.json"));
+  }
   program.version(version, "-v, --version");
 
   // 异步版本更新检查（不阻塞命令执行）

@@ -5,7 +5,6 @@
 import { Command } from "commander";
 import { getXianyuApi } from "../../../services/xy/xianyu-api.service.js";
 import { createStorageService } from "../../../services/storage/index.js";
-import { handleCommandError } from "../../shared.js";
 
 export function createUpInfoCommand(): Command {
   const cmd = new Command("info");
@@ -65,7 +64,9 @@ export function createUpInfoCommand(): Command {
         ),
       );
     } catch (error) {
-      handleCommandError(error);
+      const msg = error instanceof Error ? error.message : String(error);
+      console.log(JSON.stringify({ success: false, error: msg }));
+      process.exit(1);
     }
   });
 

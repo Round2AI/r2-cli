@@ -10,7 +10,7 @@ import { AuthError } from "../../errors/index.js";
 export class AuthenticatedApiClient {
   private client: ApiClientService;
   private tokenLoaded = false;
-  private isRefreshing = false;
+  private refreshPromise: Promise<void> | null = null;
 
   constructor() {
     this.client = new ApiClientService();
@@ -37,6 +37,14 @@ export class AuthenticatedApiClient {
     await storage.clearCredentials();
   }
 
+  private async doRefresh(): Promise<void> {
+    const oldToken = this.client.getToken()!;
+    const { token: newToken, expire } = await this.client.refreshToken(oldToken);
+    const storage = createStorageService();
+    await storage.updateToken(newToken, expire);
+    this.client.setToken(newToken);
+  }
+
   private async withAuthRefresh<T>(fn: () => Promise<T>): Promise<T> {
     await this.ensureAuthenticated();
     try {
@@ -44,25 +52,20 @@ export class AuthenticatedApiClient {
     } catch (error) {
       if (!(error instanceof AuthError)) throw error;
 
-      if (!this.isRefreshing) {
-        this.isRefreshing = true;
-        try {
-          const oldToken = this.client.getToken()!;
-          const { token: newToken, expire } = await this.client.refreshToken(oldToken);
-          const storage = createStorageService();
-          await storage.updateToken(newToken, expire);
-          this.client.setToken(newToken);
-          this.isRefreshing = false;
-          return await fn();
-        } catch {
-          this.isRefreshing = false;
-          await this.onAuthExpired();
-          throw new AuthError("登录已过期，请运行 r2-cli auth login 重新登录");
-        }
+      // 多个并发请求共享同一个刷新 Promise
+      if (!this.refreshPromise) {
+        this.refreshPromise = this.doRefresh()
+          .catch(async () => {
+            await this.onAuthExpired();
+            throw new AuthError("登录已过期，请运行 r2-cli auth login 重新登录");
+          })
+          .finally(() => {
+            this.refreshPromise = null;
+          });
       }
 
-      await this.onAuthExpired();
-      throw new AuthError("登录已过期，请运行 r2-cli auth login 重新登录");
+      await this.refreshPromise;
+      return await fn();
     }
   }
 

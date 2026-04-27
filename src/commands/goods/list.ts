@@ -10,6 +10,8 @@ import { handleCommandError } from "../shared.js";
 import { GoodsTable } from "../../components/GoodsTable.js";
 import { validateStatus, validatePositiveInt, renderOnce } from "../../utils/index.js";
 
+const MAX_PAGE_SIZE = 100;
+
 export function createListCommand(): Command {
   const command = new Command("list");
   command.description("寄售商品列表");
@@ -23,7 +25,7 @@ export function createListCommand(): Command {
     try {
       validateStatus(options.status);
       const page = validatePositiveInt(options.page, "页码") ?? 1;
-      const size = validatePositiveInt(options.size, "每页数量") ?? 20;
+      const size = Math.min(validatePositiveInt(options.size, "每页数量") ?? 20, MAX_PAGE_SIZE);
 
       const api = getXianyuApi();
       const params: Record<string, unknown> = { page, size };

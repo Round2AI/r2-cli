@@ -9,7 +9,9 @@ interface UserInfoCardProps {
 }
 
 export function UserInfoCard({ userInfo, lastLogin, daysSinceLogin }: UserInfoCardProps) {
-  const maskedMobile = userInfo.mobile.replace(/(\d{3})\d{4}(\d{4})/, "$1****$2");
+  const maskedMobile = userInfo.mobile
+    ? userInfo.mobile.replace(/(\d{3})\d{4}(\d{4})/, "$1****$2")
+    : "-";
   const divider = "━".repeat(30);
 
   return (

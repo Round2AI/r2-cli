@@ -29,4 +29,4 @@ dist/
 Thumbs.db
 
 .env.*
-.claude/skills
+.claude

@@ -131,7 +131,6 @@ export class LoginService {
       this.displayUserInfo(result.userInfo);
       return result;
     } catch (error) {
-      console.log("error", error);
       console.log(chalk.red("\n❌ 登录失败\n"));
       throw error;
     }

@@ -4,7 +4,9 @@
 
 import { select } from "@inquirer/prompts";
 import ora from "ora";
+import { CliError } from "../../../errors/index.js";
 import type { XyCategory, XyCategoryGroup } from "../../../types/xianyu.js";
+import { DEFAULT_SP_BIZ_TYPE } from "../../../types/xianyu.js";
 import { getXianyuApi } from "../xianyu-api.service.js";
 
 type XyApi = ReturnType<typeof getXianyuApi>;
@@ -19,7 +21,7 @@ export async function selectCategory(
   }
 
   const catSpinner = ora("加载类目...").start();
-  const categories = await api.getCategories(16);
+  const categories = await api.getCategories(DEFAULT_SP_BIZ_TYPE);
   const groups = groupCategories(categories);
   catSpinner.succeed(`加载 ${categories.length} 个类目`);
 
@@ -28,9 +30,13 @@ export async function selectCategory(
     choices: groups.map((g) => ({ name: g.label, value: g })),
   })) as XyCategoryGroup;
 
-  if (group.children.length <= 1) {
-    const child = group.children[0];
-    return { categoryId: group.value, channelCatId: child?.value ?? "" };
+  if (group.children.length === 0) {
+    throw new CliError(`分类 "${group.label}" 无可用子分类`);
+  }
+
+  if (group.children.length === 1) {
+    const child = group.children[0]!;
+    return { categoryId: group.value, channelCatId: child.value };
   }
 
   const sub = await select({

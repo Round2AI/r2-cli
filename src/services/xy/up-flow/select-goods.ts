@@ -14,6 +14,8 @@ import { getXianyuApi } from "../xianyu-api.service.js";
 
 type XyApi = ReturnType<typeof getXianyuApi>;
 
+const MAX_PAGES = 50;
+
 export async function selectProduct(api: XyApi): Promise<{ id: string; item: SellerGoodsItem } | null> {
   const spinner = ora("加载商品列表...").start();
 
@@ -21,7 +23,7 @@ export async function selectProduct(api: XyApi): Promise<{ id: string; item: Sel
   const allItems: SellerGoodsItem[] = [];
   let hasMore = true;
 
-  while (hasMore) {
+  while (hasMore && page <= MAX_PAGES) {
     const result = await api.getSellerGoodsList({ status: "wait", page, size: 20 });
     allItems.push(...result.items);
     hasMore = result.items.length >= 20;

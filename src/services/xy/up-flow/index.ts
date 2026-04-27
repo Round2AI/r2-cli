@@ -85,7 +85,12 @@ export class UpFlowService {
     stepHeader(5, "售价");
     const priceInput: { message: string; default?: string; validate: (v: string) => string | boolean } = {
       message: "售价",
-      validate: (v) => (v ? true : "请输入售价"),
+      validate: (v) => {
+        if (!v) return "请输入售价";
+        const n = Number(v);
+        if (Number.isNaN(n) || n <= 0) return "售价必须为正数";
+        return true;
+      },
     };
     if (goodsDetail.reservePrice) priceInput.default = goodsDetail.reservePrice as string;
     const reservePrice = opts.price ?? (await input(priceInput));

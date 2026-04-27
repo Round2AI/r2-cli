@@ -24,8 +24,9 @@ export async function parseJsonArg<T = unknown>(arg: string, label: string): Pro
       return JSON.parse(await readFile(arg.slice(1), "utf-8"));
     }
     return JSON.parse(arg);
-  } catch {
-    throw new Error(`${label} 格式错误或文件不存在`);
+  } catch (e) {
+    const reason = e instanceof Error ? e.message : String(e);
+    throw new Error(`${label} 格式错误: ${reason}`);
   }
 }
 

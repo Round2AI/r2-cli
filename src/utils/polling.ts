@@ -2,6 +2,8 @@
  * 通用轮询工具
  */
 
+import { PollingError } from "../errors/index.js";
+
 export interface PollingOptions<T> {
   /** 轮询间隔（毫秒） */
   interval: number;
@@ -27,7 +29,7 @@ export async function poll<T>(
 
   while (Date.now() - startTime < timeout) {
     if (signal?.aborted) {
-      throw new Error("轮询被中止");
+      throw new PollingError("轮询被中止");
     }
 
     attempts++;
@@ -41,7 +43,7 @@ export async function poll<T>(
     await sleep(interval);
   }
 
-  throw new Error(`轮询超时 (已等待 ${Date.now() - startTime}ms, 共 ${attempts} 次)`);
+  throw new PollingError(`轮询超时 (已等待 ${Date.now() - startTime}ms, 共 ${attempts} 次)`);
 }
 
 export function sleep(ms: number): Promise<void> {

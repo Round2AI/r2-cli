@@ -165,16 +165,23 @@ export class ApiClientService implements IApiClient {
    */
   async refreshToken(token: string): Promise<{ token: string; expire?: number }> {
     const url = this.buildUrl("user/refresh");
-    const response = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", token },
-    });
-    if (!response.ok) throw new AuthError("Token 刷新失败");
-    const result = (await response.json()) as ApiResponse<{ token: string; expire?: number }>;
-    if (!result.success || result.status !== 0) {
-      throw new AuthError(result.msg || "Token 刷新失败");
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 10000);
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", token },
+        signal: controller.signal,
+      });
+      if (!response.ok) throw new AuthError("Token 刷新失败");
+      const result = (await response.json()) as ApiResponse<{ token: string; expire?: number }>;
+      if (!result.success || result.status !== 0) {
+        throw new AuthError(result.msg || "Token 刷新失败");
+      }
+      return result.data;
+    } finally {
+      clearTimeout(timer);
     }
-    return result.data;
   }
 }
 
