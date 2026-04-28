@@ -5,19 +5,13 @@
 import path from "node:path";
 import os from "node:os";
 import fs from "node:fs";
-import React from "react";
 import chalk from "chalk";
 import type { UserInfo, GenerateQRCodeData } from "../../types/auth.js";
 import { poll } from "../../utils/polling.js";
-import { type IQRCodeAuthApi, ApiClientService, QRCodeAuthApiService } from "../api/index.js";
+import { ApiClientService } from "../api/client.js";
+import { QRCodeAuthApiService, type IQRCodeAuthApi } from "../api/modules/qrcode-auth.js";
 import { createStorageService, StorageService } from "../storage/index.js";
 import { AuthError } from "../../errors/index.js";
-import { renderOnce } from "../../utils/index.js";
-import { UserInfoCard } from "../../components/UserInfoCard.js";
-
-import { createRequire } from "node:module";
-const require = createRequire(import.meta.url);
-const QRCodeLib = require("qrcode");
 
 // ==================== 类型 ====================
 
@@ -140,6 +134,11 @@ export class LoginService {
     const configDir = path.join(os.homedir(), ".r2-cli");
     fs.mkdirSync(configDir, { recursive: true });
     const qrPath = path.join(configDir, "qrcode.png");
+
+    const { createRequire } = await import("node:module");
+    const require = createRequire(import.meta.url);
+    const QRCodeLib = require("qrcode") as typeof import("qrcode");
+
     await QRCodeLib.toFile(qrPath, qrContent, { width: 300, margin: 2 });
 
     const qrMatrix = QRCodeLib.create(qrContent, { errorCorrectionLevel: "L" });
@@ -165,7 +164,10 @@ export class LoginService {
   /**
    * 显示用户信息
    */
-  private displayUserInfo(userInfo: UserInfo): void {
+  private async displayUserInfo(userInfo: UserInfo): Promise<void> {
+    const React = await import("react");
+    const { UserInfoCard } = await import("../../components/UserInfoCard.js");
+    const { renderOnce } = await import("../../utils/render.js");
     renderOnce(React.createElement(UserInfoCard, { userInfo }));
   }
 
@@ -205,13 +207,20 @@ export class LoginService {
     const daysSinceLogin = Math.floor((Date.now() - credentials!.timestamp) / (1000 * 60 * 60 * 24));
 
     console.log(chalk.green("✅ 已登录\n"));
+    const React = await import("react");
+    const { UserInfoCard } = await import("../../components/UserInfoCard.js");
+    const { renderOnce } = await import("../../utils/render.js");
     renderOnce(React.createElement(UserInfoCard, { userInfo, lastLogin, daysSinceLogin }));
   }
 
-  /**
-   * 清除登录凭证
-   */
   private async clearCredentials(): Promise<void> {
     await this.storage.clearCredentials();
   }
+}
+
+let loginInstance: LoginService | null = null;
+
+export function getLoginService(): LoginService {
+  if (!loginInstance) loginInstance = new LoginService();
+  return loginInstance;
 }

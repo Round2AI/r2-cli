@@ -173,8 +173,18 @@ r2-cli goods up submit \
 
 ## 缓存
 
-- **店铺**：首次选择后缓存到 `~/.r2-cli/config.json`，下次自动使用
+- **店铺**：首次选择后缓存到 `~/.r2-cli/config.json`（原子写入），下次自动使用
 - **地址**：`address --save` 或交互式设置后缓存
+
+## 错误处理
+
+所有 Agent 子命令（`info`、`submit`、`categories`、`props`、`address`）统一错误格式：
+
+```json
+{ "success": false, "error": "错误信息" }
+```
+
+包括验证错误（如参数缺失、省份/城市未找到）也返回相同格式。Agent 应检查 `success` 字段判断成败。
 
 ## 业务约束
 

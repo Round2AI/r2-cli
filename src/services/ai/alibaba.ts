@@ -37,8 +37,6 @@ interface AlibabaModelsResponse {
 
 const API_BASE = "https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation";
 const DEFAULT_TIMEOUT = 30000;
-const STREAM_TIMEOUT = 120000;
-
 export class AlibabaAIService {
   private apiKey: string;
   private model: string;
@@ -96,12 +94,15 @@ export class AlibabaAIService {
 
     const decoder = new TextDecoder();
     let buffer = "";
+    const READ_TIMEOUT = 120_000;
+    let lastData = Date.now();
 
     try {
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
 
+        lastData = Date.now();
         buffer += decoder.decode(value, { stream: true });
         const lines = buffer.split("\n");
         buffer = lines.pop() || "";
@@ -117,6 +118,10 @@ export class AlibabaAIService {
           } catch {
             // 忽略不完整的 JSON
           }
+        }
+
+        if (Date.now() - lastData > READ_TIMEOUT) {
+          throw new Error("SSE 读取超时 (120s 无数据)");
         }
       }
     } finally {

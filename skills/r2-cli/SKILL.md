@@ -29,8 +29,22 @@ npm install -g @round2ai/r2-cli@latest
 
 - 必须先登录：`r2-cli auth login`（扫码登录）
 - 检查登录状态：`r2-cli auth status`
-- Token 过期会自动刷新，刷新失败才需要重新登录
-- Token 存储在 `~/.r2-cli/config.json`
+- Token 过期后需重新登录（内存缓存带过期检查，不会无限使用过期 token）
+- Token 存储在 `~/.r2-cli/config.json`（原子写入，防止中断导致丢失）
+
+## 错误格式
+
+Agent 子命令（`goods up info/submit/categories/props/address`）统一错误格式：
+
+```json
+{ "success": false, "error": "错误信息" }
+```
+
+Agent 应检查 `success` 字段判断成败。验证错误（如参数缺失、查找失败）也使用相同格式。
+
+## 进程信号
+
+- SIGINT（Ctrl+C）和 SIGTERM 均触发优雅退出，输出"操作已取消"并 exit(130)
 
 ## 认证命令 `r2-cli auth`
 

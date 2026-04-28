@@ -29,3 +29,9 @@ export function handleCommandError(error: unknown): never {
 export function notImplemented(name: string): void {
   console.log(chalk.yellow(`▲ "${name}" 功能开发中，暂不可用`));
 }
+
+/** Agent 子命令统一错误输出 */
+export function agentError(msg: string): never {
+  console.log(JSON.stringify({ success: false, error: msg }));
+  process.exit(1);
+}

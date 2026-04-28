@@ -1,17 +1,8 @@
-export { poll, sleep, type PollingOptions } from "./polling.js";
-import type { GoodsStatus } from "../types/xianyu.js";
-import { CliError } from "../errors/index.js";
-import React from "react";
-import { render } from "ink";
-
 /**
- * 渲染 Ink 组件并立即卸载（一次性输出，不阻塞 stdout）
+ * 通用 CLI 工具函数
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function renderOnce(component: React.ReactElement<any>): void {
-  const instance = render(component);
-  instance.unmount();
-}
+
+import { CliError } from "../errors/index.js";
 
 /**
  * 解析 JSON 命令行参数

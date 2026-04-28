@@ -136,7 +136,7 @@ npx skills add http://192.168.0.99:3000/puresnake/r2-cli.git -y -g
 | `r2-cli auth status` | 查看登录状态 |
 | `r2-cli auth logout` | 退出登录 |
 
-Token 存储在 `~/.r2-cli/config.json`，过期自动刷新。
+Token 存储在 `~/.r2-cli/config.json`（原子写入防丢失），过期后需重新登录。内存缓存带过期检查，不会使用失效凭证。
 
 ---
 
@@ -163,6 +163,8 @@ Token 存储在 `~/.r2-cli/config.json`，过期自动刷新。
 | `r2-cli goods up props <catId>` | 获取分类属性 |
 | `r2-cli goods up submit --data @file.json ...` | 提交上架 |
 
+> 所有 Agent 子命令统一错误格式：`{ "success": false, "error": "错误信息" }`。Agent 应检查 `success` 字段判断成败。
+
 ### 其他命令
 
 | 命令 | 说明 |
@@ -170,6 +172,8 @@ Token 存储在 `~/.r2-cli/config.json`，过期自动刷新。
 | `r2-cli uninstall` | 卸载 R2-CLI 并清除所有配置 |
 
 ### 开发中
+
+> 以下命令已实现但隐藏于 `--help`，功能暂不可用。
 
 | 命令 | 说明 |
 |------|------|
@@ -194,7 +198,7 @@ Token 存储在 `~/.r2-cli/config.json`，过期自动刷新。
 建议：
 - 上架前使用 `r2-cli goods up info` 确认商品详情
 - Agent 提交前向用户确认关键参数（售价、类目）
-- Token 存储在本地 `~/.r2-cli/config.json`，注意保护
+- Token 存储在本地 `~/.r2-cli/config.json`（原子写入，防止中断导致配置丢失），注意保护
 
 ---
 

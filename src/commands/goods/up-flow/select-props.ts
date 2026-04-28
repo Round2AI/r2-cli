@@ -6,7 +6,7 @@ import { select, input } from "@inquirer/prompts";
 import chalk from "chalk";
 import ora from "ora";
 import type { XyProp, XyPropValue, XyGoodsDetail, ItemAttr } from "../../../types/xianyu.js";
-import { getXianyuApi } from "../xianyu-api.service.js";
+import { getXianyuApi } from "../../../services/api/modules/xianyu.js";
 
 type XyApi = ReturnType<typeof getXianyuApi>;
 

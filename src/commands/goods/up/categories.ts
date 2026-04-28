@@ -3,8 +3,9 @@
  */
 
 import { Command } from "commander";
-import { getXianyuApi } from "../../../services/platform/xianyu-api.service.js";
+import { getXianyuApi } from "../../../services/api/modules/xianyu.js";
 import { DEFAULT_SP_BIZ_TYPE } from "../../../types/xianyu.js";
+import { agentError } from "../../shared.js";
 
 export function createUpCategoriesCommand(): Command {
   const cmd = new Command("categories");
@@ -30,8 +31,7 @@ export function createUpCategoriesCommand(): Command {
       console.log(JSON.stringify(groups, null, 2));
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
-      console.log(JSON.stringify({ success: false, error: msg }));
-      process.exit(1);
+      agentError(msg);
     }
   });
 

@@ -3,8 +3,9 @@
  */
 
 import { Command } from "commander";
-import { getXianyuApi } from "../../../services/platform/xianyu-api.service.js";
+import { getXianyuApi } from "../../../services/api/modules/xianyu.js";
 import { createStorageService } from "../../../services/storage/index.js";
+import { agentError } from "../../shared.js";
 
 export function createUpInfoCommand(): Command {
   const cmd = new Command("info");
@@ -29,8 +30,7 @@ export function createUpInfoCommand(): Command {
         shop = shops.find((s) => s.thirdUserId === shopId || s.id === shopId) ?? shop;
       }
       if (!shop) {
-        console.log(JSON.stringify({ error: "没有授权店铺" }));
-        return;
+        agentError("没有授权店铺");
       }
 
       const detail = await api.getXyGoodsInfo(goodsInfoId, shop.thirdUserId);
@@ -63,8 +63,7 @@ export function createUpInfoCommand(): Command {
       );
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
-      console.log(JSON.stringify({ success: false, error: msg }));
-      process.exit(1);
+      agentError(msg);
     }
   });
 

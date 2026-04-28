@@ -1,19 +1,16 @@
 /**
- * 认证命令 — login / logout / status
+ * 登录命令
  *
- * login 支持三种模式：
+ * 支持三种模式：
  * - `auth login`          一键登录（人类用）
  * - `auth login qr`       生成二维码，输出 JSON（AI Agent 用）
  * - `auth login poll`     轮询登录状态（AI Agent 用）
  */
 
 import { Command } from "commander";
-import { LoginService } from "../../services/auth/index.js";
+import { getLoginService } from "../../services/auth/index.js";
 import { handleCommandError } from "../shared.js";
 
-/**
- * 创建登录命令
- */
 export function createLoginCommand(): Command {
   const command = new Command("login");
   command.description("扫码登录 Round2AI 账户");
@@ -23,7 +20,7 @@ export function createLoginCommand(): Command {
     .description("生成登录二维码（返回 JSON，供 AI Agent 使用）")
     .action(async () => {
       try {
-        const service = new LoginService();
+        const service = getLoginService();
         const { qrData, unicodeQR, qrPath } = await service.generateQR();
         const output = {
           qrToken: qrData.qrToken,
@@ -48,7 +45,7 @@ export function createLoginCommand(): Command {
     .option("--interval <ms>", "轮询间隔（毫秒）", "1000")
     .action(async (options: { token: string; expire: string; interval: string }) => {
       try {
-        const service = new LoginService();
+        const service = getLoginService();
         const controller = new AbortController();
         const timeout = setTimeout(
           () => controller.abort(),
@@ -78,7 +75,7 @@ export function createLoginCommand(): Command {
 
   command.action(async (options: { timeout?: string }) => {
     try {
-      const loginService = new LoginService();
+      const loginService = getLoginService();
       const controller = new AbortController();
 
       const timeout = setTimeout(
@@ -88,44 +85,6 @@ export function createLoginCommand(): Command {
 
       await loginService.login(controller.signal);
       clearTimeout(timeout);
-    } catch (error) {
-      handleCommandError(error);
-    }
-  });
-
-  return command;
-}
-
-/**
- * 创建登出命令
- */
-export function createLogoutCommand(): Command {
-  const command = new Command("logout");
-  command.description("退出登录");
-
-  command.action(async () => {
-    try {
-      const loginService = new LoginService();
-      await loginService.logout();
-    } catch (error) {
-      handleCommandError(error);
-    }
-  });
-
-  return command;
-}
-
-/**
- * 创建状态命令
- */
-export function createStatusCommand(): Command {
-  const command = new Command("status");
-  command.description("查看登录状态");
-
-  command.action(async () => {
-    try {
-      const loginService = new LoginService();
-      await loginService.status();
     } catch (error) {
       handleCommandError(error);
     }

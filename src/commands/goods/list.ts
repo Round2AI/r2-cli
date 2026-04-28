@@ -4,11 +4,10 @@
 
 import { Command } from "commander";
 import chalk from "chalk";
-import React from "react";
-import { getXianyuApi } from "../../services/platform/xianyu-api.service.js";
+import { getXianyuApi } from "../../services/api/modules/xianyu.js";
 import { handleCommandError } from "../shared.js";
-import { GoodsTable } from "../../components/GoodsTable.js";
-import { validateStatus, validatePositiveInt, renderOnce } from "../../utils/index.js";
+import { validateStatus, validatePositiveInt } from "../../utils/index.js";
+import { renderOnce } from "../../utils/render.js";
 
 const MAX_PAGE_SIZE = 100;
 
@@ -39,6 +38,8 @@ export function createListCommand(): Command {
         return;
       }
 
+      const React = await import("react");
+      const { GoodsTable } = await import("../../components/GoodsTable.js");
       renderOnce(
         React.createElement(GoodsTable, {
           items: result.items,

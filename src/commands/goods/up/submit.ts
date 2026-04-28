@@ -4,9 +4,10 @@
  */
 
 import { Command } from "commander";
-import { getXianyuApi } from "../../../services/platform/xianyu-api.service.js";
+import { getXianyuApi } from "../../../services/api/modules/xianyu.js";
 import { parseJsonArg } from "../../../utils/index.js";
-import type { ItemAttr } from "../../../types/xianyu.js";
+import { agentError } from "../../shared.js";
+import type { ItemAttr, XyGoodsUpParams } from "../../../types/xianyu.js";
 
 export function createUpSubmitCommand(): Command {
   const cmd = new Command("submit");
@@ -94,12 +95,11 @@ export function createUpSubmitCommand(): Command {
           apiAfterSalesDo,
         };
 
-        const result = await api.upGoods(params as unknown as import("../../../types/xianyu.js").XyGoodsUpParams);
+        const result = await api.upGoods(params as unknown as XyGoodsUpParams);
         console.log(JSON.stringify({ success: true, result }, null, 2));
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error);
-        console.log(JSON.stringify({ success: false, error: msg }));
-        process.exit(1);
+        agentError(msg);
       }
     },
   );

@@ -7,7 +7,7 @@ import ora from "ora";
 import { CliError } from "../../../errors/index.js";
 import type { XyCategory, XyCategoryGroup } from "../../../types/xianyu.js";
 import { DEFAULT_SP_BIZ_TYPE } from "../../../types/xianyu.js";
-import { getXianyuApi } from "../xianyu-api.service.js";
+import { getXianyuApi } from "../../../services/api/modules/xianyu.js";
 
 type XyApi = ReturnType<typeof getXianyuApi>;
 

@@ -26,7 +26,7 @@ R2-CLI 是面向二手潮奢交易场景的 CLI 工具，将业务能力以 CLI 
 **双模架构**：每个交互式流程都有一组对应的 JSON 输出子命令供 AI Agent 调用。例如 `goods up`（7 步交互向导）对应 `goods up info`/`categories`/`props`/`submit`（JSON 原子操作）。
 
 ### 入口流程
-1. `src/entrypoints/r2-cli.tsx` — CLI 入口，初始化 Commander、版本号读取（双路径 fallback）、异步更新检查、SIGINT 处理
+1. `src/entrypoints/r2-cli.tsx` — CLI 入口，初始化 Commander、版本号读取（双路径 fallback）、异步更新检查、SIGINT/SIGTERM 优雅退出
 2. `src/commands/setup.ts` — 注册所有域命令（auth、goods、uninstall）
 3. `src/commands/*/` 各目录下的命令工厂函数返回 `Command` 实例
 4. `src/commands/uninstall.ts` — 一键卸载：删除 `~/.r2-cli/` + `npm uninstall -g @round2ai/r2-cli`
@@ -35,20 +35,22 @@ R2-CLI 是面向二手潮奢交易场景的 CLI 工具，将业务能力以 CLI 
 ### 服务层
 
 **API 客户端** (`src/services/api/`)：
-- `api-client.service.ts` — 基于 `fetch` 的 HTTP 客户端，处理响应信封 `{ success, status, data, msg }`。Base URL 来自 `process.env.R2_API_URL`（构建时由 esbuild define 注入）。含 `refreshToken()` 调用 `user/refresh` 端点（10s 超时）。Debug 日志输出到 stderr（`console.error`），不污染 stdout。
-- `authenticated-client.service.ts` — 包装 `ApiClientService`。Storage 引用在构造函数中初始化。401 时用 `refreshPromise` 共享模式刷新（并发请求共享同一个刷新 Promise，避免竞态清除凭证）。刷新也失败才清除凭证并提示重新登录。
-- `api-client.interface.ts` — `IApiClient`、`IQRCodeAuthApi`、`ApiConfig`、`ApiResponse<T>`
+- `client.ts` — 基于 `fetch` 的 HTTP 客户端，处理响应信封 `{ success, status, data, msg }`。Base URL 来自 `process.env.R2_API_URL`（构建时由 esbuild define 注入）。Debug 日志输出到 stderr（`console.error`），不污染 stdout。
+- `auth-client.ts` — 包装 `ApiClientService`。内存缓存 token 带过期时间追踪（5 分钟安全边际），过期自动从 storage 重新读取。401 时清除凭证并提示重新登录。
+- `modules/qrcode-auth.ts` — `QRCodeAuthApiService`，二维码认证 API 实现。
+- `modules/xianyu.ts` — 闲鱼 API 封装，`getXianyuApi()` 单例。使用 `AuthenticatedApiClient`。
+- `client.interface.ts` — `IApiClient`、`IQRCodeAuthApi`、`ApiConfig`、`ApiResponse<T>`
 
 **本地存储** (`src/services/storage/`)：
-- `index.ts` — `StorageService`（`createStorageService()` 单例），文件存储位于 `~/.r2-cli/config.json`。带内存缓存（`configLoaded` 标记，避免每次操作重复 I/O）+ 目录创建缓存（`dirEnsured`）。`isLoggedIn()`/`getToken()`/`getCredentials()` 自动检查 token 过期（`expire` 字段，5 分钟安全边际），过期返回 null/false。
+- `index.ts` — `StorageService`（`createStorageService()` 单例），文件存储位于 `~/.r2-cli/config.json`。原子写入（tmp 文件 + rename 防中断丢失）。带内存缓存（`configLoaded` 标记，避免每次操作重复 I/O）+ 目录创建缓存（`dirEnsured`）。`isLoggedIn()`/`getToken()`/`getCredentials()` 自动检查 token 过期（`expire` 字段，5 分钟安全边际），过期返回 null/false。
 - `types.ts` — `StoredCredentials`（含可选 `expire`）、`StoredAddress`、`StoredShop`、`LocalConfig`、`IStorageService`
 
-**领域服务** (`src/services/platform/`)：
-- `xianyu-api.service.ts` — 闲鱼 API 封装，`getXianyuApi()` 单例。使用 `AuthenticatedApiClient`。
-- `up-flow/` — 7 步交互式上架向导，使用 `@inquirer/prompts`。自动匹配品牌/尺码/成色。`index.ts` 导出 `UpFlowService`，各步骤函数拆分在 `select-shop.ts`、`select-goods.ts`、`select-category.ts`、`select-props.ts`、`summary.ts`。
+**交互式上架流程** (`src/commands/goods/up-flow/`)：
+- `index.ts` 导出 `UpFlowService`，使用 `@inquirer/prompts`。自动匹配品牌/尺码/成色。
+- 各步骤函数拆分在 `select-shop.ts`、`select-goods.ts`、`select-category.ts`、`select-props.ts`、`summary.ts`。
 
 **认证服务** (`src/services/auth/`)：
-- `login.service.ts` — `LoginService`（QR 生成 + 轮询 + 人类登录 + 状态/登出）
+- `login.ts` — `LoginService`（QR 生成 + 轮询 + 人类登录 + 状态/登出）
 - `index.ts` — 重导出
 
 **更新检查** (`src/services/update-check/index.ts`)：
@@ -56,12 +58,12 @@ R2-CLI 是面向二手潮奢交易场景的 CLI 工具，将业务能力以 CLI 
 - 在 `r2-cli.tsx` 中立即启动（不 await），`program.parse()` 之后 `.catch(() => {})` 确保不阻塞。
 
 **AI 服务** (`src/services/ai/`)：
-- `alibaba.ts` — 阿里百炼 AI，支持 SSE 流式。所有 fetch 调用有 30s 超时（SSE 读取 120s）。构造函数验证 `ALIBABA_API_KEY` 非空。`callApi()` 检查 `response.ok`。
+- `alibaba.ts` — 阿里百炼 AI，支持 SSE 流式。fetch 调用有 30s 超时，SSE 读取循环有 120s 无数据超时。构造函数验证 `ALIBABA_API_KEY` 非空。`callApi()` 检查 `response.ok`。
 - `index.ts` — `MultiAIService` 门面，导出单例 `aiService`
 
 ### 认证流程
 
-`src/services/auth/login.service.ts` → `LoginService`：
+`src/services/auth/login.ts` → `LoginService`：
 
 - **人类模式**：`r2-cli auth login` — 生成二维码、终端显示 unicode、轮询直到确认
 - **Agent 模式**：`r2-cli auth login qr`（第 1 步：生成二维码 → JSON 输出）然后 `r2-cli auth login poll --token <> --expire <> --interval <>`（第 2 步：轮询直到确认 → JSON 输出）
@@ -70,9 +72,9 @@ R2-CLI 是面向二手潮奢交易场景的 CLI 工具，将业务能力以 CLI 
 
 ### 错误处理
 - `src/errors/index.ts` — `R2Error` → `ApiError`（含 `status`、`response`）、`AuthError`、`StorageError`、`PollingError`、`CliError`
-- `src/commands/shared.ts` — `handleCommandError()` 按错误类型分发（交互式命令用）；`notImplemented(name)` 统一未实现命令提示。
+- `src/commands/shared.ts` — `handleCommandError()` 按错误类型分发（交互式命令用）；`agentError(msg)` 统一 Agent 子命令 JSON 错误输出 `{ success: false, error }` + `process.exit(1)`；`notImplemented(name)` 统一未实现命令提示。
 - `src/commands/goods/up/` — 上架命令拆分为 `index.ts`（父命令+交互向导）+ `info.ts`/`categories.ts`/`props.ts`/`submit.ts`/`address.ts`（Agent 子命令）
-- Agent 子命令错误统一输出 `JSON.stringify({ success: false, error: msg })` + `process.exit(1)`，不使用 `handleCommandError`（后者输出人类可读文本到 stderr）
+- Agent 子命令错误统一使用 `agentError(msg)`（输出 `{ success: false, error: msg }` + `process.exit(1)`），不使用 `handleCommandError`（后者输出人类可读文本到 stderr）
 - 交互式流程（`up-flow/`）禁止使用 `process.exit()`，必须 `throw new CliError()` 让上层捕获
 
 ### 构建系统
@@ -89,6 +91,7 @@ R2-CLI 是面向二手潮奢交易场景的 CLI 工具，将业务能力以 CLI 
 - `ShopsTable.tsx` — 店铺列表表格
 - `UserInfoCard.tsx` — 用户信息卡片
 - 使用 `renderOnce(React.createElement(...))` 挂载（render + immediate unmount），仅在结构化数据展示时使用；简单状态提示保持 chalk。
+- `renderOnce` 定义在 `src/utils/render.tsx`（从 `utils/index.ts` 拆分，避免 React/Ink 顶层导入破坏惰性加载）。Writable buffer + chalk.level=3 truecolor + try/finally 安全恢复。
 - `index.ts` — barrel export 所有组件
 
 ### Skill 体系

@@ -1,4 +1,3 @@
-import React from "react";
 import { Box, Text } from "ink";
 import type { XyGoodsUpParams } from "../types/xianyu.js";
 import type { StoredAddress } from "../services/storage/types.js";

@@ -9,11 +9,11 @@ import { Command } from "commander";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import chalk from "chalk";
-import figlet from "figlet";
 import { setupCommands } from "../commands/setup.js";
 import { checkForUpdate } from "../services/update-check/index.js";
 
-function displayWelcomeMessage(): void {
+async function displayWelcomeMessage(): Promise<void> {
+  const { default: figlet } = await import("figlet");
   console.log(
     chalk.cyan.bold(
       figlet.textSync("R2-CLI", {
@@ -56,8 +56,8 @@ function setupCliApp(): { program: Command; updateCheckPromise: Promise<void> } 
   });
 
   // 仅在无子命令时显示欢迎信息
-  program.action(() => {
-    displayWelcomeMessage();
+  program.action(async () => {
+    await displayWelcomeMessage();
     program.help();
   });
 
@@ -66,12 +66,14 @@ function setupCliApp(): { program: Command; updateCheckPromise: Promise<void> } 
   return { program, updateCheckPromise };
 }
 
-// SIGINT 优雅退出
-process.on("SIGINT", () => {
+// 信号优雅退出
+function handleSignal() {
   console.log(chalk.gray("\n操作已取消"));
   process.exit(130);
-});
+}
+process.on("SIGINT", handleSignal);
+process.on("SIGTERM", handleSignal);
 
 const { program, updateCheckPromise } = setupCliApp();
 program.parse(process.argv);
-updateCheckPromise.catch(() => {});
+updateCheckPromise.catch((e) => { console.error(chalk.gray(`[update-check] ${e instanceof Error ? e.message : String(e)}`)); });

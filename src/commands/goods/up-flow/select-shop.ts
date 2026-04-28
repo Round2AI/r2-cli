@@ -5,12 +5,12 @@
 import { select, confirm } from "@inquirer/prompts";
 import chalk from "chalk";
 import React from "react";
-import { createStorageService } from "../../storage/index.js";
+import { createStorageService } from "../../../services/storage/index.js";
 import { CliError } from "../../../errors/index.js";
-import { renderOnce } from "../../../utils/index.js";
+import { renderOnce } from "../../../utils/render.js";
 import { SelectionResult } from "../../../components/SelectionResult.js";
 import type { XyShop } from "../../../types/xianyu.js";
-import { getXianyuApi } from "../xianyu-api.service.js";
+import { getXianyuApi } from "../../../services/api/modules/xianyu.js";
 
 type XyApi = ReturnType<typeof getXianyuApi>;
 

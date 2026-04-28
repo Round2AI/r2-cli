@@ -4,12 +4,12 @@
 
 import { select, confirm } from "@inquirer/prompts";
 import React from "react";
-import { createStorageService } from "../../storage/index.js";
-import { renderOnce } from "../../../utils/index.js";
+import { createStorageService } from "../../../services/storage/index.js";
+import { renderOnce } from "../../../utils/render.js";
 import { SelectionResult } from "../../../components/SelectionResult.js";
 import { SubmitSummary } from "../../../components/SubmitSummary.js";
 import type { XyShop, XyGoodsUpParams } from "../../../types/xianyu.js";
-import cityData from "../../../assets/citys.json" with { type: "json" };
+import { cityData } from "../../../utils/city.js";
 
 export async function selectDivision(): Promise<string> {
   const storage = createStorageService();

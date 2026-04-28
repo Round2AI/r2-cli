@@ -7,7 +7,6 @@
  */
 
 import { Command } from "commander";
-import { UpFlowService } from "../../../services/platform/up-flow/index.js";
 import { handleCommandError } from "../../shared.js";
 import { createUpInfoCommand } from "./info.js";
 import { createUpCategoriesCommand } from "./categories.js";
@@ -21,6 +20,7 @@ export function createUpCommand(): Command {
 
   command.action(async () => {
     try {
+      const { UpFlowService } = await import("../up-flow/index.js");
       const flow = new UpFlowService();
       await flow.run();
     } catch (error) {

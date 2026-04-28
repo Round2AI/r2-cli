@@ -87,10 +87,13 @@ export class StorageService implements IStorageService {
     await this.ensureDir();
 
     const content = JSON.stringify(config, null, 2);
+    const tmpPath = this.configPath + ".tmp";
     try {
-      await fs.writeFile(this.configPath, content, "utf-8");
+      await fs.writeFile(tmpPath, content, "utf-8");
+      await fs.rename(tmpPath, this.configPath);
       this.configLoaded = true;
     } catch (error) {
+      await fs.unlink(tmpPath).catch(() => {});
       throw new StorageError("Failed to save config", this.configPath, (error as NodeJS.ErrnoException).code);
     }
   }
@@ -164,18 +167,6 @@ export class StorageService implements IStorageService {
   async isLoggedIn(): Promise<boolean> {
     const credentials = await this.getCredentials();
     return credentials !== null;
-  }
-
-  /**
-   * 更新 token（刷新后使用）
-   */
-  async updateToken(token: string, expire?: number): Promise<void> {
-    const config = await this.loadConfig();
-    if (config.credentials) {
-      config.credentials.token = token;
-      if (expire !== undefined) config.credentials.expire = expire;
-      await this.saveConfig(config);
-    }
   }
 
   /**

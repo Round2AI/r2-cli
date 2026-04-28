@@ -82,6 +82,8 @@ r2-cli auth login
 
 ## 注意事项
 
-- Token 存储在 `~/.r2-cli/config.json`，过期会自动刷新
+- Token 存储在 `~/.r2-cli/config.json`（原子写入，防止中断导致丢失），过期后需重新登录
+- 内存缓存的 token 带过期检查（5 分钟安全边际），过期自动重新读取
 - 二维码默认5分钟过期，超时需重新执行第1步
+- 轮询支持 SIGINT/SIGTERM 中止，Ctrl+C 立即取消等待（sleep 响应 abort 信号）
 - 登录成功后，后续 goods 等命令可直接使用

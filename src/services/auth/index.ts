@@ -1,1 +1,1 @@
-export { LoginService, type QRCodeResult, type LoginResult } from "./login.service.js";
+export { LoginService, getLoginService, type QRCodeResult, type LoginResult } from "./login.js";

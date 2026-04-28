@@ -3,7 +3,6 @@
  */
 
 import { Command } from "commander";
-import { confirm } from "@inquirer/prompts";
 import chalk from "chalk";
 import { promises as fs } from "node:fs";
 import path from "node:path";
@@ -23,6 +22,7 @@ export function createUninstallCommand(): Command {
       console.log(chalk.gray(`  1. 删除配置目录 ~/.r2-cli/`));
       console.log(chalk.gray(`  2. 全局卸载 ${PKG_NAME}\n`));
 
+      const { confirm } = await import("@inquirer/prompts");
       const confirmed = await confirm({ message: "确认卸载？", default: false });
       if (!confirmed) {
         console.log(chalk.gray("已取消卸载"));

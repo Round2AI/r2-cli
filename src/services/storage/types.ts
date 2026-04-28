@@ -89,11 +89,6 @@ export interface IStorageService {
   isLoggedIn(): Promise<boolean>;
 
   /**
-   * 更新 token（刷新后使用）
-   */
-  updateToken(token: string, expire?: number): Promise<void>;
-
-  /**
    * 获取缓存的发货地址
    */
   getAddress(): Promise<StoredAddress | null>;

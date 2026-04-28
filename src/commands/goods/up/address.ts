@@ -3,9 +3,9 @@
  */
 
 import { Command } from "commander";
-import { select } from "@inquirer/prompts";
 import { createStorageService } from "../../../services/storage/index.js";
-import cityData from "../../../assets/citys.json" with { type: "json" };
+import { cityData, findProvince, findCity, findArea } from "../../../utils/city.js";
+import { agentError } from "../../shared.js";
 
 export function createUpAddressCommand(): Command {
   const cmd = new Command("address");
@@ -34,90 +34,67 @@ export function createUpAddressCommand(): Command {
         const storage = createStorageService();
 
         if (options.provinces) {
-          console.log(
-            JSON.stringify(
-              cityData.map((p) => ({ name: p.province, code: p.code })),
-              null,
-              2,
-            ),
-          );
+          console.log(JSON.stringify(cityData.map((p) => ({ name: p.province, code: p.code })), null, 2));
           return;
         }
 
         if (options.cities) {
-          const prov = cityData.find((p) => p.province === options.cities);
+          const prov = findProvince(options.cities);
           if (!prov) {
-            console.log(JSON.stringify({ error: `未找到省份: ${options.cities}` }));
+            console.log(JSON.stringify({ success: false, error: `未找到省份: ${options.cities}` }));
             return;
           }
-          console.log(
-            JSON.stringify(
-              prov.citys.map((c) => ({ name: c.city, code: c.code })),
-              null,
-              2,
-            ),
-          );
+          console.log(JSON.stringify(prov.citys.map((c) => ({ name: c.city, code: c.code })), null, 2));
           return;
         }
 
         if (options.areas) {
-          const provName = options.province;
-          if (!provName) {
-            console.log(JSON.stringify({ error: "请用 --province 指定省份" }));
+          if (!options.province) {
+            console.log(JSON.stringify({ success: false, error: "请用 --province 指定省份" }));
             return;
           }
-          const prov = cityData.find((p) => p.province === provName);
+          const prov = findProvince(options.province);
           if (!prov) {
-            console.log(JSON.stringify({ error: `未找到省份: ${provName}` }));
+            console.log(JSON.stringify({ success: false, error: `未找到省份: ${options.province}` }));
             return;
           }
-          const city = prov.citys.find((c) => c.city === options.areas);
+          const city = findCity(prov, options.areas);
           if (!city) {
-            console.log(JSON.stringify({ error: `未找到城市: ${options.areas}` }));
+            console.log(JSON.stringify({ success: false, error: `未找到城市: ${options.areas}` }));
             return;
           }
-          console.log(
-            JSON.stringify(
-              city.areas.map((a) => ({ name: a.area, code: a.code })),
-              null,
-              2,
-            ),
-          );
+          console.log(JSON.stringify(city.areas.map((a) => ({ name: a.area, code: a.code })), null, 2));
           return;
         }
 
         if (options.save) {
           if (!options.province || !options.city || !options.areaCode) {
-            console.log(JSON.stringify({ error: "保存地址需要 --province, --city, --area-code" }));
+            console.log(JSON.stringify({ success: false, error: "保存地址需要 --province, --city, --area-code" }));
             return;
           }
-          const prov = cityData.find((p) => p.province === options.province);
+          const prov = findProvince(options.province);
           if (!prov) {
-            console.log(JSON.stringify({ error: `未找到省份: ${options.province}` }));
+            console.log(JSON.stringify({ success: false, error: `未找到省份: ${options.province}` }));
             return;
           }
-          const city = prov.citys.find((c) => c.city === options.city);
+          const city = findCity(prov, options.city);
           if (!city) {
-            console.log(JSON.stringify({ error: `未找到城市: ${options.city}` }));
+            console.log(JSON.stringify({ success: false, error: `未找到城市: ${options.city}` }));
             return;
           }
-          const area = city.areas.find((a) => a.code === options.areaCode);
+          const area = findArea(city, options.areaCode);
           if (!area) {
-            console.log(JSON.stringify({ error: `未找到地区编码: ${options.areaCode}` }));
+            console.log(JSON.stringify({ success: false, error: `未找到地区编码: ${options.areaCode}` }));
             return;
           }
-          const saved = {
-            divisionId: area.code,
-            province: prov.province,
-            city: city.city,
-            area: area.area,
-          };
+          const saved = { divisionId: area.code, province: prov.province, city: city.city, area: area.area };
           await storage.saveAddress(saved);
           console.log(JSON.stringify({ saved }, null, 2));
           return;
         }
 
         if (options.set) {
+          const { select } = await import("@inquirer/prompts");
           const province = await select({
             message: "选择省份",
             choices: cityData.map((p) => ({ name: p.province, value: p })),
@@ -134,13 +111,7 @@ export function createUpAddressCommand(): Command {
           });
 
           const areaName = city.areas.find((a) => a.code === areaCode)?.area ?? "";
-          const saved = {
-            divisionId: areaCode,
-            province: province.province,
-            city: city.city,
-            area: areaName,
-          };
-
+          const saved = { divisionId: areaCode, province: province.province, city: city.city, area: areaName };
           await storage.saveAddress(saved);
           console.log(JSON.stringify({ saved }, null, 2));
           return;
@@ -150,8 +121,7 @@ export function createUpAddressCommand(): Command {
         console.log(JSON.stringify({ address }, null, 2));
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error);
-        console.log(JSON.stringify({ success: false, error: msg }));
-        process.exit(1);
+        agentError(msg);
       }
     },
   );

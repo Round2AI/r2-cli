@@ -40,12 +40,25 @@ export async function poll<T>(
       return data;
     }
 
-    await sleep(interval);
+    await sleep(interval, signal);
   }
 
   throw new PollingError(`轮询超时 (已等待 ${Date.now() - startTime}ms, 共 ${attempts} 次)`);
 }
 
-export function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
+export function sleep(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
+    const timer = setTimeout(resolve, ms);
+    if (!signal) return;
+    if (signal.aborted) {
+      clearTimeout(timer);
+      reject(new PollingError("轮询被中止"));
+      return;
+    }
+    const onAbort = () => {
+      clearTimeout(timer);
+      reject(new PollingError("轮询被中止"));
+    };
+    signal.addEventListener("abort", onAbort, { once: true });
+  });
 }

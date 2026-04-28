@@ -7,10 +7,10 @@ import chalk from "chalk";
 import ora from "ora";
 import React from "react";
 import { CliError } from "../../../errors/index.js";
-import { renderOnce } from "../../../utils/index.js";
+import { renderOnce } from "../../../utils/render.js";
 import { SelectionResult } from "../../../components/SelectionResult.js";
 import type { SellerGoodsItem } from "../../../types/xianyu.js";
-import { getXianyuApi } from "../xianyu-api.service.js";
+import { getXianyuApi } from "../../../services/api/modules/xianyu.js";
 
 type XyApi = ReturnType<typeof getXianyuApi>;
 

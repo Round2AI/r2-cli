@@ -2,13 +2,11 @@
  * 店铺列表命令
  */
 
-import React from "react";
 import { Command } from "commander";
 import chalk from "chalk";
-import { getXianyuApi } from "../../services/platform/xianyu-api.service.js";
+import { getXianyuApi } from "../../services/api/modules/xianyu.js";
 import { handleCommandError } from "../shared.js";
-import { renderOnce } from "../../utils/index.js";
-import { ShopsTable } from "../../components/ShopsTable.js";
+import { renderOnce } from "../../utils/render.js";
 
 export function createShopsCommand(): Command {
   const command = new Command("shops");
@@ -30,6 +28,8 @@ export function createShopsCommand(): Command {
         return;
       }
 
+      const React = await import("react");
+      const { ShopsTable } = await import("../../components/ShopsTable.js");
       renderOnce(React.createElement(ShopsTable, { shops, platform: options.platform }));
     } catch (error) {
       handleCommandError(error);
