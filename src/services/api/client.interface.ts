@@ -9,6 +9,7 @@ export interface ApiConfig {
   baseUrl: string;
   version: string;
   debug: boolean;
+  auth?: boolean;
 }
 
 /**
@@ -30,14 +31,4 @@ export interface ApiResponse<T = unknown> {
   data: T;
   msg?: string;
   token?: string;
-}
-
-/**
- * API 客户端接口
- */
-export interface IApiClient {
-  get<T = unknown>(path: string, params?: URLSearchParams): Promise<T>;
-  post<T = unknown>(path: string, body?: unknown): Promise<T>;
-  put<T = unknown>(path: string, body?: unknown): Promise<T>;
-  delete<T = unknown>(path: string): Promise<T>;
 }

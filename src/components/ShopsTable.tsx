@@ -27,7 +27,7 @@ function Header() {
 
 function Row({ shop }: { shop: XyShop }) {
   const expired = Date.now() > shop.expiresIn;
-  const expireDate = new Date(shop.expiresIn).toLocaleDateString();
+  const expireDate = new Date(shop.expiresIn).toLocaleDateString("zh-CN");
 
   return (
     <Box flexDirection="row">

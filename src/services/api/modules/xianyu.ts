@@ -2,7 +2,7 @@
  * 闲鱼 API 服务
  */
 
-import { AuthenticatedApiClient } from "../auth-client.js";
+import { ApiClientService } from "../client.js";
 import type {
   XyShop,
   SellerGoodsListParams,
@@ -15,10 +15,10 @@ import type {
 } from "../../../types/xianyu.js";
 
 export class XianyuApiService {
-  private client: AuthenticatedApiClient;
+  private client: ApiClientService;
 
   constructor() {
-    this.client = new AuthenticatedApiClient();
+    this.client = new ApiClientService({ auth: true });
   }
 
   private toParams(obj: Record<string, unknown>): URLSearchParams {

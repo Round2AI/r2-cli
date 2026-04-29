@@ -95,6 +95,10 @@ export function createUpSubmitCommand(): Command {
           apiAfterSalesDo,
         };
 
+        if (!base.goodsInfoId || !base.account) {
+          agentError("goodsDetail 缺少必要字段 (goodsInfoId, account)");
+        }
+
         const result = await api.upGoods(params as unknown as XyGoodsUpParams);
         console.log(JSON.stringify({ success: true, result }, null, 2));
       } catch (error) {

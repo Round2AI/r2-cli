@@ -35,11 +35,10 @@ R2-CLI 是面向二手潮奢交易场景的 CLI 工具，将业务能力以 CLI 
 ### 服务层
 
 **API 客户端** (`src/services/api/`)：
-- `client.ts` — 基于 `fetch` 的 HTTP 客户端，处理响应信封 `{ success, status, data, msg }`。Base URL 来自 `process.env.R2_API_URL`（构建时由 esbuild define 注入）。Debug 日志输出到 stderr（`console.error`），不污染 stdout。
-- `auth-client.ts` — 包装 `ApiClientService`。内存缓存 token 带过期时间追踪（5 分钟安全边际），过期自动从 storage 重新读取。401 时清除凭证并提示重新登录。
-- `modules/qrcode-auth.ts` — `QRCodeAuthApiService`，二维码认证 API 实现。
-- `modules/xianyu.ts` — 闲鱼 API 封装，`getXianyuApi()` 单例。使用 `AuthenticatedApiClient`。
-- `client.interface.ts` — `IApiClient`、`IQRCodeAuthApi`、`ApiConfig`、`ApiResponse<T>`
+- `client.ts` — 基于 `fetch` 的 HTTP 客户端，处理响应信封 `{ success, status, data, msg }`。支持可选认证模式：构造时传 `{ auth: true }` 自动从 storage 读取 token 注入 header（内存缓存 + 5 分钟过期安全边际），401 时清除凭证。Base URL 来自 `process.env.R2_API_URL`（构建时由 esbuild define 注入）。Debug 日志输出到 stderr（`console.error`），不污染 stdout。
+- `client.interface.ts` — `ApiConfig`（含 `auth?: boolean`）、`RequestConfig`、`ApiResponse<T>`
+- `modules/qrcode-auth.ts` — `QRCodeAuthApiService`，二维码认证 API（无需认证，直接用 `ApiClientService`）。
+- `modules/xianyu.ts` — 闲鱼 API 封装，`getXianyuApi()` 单例。使用 `new ApiClientService({ auth: true })`。
 
 **本地存储** (`src/services/storage/`)：
 - `index.ts` — `StorageService`（`createStorageService()` 单例），文件存储位于 `~/.r2-cli/config.json`。原子写入（tmp 文件 + rename 防中断丢失）。带内存缓存（`configLoaded` 标记，避免每次操作重复 I/O）+ 目录创建缓存（`dirEnsured`）。`isLoggedIn()`/`getToken()`/`getCredentials()` 自动检查 token 过期（`expire` 字段，5 分钟安全边际），过期返回 null/false。

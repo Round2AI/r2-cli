@@ -25,8 +25,8 @@ export function createPriceCommand(): Command {
       const api = getXianyuApi();
       console.log(chalk.cyan(`正在修改价格...`));
 
-      await api.updatePrice(id, options.price);
-      console.log(chalk.green(`价格已修改为 ¥${options.price}`));
+      await api.updatePrice(id, String(priceNum));
+      console.log(chalk.green(`价格已修改为 ¥${priceNum}`));
     } catch (error) {
       handleCommandError(error);
     }

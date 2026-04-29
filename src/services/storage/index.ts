@@ -110,10 +110,13 @@ export class StorageService implements IStorageService {
    * 保存登录凭证
    */
   async saveCredentials(token: string, userInfo: UserInfo): Promise<void> {
+    const now = Date.now();
+    const durationMs = userInfo.expire ? Number.parseInt(userInfo.expire, 10) : 0;
     const credentials: StoredCredentials = {
       token,
       userInfo,
-      timestamp: Date.now(),
+      timestamp: now,
+      ...(durationMs > 0 && { expire: now + durationMs }),
     };
 
     let config: LocalConfig;

@@ -3,15 +3,22 @@
  */
 
 import type { ApiConfig, RequestConfig, ApiResponse } from "./client.interface.js";
+import { createStorageService } from "../storage/index.js";
 import { ApiError, AuthError } from "../../errors/index.js";
 
 const R2_API_URL: string = process.env.R2_API_URL || "https://api.qiuxietang.com";
 
+/** Token 过期安全边际（5 分钟） */
+const TOKEN_EXPIRY_MARGIN_MS = 5 * 60 * 1000;
+
 /**
- * API 客户端服务 — 纯 HTTP 层，不关心认证
+ * API 客户端服务 — 支持 optional auth 模式
  */
 export class ApiClientService {
   private config: ApiConfig;
+  private storage: ReturnType<typeof createStorageService> | null = null;
+  private cachedToken: string | null = null;
+  private tokenExpiry = 0;
 
   constructor(config: Partial<ApiConfig> = {}) {
     this.config = {
@@ -19,6 +26,9 @@ export class ApiClientService {
       version: config.version ?? "v3",
       debug: config.debug ?? false,
     };
+    if (config.auth) {
+      this.storage = createStorageService();
+    }
   }
 
   private buildUrl(path: string): string {
@@ -26,12 +36,31 @@ export class ApiClientService {
     return `${this.config.baseUrl}/${this.config.version}/${cleanPath}`;
   }
 
+  private async getAuthToken(): Promise<string | undefined> {
+    if (!this.storage) return undefined;
+    if (this.cachedToken && Date.now() < this.tokenExpiry) return this.cachedToken;
+
+    const credentials = await this.storage.getCredentials();
+    if (!credentials) {
+      throw new AuthError("请先运行 r2-cli auth login 登录");
+    }
+
+    this.cachedToken = credentials.token;
+    this.tokenExpiry = credentials.expire
+      ? credentials.expire - TOKEN_EXPIRY_MARGIN_MS
+      : Date.now() + 30 * 60 * 1000;
+    return credentials.token;
+  }
+
   /**
-   * 底层请求方法（单一实现，返回完整信封）
+   * 发起请求，返回完整响应信封（含 token 等顶层字段）
    */
-  private async rawRequest<T>(path: string, config: RequestConfig): Promise<ApiResponse<T>> {
+  async requestFull<T = unknown>(path: string, config: RequestConfig): Promise<ApiResponse<T>> {
     const url = this.buildUrl(path);
-    const { method, headers, body, timeout = 30000 } = config;
+    const { method, headers: rawHeaders, body, timeout = 30000 } = config;
+
+    const token = await this.getAuthToken();
+    const headers = { ...rawHeaders, ...(token ? { token } : {}) };
 
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeout);
@@ -53,7 +82,11 @@ export class ApiClientService {
 
       if (!response.ok) {
         if (response.status === 401) {
-          throw new AuthError("登录已过期或未登录，请运行 r2-cli auth login");
+          if (this.storage) {
+            this.cachedToken = null;
+            await this.storage.clearCredentials().catch(() => {});
+          }
+          throw new AuthError("登录已过期，请运行 r2-cli auth login 重新登录");
         }
         const errorText = await response.text();
         throw new ApiError(errorText || `${response.status} ${response.statusText}`, response.status);
@@ -75,15 +108,8 @@ export class ApiClientService {
     }
   }
 
-  /**
-   * 返回完整信封（含 token 等顶层字段）
-   */
-  async requestFull<T = unknown>(path: string, config: RequestConfig): Promise<ApiResponse<T>> {
-    return this.rawRequest<T>(path, config);
-  }
-
   private async request<T = unknown>(path: string, config: RequestConfig): Promise<T> {
-    const result = await this.rawRequest<T>(path, config);
+    const result = await this.requestFull<T>(path, config);
     return result.data;
   }
 

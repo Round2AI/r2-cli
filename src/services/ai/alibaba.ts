@@ -95,14 +95,17 @@ export class AlibabaAIService {
     const decoder = new TextDecoder();
     let buffer = "";
     const READ_TIMEOUT = 120_000;
-    let lastData = Date.now();
 
     try {
       while (true) {
-        const { done, value } = await reader.read();
+        const { done, value } = await Promise.race([
+          reader.read(),
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error("SSE 读取超时 (120s 无数据)")), READ_TIMEOUT),
+          ),
+        ]);
         if (done) break;
 
-        lastData = Date.now();
         buffer += decoder.decode(value, { stream: true });
         const lines = buffer.split("\n");
         buffer = lines.pop() || "";
@@ -118,10 +121,6 @@ export class AlibabaAIService {
           } catch {
             // 忽略不完整的 JSON
           }
-        }
-
-        if (Date.now() - lastData > READ_TIMEOUT) {
-          throw new Error("SSE 读取超时 (120s 无数据)");
         }
       }
     } finally {

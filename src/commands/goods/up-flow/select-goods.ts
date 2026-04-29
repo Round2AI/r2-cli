@@ -25,6 +25,7 @@ export async function selectProduct(api: XyApi): Promise<{ id: string; item: Sel
 
   while (hasMore && page <= MAX_PAGES) {
     const result = await api.getSellerGoodsList({ status: "wait", page, size: 20 });
+    if (!result?.items) break;
     allItems.push(...result.items);
     hasMore = result.items.length >= 20;
     page++;
