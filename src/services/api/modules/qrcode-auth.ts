@@ -6,17 +6,9 @@ import { ApiClientService } from "../client.js";
 import type { GenerateQRCodeData, QRCodeStatusData } from "../../../types/auth.js";
 
 /**
- * 二维码认证 API 接口
- */
-export interface IQRCodeAuthApi {
-  generateQRCode(): Promise<GenerateQRCodeData>;
-  getQRCodeStatus(qrToken: string): Promise<QRCodeStatusData>;
-}
-
-/**
  * 二维码认证 API 服务实现
  */
-export class QRCodeAuthApiService implements IQRCodeAuthApi {
+export class QRCodeAuthApiService {
   private client: ApiClientService;
 
   constructor(client: ApiClientService) {

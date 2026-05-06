@@ -3,7 +3,7 @@
  */
 
 import { Command } from "commander";
-import { createStorageService } from "../../../services/storage/index.js";
+import { getBusinessStorage } from "../../../services/storage/index.js";
 import { cityData, findProvince, findCity, findArea } from "../../../utils/city.js";
 import { agentError } from "../../shared.js";
 
@@ -31,7 +31,7 @@ export function createUpAddressCommand(): Command {
       areaCode?: string;
     }) => {
       try {
-        const storage = createStorageService();
+        const storage = getBusinessStorage();
 
         if (options.provinces) {
           console.log(JSON.stringify(cityData.map((p) => ({ name: p.province, code: p.code })), null, 2));

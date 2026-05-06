@@ -4,7 +4,7 @@
 
 import { Command } from "commander";
 import { getXianyuApi } from "../../../services/api/modules/xianyu.js";
-import { createStorageService } from "../../../services/storage/index.js";
+import { getBusinessStorage } from "../../../services/storage/index.js";
 import { agentError } from "../../shared.js";
 
 export function createUpInfoCommand(): Command {
@@ -17,7 +17,7 @@ export function createUpInfoCommand(): Command {
   cmd.action(async (goodsInfoId: string, options: { shop?: string; platform: string }) => {
     try {
       const api = getXianyuApi();
-      const storage = createStorageService();
+      const storage = getBusinessStorage();
 
       // 从缓存读取店铺
       const cached = await storage.getShop();

@@ -4,7 +4,7 @@
 
 import { select, confirm } from "@inquirer/prompts";
 import React from "react";
-import { createStorageService } from "../../../services/storage/index.js";
+import { getBusinessStorage } from "../../../services/storage/index.js";
 import { renderOnce } from "../../../utils/render.js";
 import { SelectionResult } from "../../../components/SelectionResult.js";
 import { SubmitSummary } from "../../../components/SubmitSummary.js";
@@ -12,7 +12,7 @@ import type { XyShop, XyGoodsUpParams } from "../../../types/xianyu.js";
 import { cityData } from "../../../utils/city.js";
 
 export async function selectDivision(): Promise<string> {
-  const storage = createStorageService();
+  const storage = getBusinessStorage();
   const saved = await storage.getAddress();
 
   if (saved) {
@@ -48,6 +48,6 @@ export async function selectDivision(): Promise<string> {
 }
 
 export async function displaySummary(shop: XyShop, params: XyGoodsUpParams): Promise<void> {
-  const address = await createStorageService().getAddress();
+  const address = await getBusinessStorage().getAddress();
   renderOnce(React.createElement(SubmitSummary, { shop, params, address }));
 }

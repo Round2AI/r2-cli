@@ -9,8 +9,8 @@ import chalk from "chalk";
 import type { UserInfo, GenerateQRCodeData } from "../../types/auth.js";
 import { poll } from "../../utils/polling.js";
 import { ApiClientService } from "../api/client.js";
-import { QRCodeAuthApiService, type IQRCodeAuthApi } from "../api/modules/qrcode-auth.js";
-import { createStorageService, StorageService } from "../storage/index.js";
+import { QRCodeAuthApiService } from "../api/modules/qrcode-auth.js";
+import { getAuthStorage, AuthStorage } from "../storage/index.js";
 import { AuthError } from "../../errors/index.js";
 
 // ==================== 类型 ====================
@@ -29,12 +29,12 @@ export interface LoginResult {
 // ==================== 登录服务 ====================
 
 export class LoginService {
-  private authApi: IQRCodeAuthApi;
-  private storage: StorageService;
+  private authApi: QRCodeAuthApiService;
+  private storage: AuthStorage;
 
-  constructor(authApi?: IQRCodeAuthApi, storage?: StorageService) {
+  constructor(authApi?: QRCodeAuthApiService, storage?: AuthStorage) {
     this.authApi = authApi ?? new QRCodeAuthApiService(new ApiClientService());
-    this.storage = storage ?? createStorageService();
+    this.storage = storage ?? getAuthStorage();
   }
 
   /**

@@ -3,59 +3,59 @@
  * 构建脚本 - 使用 esbuild 打包
  */
 
-import esbuild from 'esbuild';
-import fs from 'node:fs/promises';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import { config as dotenvConfig } from 'dotenv';
+import esbuild from "esbuild";
+import fs from "node:fs/promises";
+import path from "path";
+import { fileURLToPath } from "url";
+import * as dotenv from "dotenv";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const rootDir = path.dirname(__dirname);
 
-const nodeEnv = process.env.NODE_ENV || 'development';
-const isProd = nodeEnv === 'production';
-const envFile = isProd ? '.env.production' : '.env';
-dotenvConfig({ path: path.join(rootDir, envFile) });
-const apiUrl = process.env.R2_API_URL || process.env.SERVER_BASEURL || 'https://api.qiuxietang.com';
+const nodeEnv = process.env.NODE_ENV || "development";
+const isProd = nodeEnv === "production";
+const envFile = isProd ? ".env.production" : ".env";
+dotenv.config({ path: path.join(rootDir, envFile) });
+const serverBaseUrl = process.env.SERVER_BASEURL || "https://api.qiuxietang.com";
 
 // 入口点配置
 const entryPoints = {
-  'r2-cli': 'src/entrypoints/r2-cli.tsx',
+  "r2-cli": "src/entrypoints/r2-cli.tsx",
 };
 
 // esbuild 配置
 const esbuildConfig = {
   bundle: true,
-  platform: 'node',
-  format: 'esm',
+  platform: "node",
+  format: "esm",
   sourcemap: false,
   minify: isProd,
   external: [
-    'commander',
-    'chalk',
-    'figlet',
-    '@inquirer/prompts',
-    '@inquirer/core',
-    '@inquirer/input',
-    '@inquirer/select',
-    '@inquirer/confirm',
-    '@inquirer/checkbox',
-    'mute-stream',
-    'qrcode',
-    'ora',
-    'react',
-    'ink',
-    'react-dom',
-    'react-devtools-core',
-    'uuid'
+    "commander",
+    "chalk",
+    "figlet",
+    "@inquirer/prompts",
+    "@inquirer/core",
+    "@inquirer/input",
+    "@inquirer/select",
+    "@inquirer/confirm",
+    "@inquirer/checkbox",
+    "mute-stream",
+    "qrcode",
+    "ora",
+    "react",
+    "ink",
+    "react-dom",
+    "react-devtools-core",
+    "uuid",
   ],
   banner: {
     js: '"use strict";',
   },
   define: {
-    'process.env.NODE_ENV': JSON.stringify(nodeEnv),
-    'process.env.R2_API_URL': JSON.stringify(apiUrl),
+    "process.env.NODE_ENV": JSON.stringify(nodeEnv),
+    "process.env.SERVER_BASEURL": JSON.stringify(serverBaseUrl),
   },
   treeShaking: true,
   splitting: false,
@@ -65,23 +65,23 @@ const esbuildConfig = {
  * 清理输出目录
  */
 async function cleanDist() {
-  const distDir = path.join(rootDir, 'dist');
+  const distDir = path.join(rootDir, "dist");
   await fs.rm(distDir, { recursive: true, force: true });
   await fs.mkdir(distDir, { recursive: true });
-  console.log('🧹 清理输出目录完成');
+  console.log("🧹 清理输出目录完成");
 }
 
 /**
  * 构建单个入口点
  */
 async function buildEntryPoint(name, entry) {
-  const outputDir = path.join(rootDir, 'dist');
+  const outputDir = path.join(rootDir, "dist");
   console.log(`🔨 构建 ${name} -> ${path.relative(rootDir, outputDir)}`);
 
   const config = { ...esbuildConfig };
-  if (name === 'r2-cli') {
+  if (name === "r2-cli") {
     config.banner = {
-      js: '#!/usr/bin/env node\n',
+      js: "#!/usr/bin/env node\n",
     };
   }
 
@@ -104,14 +104,11 @@ async function buildEntryPoint(name, entry) {
  * 复制必要文件
  */
 async function copyFiles() {
-  const filesToCopy = [
-    'package.json',
-    'README.md'
-  ];
+  const filesToCopy = ["package.json", "README.md"];
 
   for (const file of filesToCopy) {
     const src = path.join(rootDir, file);
-    const dest = path.join(rootDir, 'dist', file);
+    const dest = path.join(rootDir, "dist", file);
 
     try {
       await fs.copyFile(src, dest);
@@ -126,14 +123,14 @@ async function copyFiles() {
  * 构建项目
  */
 async function build() {
-  console.log('🚀 开始构建 R2-CLI...\n');
+  console.log("🚀 开始构建 R2-CLI...\n");
 
   try {
     // 1. 清理输出目录
     await cleanDist();
 
     // 2. 构建所有入口点
-    console.log('🔨 开始构建入口点...\n');
+    console.log("🔨 开始构建入口点...\n");
     for (const [name, entry] of Object.entries(entryPoints)) {
       await buildEntryPoint(name, entry);
     }
@@ -141,14 +138,13 @@ async function build() {
     // 3. 复制必要文件
     await copyFiles();
 
-    console.log('\n✅ 构建完成！');
-    console.log('\n📦 输出文件:');
-    Object.keys(entryPoints).forEach(name => {
+    console.log("\n✅ 构建完成！");
+    console.log("\n📦 输出文件:");
+    Object.keys(entryPoints).forEach((name) => {
       console.log(`   • dist/${name}.js`);
     });
-
   } catch (error) {
-    console.error('❌ 构建失败:', error);
+    console.error("❌ 构建失败:", error);
     process.exit(1);
   }
 }

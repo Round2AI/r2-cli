@@ -5,7 +5,7 @@
 import { select, confirm } from "@inquirer/prompts";
 import chalk from "chalk";
 import React from "react";
-import { createStorageService } from "../../../services/storage/index.js";
+import { getBusinessStorage } from "../../../services/storage/index.js";
 import { CliError } from "../../../errors/index.js";
 import { renderOnce } from "../../../utils/render.js";
 import { SelectionResult } from "../../../components/SelectionResult.js";
@@ -15,7 +15,7 @@ import { getXianyuApi } from "../../../services/api/modules/xianyu.js";
 type XyApi = ReturnType<typeof getXianyuApi>;
 
 export async function resolveShop(api: XyApi, preferredShopId?: string): Promise<{ shop: XyShop; platform: string }> {
-  const storage = createStorageService();
+  const storage = getBusinessStorage();
   const cached = await storage.getShop();
 
   if (cached && !preferredShopId) {

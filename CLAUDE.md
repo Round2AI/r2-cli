@@ -35,14 +35,17 @@ R2-CLI 是面向二手潮奢交易场景的 CLI 工具，将业务能力以 CLI 
 ### 服务层
 
 **API 客户端** (`src/services/api/`)：
-- `client.ts` — 基于 `fetch` 的 HTTP 客户端，处理响应信封 `{ success, status, data, msg }`。支持可选认证模式：构造时传 `{ auth: true }` 自动从 storage 读取 token 注入 header（内存缓存 + 5 分钟过期安全边际），401 时清除凭证。Base URL 来自 `process.env.R2_API_URL`（构建时由 esbuild define 注入）。Debug 日志输出到 stderr（`console.error`），不污染 stdout。
+- `client.ts` — 基于 `fetch` 的 HTTP 客户端，处理响应信封 `{ success, status, data, msg }`。支持可选认证模式：构造时传 `{ auth: true }` 自动从 storage 读取 token 注入 header（内存缓存 + 5 分钟过期安全边际），401 时清除凭证。所有请求均发送 `Content-Type: application/json`（服务端要求，GET 也不例外，否则不返回信封）。超时使用 AbortController，AbortError 转换为友好提示。Base URL 来自 `process.env.SERVER_BASEURL`（构建时由 esbuild define 注入）。Debug 日志输出到 stderr（`console.error`），不污染 stdout。
 - `client.interface.ts` — `ApiConfig`（含 `auth?: boolean`）、`RequestConfig`、`ApiResponse<T>`
 - `modules/qrcode-auth.ts` — `QRCodeAuthApiService`，二维码认证 API（无需认证，直接用 `ApiClientService`）。
 - `modules/xianyu.ts` — 闲鱼 API 封装，`getXianyuApi()` 单例。使用 `new ApiClientService({ auth: true })`。
 
 **本地存储** (`src/services/storage/`)：
-- `index.ts` — `StorageService`（`createStorageService()` 单例），文件存储位于 `~/.r2-cli/config.json`。原子写入（tmp 文件 + rename 防中断丢失）。带内存缓存（`configLoaded` 标记，避免每次操作重复 I/O）+ 目录创建缓存（`dirEnsured`）。`isLoggedIn()`/`getToken()`/`getCredentials()` 自动检查 token 过期（`expire` 字段，5 分钟安全边际），过期返回 null/false。
-- `types.ts` — `StoredCredentials`（含可选 `expire`）、`StoredAddress`、`StoredShop`、`LocalConfig`、`IStorageService`
+- `config-store.ts` — `ConfigStore`（`getConfigStore()` 单例），共享文件 I/O。`~/.r2-cli/config.json`，原子写入（tmp + rename）。带内存缓存（`configLoaded` + `dirEnsured`）。
+- `auth-storage.ts` — `AuthStorage`（`getAuthStorage()` 单例），认证凭证存储。`saveCredentials`/`getCredentials`/`clearCredentials`/`getToken`/`isLoggedIn`，自动检查 token 过期（5 分钟安全边际）。
+- `business-storage.ts` — `BusinessStorage`（`getBusinessStorage()` 单例），业务缓存。`getShop`/`saveShop`/`getAddress`/`saveAddress`。
+- `types.ts` — `StoredCredentials`（含可选 `expire`）、`StoredAddress`、`StoredShop`、`LocalConfig`（`IStorageService` 为旧接口，拆分后未使用）
+- `index.ts` — barrel export
 
 **交互式上架流程** (`src/commands/goods/up-flow/`)：
 - `index.ts` 导出 `UpFlowService`，使用 `@inquirer/prompts`。自动匹配品牌/尺码/成色。
@@ -77,7 +80,7 @@ R2-CLI 是面向二手潮奢交易场景的 CLI 工具，将业务能力以 CLI 
 - 交互式流程（`up-flow/`）禁止使用 `process.exit()`，必须 `throw new CliError()` 让上层捕获
 
 ### 构建系统
-- `scripts/build.js` — esbuild。通过 dotenv 读取 `.env` / `.env.production`。用 `cross-env NODE_ENV` 选择环境。`process.env.R2_API_URL` 构建时注入。所有运行时依赖（commander、chalk、@inquirer/*、ora、react、ink 等）externalize。输出 `dist/r2-cli.js`，同时复制 `package.json` 和 `README.md`。
+- `scripts/build.js` — esbuild。通过 dotenv 读取 `.env` / `.env.production`。用 `cross-env NODE_ENV` 选择环境。`process.env.SERVER_BASEURL` 构建时通过 esbuild `define` 注入。所有运行时依赖（commander、chalk、@inquirer/*、ora、react、ink 等）externalize。输出 `dist/r2-cli.js`，同时复制 `package.json` 和 `README.md`。
 - `scripts/dev.js` — 用 `stdio: 'inherit'` 启动 `tsx src/entrypoints/r2-cli.tsx`，保证交互式 prompt 可用
 - 版本号读取：优先 `../package.json`（npm 安装后指向包根目录），其次 `../../package.json`（开发模式指向项目根目录），最后 fallback `dist/package.json`
 

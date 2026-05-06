@@ -98,6 +98,15 @@ export function createUpSubmitCommand(): Command {
         if (!base.goodsInfoId || !base.account) {
           agentError("goodsDetail 缺少必要字段 (goodsInfoId, account)");
         }
+        if (!options.divisionId) {
+          agentError("缺少必填参数: --division-id");
+        }
+        if (!options.catId) {
+          agentError("缺少必填参数: --cat-id");
+        }
+        if (!options.channelCatId) {
+          agentError("缺少必填参数: --channel-cat-id");
+        }
 
         const result = await api.upGoods(params as unknown as XyGoodsUpParams);
         console.log(JSON.stringify({ success: true, result }, null, 2));
