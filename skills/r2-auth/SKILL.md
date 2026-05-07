@@ -65,6 +65,54 @@ r2-cli auth login poll --token <qrToken> --expire <expireTimeMs> --interval <pol
 }
 ```
 
+## 闲鱼店铺授权
+
+授权闲鱼店铺，流程与扫码登录类似（两步式）。
+
+### 第1步：获取授权二维码
+
+```bash
+r2-cli auth xianyu qr
+```
+
+输出 JSON：
+```json
+{
+  "state": "xxx",
+  "url": "https://open.api.goofish.com/authorize?...",
+  "expireTimeMs": 300000,
+  "pollIntervalMs": 1000,
+  "qrPath": "C:\\Users\\xxx\\.r2-cli\\xianyu-auth-qrcode.png",
+  "unicodeQR": "█▀▀▀▀▀█ ..."
+}
+```
+
+**Agent 必须**：将 `unicodeQR` 输出到聊天窗口，或提示用户复制 `url` 在浏览器打开完成授权。
+
+### 第2步：轮询授权状态
+
+```bash
+r2-cli auth xianyu poll --state <state> --expire <expireTimeMs> --interval <pollIntervalMs>
+```
+
+成功输出：
+```json
+{ "success": true, "shopId": "...", "shopName": "..." }
+```
+
+失败输出：
+```json
+{ "success": false, "error": "授权状态: expired" }
+```
+
+### 人类一键授权
+
+```bash
+r2-cli auth xianyu
+```
+
+直接在终端显示 unicode 二维码 + 授权链接，适合人类在 CLI 中使用。
+
 ## 其他命令
 
 | 命令 | 说明 |

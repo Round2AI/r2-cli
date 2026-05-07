@@ -35,73 +35,77 @@ R2-CLI 是面向二手潮奢交易场景的 CLI 工具，将业务能力以 CLI 
 ### 服务层
 
 **API 客户端** (`src/services/api/`)：
-- `client.ts` — 基于 `fetch` 的 HTTP 客户端，处理响应信封 `{ success, status, data, msg }`。支持可选认证模式：构造时传 `{ auth: true }` 自动从 storage 读取 token 注入 header（内存缓存 + 5 分钟过期安全边际），401 时清除凭证。所有请求均发送 `Content-Type: application/json`（服务端要求，GET 也不例外，否则不返回信封）。超时使用 AbortController，AbortError 转换为友好提示。Base URL 来自 `process.env.SERVER_BASEURL`（构建时由 esbuild define 注入）。Debug 日志输出到 stderr（`console.error`），不污染 stdout。
+- `client.ts` — 基于 `fetch` 的 HTTP 客户端，处理响应信封 `{ success, status, data, msg }`。**默认启用认证**（自动从 storage 读取 token 注入 header，内存缓存 + 5 分钟过期安全边际），401 时清除凭证。只有 `qrcode-auth.ts` 传 `{ auth: false }` 禁用认证。所有请求均发送 `Content-Type: application/json`（服务端要求，GET 也不例外）。超时使用 AbortController，AbortError 转换为友好提示。Base URL 来自 `process.env.SERVER_BASEURL`（构建时由 esbuild define 注入）。Debug 日志输出到 stderr。
 - `client.interface.ts` — `ApiConfig`（含 `auth?: boolean`）、`RequestConfig`、`ApiResponse<T>`
-- `modules/qrcode-auth.ts` — `QRCodeAuthApiService`，二维码认证 API（无需认证，直接用 `ApiClientService`）。
-- `modules/xianyu.ts` — 闲鱼 API 封装，`getXianyuApi()` 单例。使用 `new ApiClientService({ auth: true })`。
+- `modules/xianyu.ts` — 闲鱼业务 API，直接导出函数（`getShops`/`getSellerGoodsList`/`upGoods` 等），内部共享一个 `ApiClientService` 实例。消费方式：`import * as xianyuApi from "..."` 或按需导入。
+- `modules/xianyu-auth.ts` — 闲鱼店铺授权 API，导出 `getAuthUrl()` 和 `getAuthStatus(state)` 两个函数。
+- `modules/qrcode-auth.ts` — 二维码登录 API（**唯一**传 `{ auth: false }` 的模块），导出 `generateQRCode()` 和 `getQRCodeStatus()` 两个函数。
 
 **本地存储** (`src/services/storage/`)：
-- `config-store.ts` — `ConfigStore`（`getConfigStore()` 单例），共享文件 I/O。`~/.r2-cli/config.json`，原子写入（tmp + rename）。带内存缓存（`configLoaded` + `dirEnsured`）。
-- `auth-storage.ts` — `AuthStorage`（`getAuthStorage()` 单例），认证凭证存储。`saveCredentials`/`getCredentials`/`clearCredentials`/`getToken`/`isLoggedIn`，自动检查 token 过期（5 分钟安全边际）。
+- `config-store.ts` — `ConfigStore`（`getConfigStore()` 单例），共享文件 I/O。`~/.r2-cli/config.json`，原子写入（tmp + rename）。带内存缓存。
+- `auth-storage.ts` — `AuthStorage`（`getAuthStorage()` 单例），认证凭证存储。导出 `TOKEN_EXPIRY_MARGIN_MS` 常量（5 分钟安全边际）。
 - `business-storage.ts` — `BusinessStorage`（`getBusinessStorage()` 单例），业务缓存。`getShop`/`saveShop`/`getAddress`/`saveAddress`。
-- `types.ts` — `StoredCredentials`（含可选 `expire`）、`StoredAddress`、`StoredShop`、`LocalConfig`（`IStorageService` 为旧接口，拆分后未使用）
 - `index.ts` — barrel export
+
+**共享工具** (`src/utils/`)：
+- `qrcode.ts` — `renderQRCode(content, filename)` — 共享二维码渲染（PNG 文件 + Unicode 半块字符），被 `login.ts` 和 `xianyu-auth.ts` 共用。
+- `render.tsx` — `renderOnce()` + `renderComponent()`。`renderComponent` 封装 `React.createElement` + `renderOnce`，用于结构化数据展示组件；简单状态提示保持 chalk。
+- `polling.ts` — `poll()` 通用轮询工具，支持 AbortSignal 和超时。
 
 **交互式上架流程** (`src/commands/goods/up-flow/`)：
 - `index.ts` 导出 `UpFlowService`，使用 `@inquirer/prompts`。自动匹配品牌/尺码/成色。
 - 各步骤函数拆分在 `select-shop.ts`、`select-goods.ts`、`select-category.ts`、`select-props.ts`、`summary.ts`。
 
 **认证服务** (`src/services/auth/`)：
-- `login.ts` — `LoginService`（QR 生成 + 轮询 + 人类登录 + 状态/登出）
-- `index.ts` — 重导出
+- `login.ts` — `LoginService`（QR 生成 + 轮询 + 人类登录 + 状态/登出）。构造函数接受可选 `AuthStorage`。
+- `xianyu-auth.ts` — `XianyuAuthService`（闲鱼店铺授权：生成授权二维码 + 轮询状态）。
+- `index.ts` — barrel export
 
 **更新检查** (`src/services/update-check/index.ts`)：
-- `checkForUpdate(currentVersion)` — 每次启动异步检查，先 npmmirror 后 npmjs，5s 超时静默失败。有新版本输出到 stderr。
-- 在 `r2-cli.tsx` 中立即启动（不 await），`program.parse()` 之后 `.catch(() => {})` 确保不阻塞。
+- `checkForUpdate(currentVersion)` — 每次启动异步检查，先 npmmirror 后 npmjs，5s 超时静默失败。
 
 **AI 服务** (`src/services/ai/`)：
-- `alibaba.ts` — 阿里百炼 AI，支持 SSE 流式。fetch 调用有 30s 超时，SSE 读取循环有 120s 无数据超时。构造函数验证 `ALIBABA_API_KEY` 非空。`callApi()` 检查 `response.ok`。
+- `alibaba.ts` — 阿里百炼 AI，支持 SSE 流式。
 - `index.ts` — `MultiAIService` 门面，导出单例 `aiService`
 
 ### 认证流程
 
-`src/services/auth/login.ts` → `LoginService`：
-
+**扫码登录** (`auth login`)：
 - **人类模式**：`r2-cli auth login` — 生成二维码、终端显示 unicode、轮询直到确认
-- **Agent 模式**：`r2-cli auth login qr`（第 1 步：生成二维码 → JSON 输出）然后 `r2-cli auth login poll --token <> --expire <> --interval <>`（第 2 步：轮询直到确认 → JSON 输出）
+- **Agent 模式**：`r2-cli auth login qr` → `r2-cli auth login poll --token <> --expire <> --interval <>`
 
-**重要**：当用户在 Claude Code 会话中请求登录时，必须按 `skills/r2-auth/SKILL.md` 的两步式流程执行（生成二维码 → 将 unicodeQR 输出到聊天窗口 → 后台启动轮询），不要直接使用 `r2-cli auth login` 交互式命令。
+**闲鱼店铺授权** (`auth xianyu`)：
+- **人类模式**：`r2-cli auth xianyu` — 获取授权 URL、渲染二维码、轮询状态
+- **Agent 模式**：`r2-cli auth xianyu qr` → `r2-cli auth xianyu poll --state <> --expire <> --interval <>`
+- API 端点：`mms/xianyu/auth/url`（返回 `url` + `state`）和 `mms/xianyu/auth/status?state=`（`waiting`/`success`/`expired`）
+
+**重要**：当用户在 Claude Code 会话中请求登录时，必须按 `skills/r2-auth/SKILL.md` 的两步式流程执行。
 
 ### 错误处理
-- `src/errors/index.ts` — `R2Error` → `ApiError`（含 `status`、`response`）、`AuthError`、`StorageError`、`PollingError`、`CliError`
-- `src/commands/shared.ts` — `handleCommandError()` 按错误类型分发（交互式命令用）；`agentError(msg)` 统一 Agent 子命令 JSON 错误输出 `{ success: false, error }` + `process.exit(1)`；`notImplemented(name)` 统一未实现命令提示。
-- `src/commands/goods/up/` — 上架命令拆分为 `index.ts`（父命令+交互向导）+ `info.ts`/`categories.ts`/`props.ts`/`submit.ts`/`address.ts`（Agent 子命令）
-- Agent 子命令错误统一使用 `agentError(msg)`（输出 `{ success: false, error: msg }` + `process.exit(1)`），不使用 `handleCommandError`（后者输出人类可读文本到 stderr）
+- `src/errors/index.ts` — `R2Error` → `ApiError`/`AuthError`/`StorageError`/`PollingError`/`CliError`
+- `src/commands/shared.ts`：
+  - `handleCommandError()` — 交互式命令错误分发
+  - `agentAction<T>(fn)` — Agent 子命令包装器，自动 catch 并格式化为 JSON 错误
+  - `agentError(msg)` — 直接输出 `{ success: false, error }` + `process.exit(1)`
+  - `notImplemented(name)` — 未实现命令提示
+- Agent 子命令使用 `agentAction` 包装或直接调用 `agentError`，不使用 `handleCommandError`
 - 交互式流程（`up-flow/`）禁止使用 `process.exit()`，必须 `throw new CliError()` 让上层捕获
 
 ### 构建系统
-- `scripts/build.js` — esbuild。通过 dotenv 读取 `.env` / `.env.production`。用 `cross-env NODE_ENV` 选择环境。`process.env.SERVER_BASEURL` 构建时通过 esbuild `define` 注入。所有运行时依赖（commander、chalk、@inquirer/*、ora、react、ink 等）externalize。输出 `dist/r2-cli.js`，同时复制 `package.json` 和 `README.md`。
-- `scripts/dev.js` — 用 `stdio: 'inherit'` 启动 `tsx src/entrypoints/r2-cli.tsx`，保证交互式 prompt 可用
-- 版本号读取：优先 `../package.json`（npm 安装后指向包根目录），其次 `../../package.json`（开发模式指向项目根目录），最后 fallback `dist/package.json`
+- `scripts/build.js` — esbuild。通过 dotenv 读取 `.env` / `.env.production`。`process.env.SERVER_BASEURL` 构建时通过 esbuild `define` 注入。所有运行时依赖 externalize。`cleanDist()` 有 Windows EBUSY fallback。
+- `scripts/dev.js` — 用 `stdio: 'inherit'` 启动 `tsx`，保证交互式 prompt 可用
+- 版本号读取：优先 `../package.json`（npm 安装后），其次 `../../package.json`（开发模式），最后 fallback `dist/package.json`
 
 ### 关键类型
-- `src/types/auth.ts` — `UserInfo`、`QRCodeStatus`、`GenerateQRCodeData`、`QRCodeStatusData`
+- `src/types/auth.ts` — `UserInfo`、`QRCodeStatus`、`GenerateQRCodeData`、`QRCodeStatusData`、`XianyuAuthUrlData`（字段名是 `state` 不是 `stats`）、`XianyuAuthStatusData`
 - `src/types/xianyu.ts` — `XyShop`、`SellerGoodsItem`、`XyGoodsDetail`、`XyGoodsUpParams`、`ItemAttr`、`StuffLevel`、`ITEM_BIZ_TYPES`、`STUFF_LABELS`、`DEFAULT_SP_BIZ_TYPE`（默认类目业务类型=16）
-
-### 终端 UI 组件 (`src/components/`)
-- `GoodsTable.tsx` — 商品列表表格（Ink + React）
-- `ShopsTable.tsx` — 店铺列表表格
-- `UserInfoCard.tsx` — 用户信息卡片
-- 使用 `renderOnce(React.createElement(...))` 挂载（render + immediate unmount），仅在结构化数据展示时使用；简单状态提示保持 chalk。
-- `renderOnce` 定义在 `src/utils/render.tsx`（从 `utils/index.ts` 拆分，避免 React/Ink 顶层导入破坏惰性加载）。Writable buffer + chalk.level=3 truecolor + try/finally 安全恢复。
-- `index.ts` — barrel export 所有组件
 
 ### Skill 体系
 
-`skills/` 目录下的 Skill 是面向 Claude Code 的能力描述文件，随 npm 包发布：
-- `skills/r2-auth/SKILL.md` — 两步式扫码登录，供 Agent 使用
-- `skills/r2-cli/SKILL.md` — 核心概览：认证 + 基本操作
-- `skills/r2-goods/SKILL.md` — 商品管理全流程，含 Agent 分步上架
+`skills/` 目录下的 Skill 随 npm 包发布：
+- `skills/r2-auth/SKILL.md` — 两步式扫码登录
+- `skills/r2-cli/SKILL.md` — 核心概览
+- `skills/r2-goods/SKILL.md` — 商品管理全流程
 
 ### 环境配置
 - `.env` — `SERVER_BASEURL='https://api.qiuxietang.com'`（开发）

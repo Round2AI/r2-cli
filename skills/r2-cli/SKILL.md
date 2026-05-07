@@ -51,6 +51,7 @@ Agent 应检查 `success` 字段判断成败。验证错误（如参数缺失、
 | 命令 | 说明 |
 |------|------|
 | `r2-cli auth login` | 扫码登录（生成二维码 → 手机扫码 → 确认） |
+| `r2-cli auth xianyu` | 闲鱼店铺授权（扫码或复制链接授权） |
 | `r2-cli auth logout` | 退出登录 |
 | `r2-cli auth status` | 查看登录状态和用户信息 |
 

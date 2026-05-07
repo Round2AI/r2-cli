@@ -20,7 +20,7 @@ R2-CLI — 二手潮奢交易命令行工具，由 [Round2AI](https://github.com
 
 | 类别 | 能力 |
 |------|------|
-| 认证登录 | 扫码登录、状态查询、登出（支持 Agent 两步式流程） |
+| 认证登录 | 扫码登录、闲鱼店铺授权、状态查询、登出（支持 Agent 两步式流程） |
 | 商品管理 | 上架、下架、重新上架、改价、商品列表 |
 | 店铺管理 | 查看已授权店铺（闲鱼/抖音） |
 | 地址管理 | 设置/查看发货地址（交互式 + 命令行） |
@@ -133,6 +133,9 @@ npx skills add http://192.168.0.99:3000/puresnake/r2-cli.git -y -g
 | `r2-cli auth login` | 扫码登录（交互式，人类使用） |
 | `r2-cli auth login qr` | 生成二维码 JSON（Agent 第1步） |
 | `r2-cli auth login poll --token <>` | 轮询登录状态 JSON（Agent 第2步） |
+| `r2-cli auth xianyu` | 闲鱼店铺授权（交互式，人类使用） |
+| `r2-cli auth xianyu qr` | 获取授权二维码 JSON（Agent 第1步） |
+| `r2-cli auth xianyu poll --state <>` | 轮询授权状态 JSON（Agent 第2步） |
 | `r2-cli auth status` | 查看登录状态 |
 | `r2-cli auth logout` | 退出登录 |
 
