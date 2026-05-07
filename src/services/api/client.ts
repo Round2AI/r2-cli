@@ -24,9 +24,7 @@ export class ApiClientService {
       version: config.version ?? "v3",
       debug: config.debug ?? false,
     };
-    if (config.auth) {
-      this.authStorage = getAuthStorage();
-    }
+    this.authStorage = config.auth === false ? null : getAuthStorage();
   }
 
   private buildUrl(path: string): string {

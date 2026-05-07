@@ -5,7 +5,7 @@
 import { Command } from "commander";
 import { getBusinessStorage } from "../../../services/storage/index.js";
 import { cityData, findProvince, findCity, findArea } from "../../../utils/city.js";
-import { agentError } from "../../shared.js";
+import { agentAction } from "../../shared.js";
 
 export function createUpAddressCommand(): Command {
   const cmd = new Command("address");
@@ -20,7 +20,7 @@ export function createUpAddressCommand(): Command {
   cmd.option("--area-code <code>", "地区编码（配合 --save）");
 
   cmd.action(
-    async (options: {
+    agentAction(async (options: {
       set?: boolean;
       provinces?: boolean;
       cities?: string;
@@ -30,7 +30,6 @@ export function createUpAddressCommand(): Command {
       city?: string;
       areaCode?: string;
     }) => {
-      try {
         const storage = getBusinessStorage();
 
         if (options.provinces) {
@@ -119,11 +118,7 @@ export function createUpAddressCommand(): Command {
 
         const address = await storage.getAddress();
         console.log(JSON.stringify({ address }, null, 2));
-      } catch (error) {
-        const msg = error instanceof Error ? error.message : String(error);
-        agentError(msg);
-      }
-    },
+    }),
   );
 
   return cmd;

@@ -3,9 +3,8 @@
  */
 
 import { select, confirm } from "@inquirer/prompts";
-import React from "react";
 import { getBusinessStorage } from "../../../services/storage/index.js";
-import { renderOnce } from "../../../utils/render.js";
+import { renderComponent } from "../../../utils/render.js";
 import { SelectionResult } from "../../../components/SelectionResult.js";
 import { SubmitSummary } from "../../../components/SubmitSummary.js";
 import type { XyShop, XyGoodsUpParams } from "../../../types/xianyu.js";
@@ -16,7 +15,7 @@ export async function selectDivision(): Promise<string> {
   const saved = await storage.getAddress();
 
   if (saved) {
-    renderOnce(React.createElement(SelectionResult, { label: "发货地址", value: `${saved.province} ${saved.city} ${saved.area}` }));
+    renderComponent(SelectionResult, { label: "发货地址", value: `${saved.province} ${saved.city} ${saved.area}` });
     const useSaved = await confirm({ message: "使用上次地址？", default: true });
     if (useSaved) return saved.divisionId;
   }
@@ -49,5 +48,5 @@ export async function selectDivision(): Promise<string> {
 
 export async function displaySummary(shop: XyShop, params: XyGoodsUpParams): Promise<void> {
   const address = await getBusinessStorage().getAddress();
-  renderOnce(React.createElement(SubmitSummary, { shop, params, address }));
+  renderComponent(SubmitSummary, { shop, params, address });
 }

@@ -5,18 +5,15 @@
 import { select } from "@inquirer/prompts";
 import chalk from "chalk";
 import ora from "ora";
-import React from "react";
 import { CliError } from "../../../errors/index.js";
-import { renderOnce } from "../../../utils/render.js";
+import { renderComponent } from "../../../utils/render.js";
 import { SelectionResult } from "../../../components/SelectionResult.js";
 import type { SellerGoodsItem } from "../../../types/xianyu.js";
-import { getXianyuApi } from "../../../services/api/modules/xianyu.js";
-
-type XyApi = ReturnType<typeof getXianyuApi>;
+import * as xianyuApi from "../../../services/api/modules/xianyu.js";
 
 const MAX_PAGES = 50;
 
-export async function selectProduct(api: XyApi): Promise<{ id: string; item: SellerGoodsItem } | null> {
+export async function selectProduct(api: typeof xianyuApi): Promise<{ id: string; item: SellerGoodsItem } | null> {
   const spinner = ora("加载商品列表...").start();
 
   let page = 1;
@@ -48,11 +45,11 @@ export async function selectProduct(api: XyApi): Promise<{ id: string; item: Sel
 
   const item = allItems.find((i) => i.id === selected);
   if (!item) throw new CliError("未找到选中的商品");
-  renderOnce(React.createElement(SelectionResult, {
+  renderComponent(SelectionResult, {
     label: "已选择商品",
     value: item.name,
     details: `货号: ${item.goodsNo || "-"}  规格: ${item.size || "-"}  售价: ¥${item.price}`,
-  }));
+  });
 
   return { id: selected, item };
 }

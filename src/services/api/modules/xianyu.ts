@@ -1,5 +1,5 @@
 /**
- * 闲鱼 API 服务
+ * 闲鱼 API — 模块级函数
  */
 
 import { ApiClientService } from "../client.js";
@@ -14,74 +14,54 @@ import type {
   XyGoodsUpParams,
 } from "../../../types/xianyu.js";
 
-export class XianyuApiService {
-  private client: ApiClientService;
+const client = new ApiClientService();
 
-  constructor() {
-    this.client = new ApiClientService({ auth: true });
-  }
-
-  private toParams(obj: Record<string, unknown>): URLSearchParams {
-    const params = new URLSearchParams();
-    for (const [key, value] of Object.entries(obj)) {
-      if (value !== undefined && value !== null && value !== "") {
-        params.append(key, String(value));
-      }
+function toParams(obj: Record<string, unknown>): URLSearchParams {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(obj)) {
+    if (value !== undefined && value !== null && value !== "") {
+      params.append(key, String(value));
     }
-    return params;
   }
-
-  async getShops(platform: string = "xianyu"): Promise<XyShop[]> {
-    return this.client.get<XyShop[]>("platform/shop/list", this.toParams({ platform }));
-  }
-
-  async getSellerGoodsList(params: SellerGoodsListParams): Promise<SellerGoodsListResult> {
-    return this.client.get<SellerGoodsListResult>(
-      "mms/seller/goods/info/list",
-      this.toParams({ ...params }),
-    );
-  }
-
-  async getXyGoodsInfo(goodsInfoId: string, xyShopId: string): Promise<XyGoodsDetail> {
-    const params = this.toParams({ goodsInfoId, xyShopId });
-    return this.client.get<XyGoodsDetail>("mms/seller/xy/goods/info", params);
-  }
-
-  async getCategories(spBizType: number): Promise<XyCategory[]> {
-    return this.client.get<XyCategory[]>("platform/xy/cat", this.toParams({ spBizType }));
-  }
-
-  async getProps(channelCatId: string): Promise<XyProp[]> {
-    return this.client.get<XyProp[]>("platform/xy/props", this.toParams({ channelCatId }));
-  }
-
-  async getPropValues(channelCatId: string, propId: string, key?: string): Promise<XyPropValue[]> {
-    const params = this.toParams({ channelCatId, propId, key });
-    return this.client.get<XyPropValue[]>("platform/xy/props/value", params);
-  }
-
-  async upGoods(params: XyGoodsUpParams): Promise<{ result: string }> {
-    return this.client.post<{ result: string }>("mms/seller/xy/goods/up", params);
-  }
-
-  async batchDown(goodsChannelIds: string): Promise<Record<string, unknown>> {
-    return this.client.get("mms/seller/xy/goods/batch/down", this.toParams({ goodsChannelIds }));
-  }
-
-  async batchReUp(goodsChannelIds: string): Promise<Record<string, unknown>> {
-    return this.client.get("mms/seller/xy/goods/reUp", this.toParams({ goodsChannelIds }));
-  }
-
-  async updatePrice(id: string, price: string): Promise<Record<string, unknown>> {
-    return this.client.post("mms/seller/xy/goods/update/price", { id, price });
-  }
+  return params;
 }
 
-let instance: XianyuApiService | null = null;
+export async function getShops(platform: string = "xianyu"): Promise<XyShop[]> {
+  return client.get<XyShop[]>("platform/shop/list", toParams({ platform }));
+}
 
-export function getXianyuApi(): XianyuApiService {
-  if (!instance) {
-    instance = new XianyuApiService();
-  }
-  return instance;
+export async function getSellerGoodsList(params: SellerGoodsListParams): Promise<SellerGoodsListResult> {
+  return client.get<SellerGoodsListResult>("mms/seller/goods/info/list", toParams({ ...params }));
+}
+
+export async function getXyGoodsInfo(goodsInfoId: string, xyShopId: string): Promise<XyGoodsDetail> {
+  return client.get<XyGoodsDetail>("mms/seller/xy/goods/info", toParams({ goodsInfoId, xyShopId }));
+}
+
+export async function getCategories(spBizType: number): Promise<XyCategory[]> {
+  return client.get<XyCategory[]>("platform/xy/cat", toParams({ spBizType }));
+}
+
+export async function getProps(channelCatId: string): Promise<XyProp[]> {
+  return client.get<XyProp[]>("platform/xy/props", toParams({ channelCatId }));
+}
+
+export async function getPropValues(channelCatId: string, propId: string, key?: string): Promise<XyPropValue[]> {
+  return client.get<XyPropValue[]>("platform/xy/props/value", toParams({ channelCatId, propId, key }));
+}
+
+export async function upGoods(params: XyGoodsUpParams): Promise<{ result: string }> {
+  return client.post<{ result: string }>("mms/seller/xy/goods/up", params);
+}
+
+export async function batchDown(goodsChannelIds: string): Promise<Record<string, unknown>> {
+  return client.get("mms/seller/xy/goods/batch/down", toParams({ goodsChannelIds }));
+}
+
+export async function batchReUp(goodsChannelIds: string): Promise<Record<string, unknown>> {
+  return client.get("mms/seller/xy/goods/reUp", toParams({ goodsChannelIds }));
+}
+
+export async function updatePrice(id: string, price: string): Promise<Record<string, unknown>> {
+  return client.post("mms/seller/xy/goods/update/price", { id, price });
 }

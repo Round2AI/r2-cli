@@ -35,3 +35,15 @@ export function agentError(msg: string): never {
   console.log(JSON.stringify({ success: false, error: msg }));
   process.exit(1);
 }
+
+/** Agent 子命令 action 包装器：自动 catch 并格式化为 JSON 错误 */
+export function agentAction<T extends unknown[]>(fn: (...args: T) => Promise<void>): (...args: T) => Promise<void> {
+  return async (...args: T) => {
+    try {
+      await fn(...args);
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      agentError(msg);
+    }
+  };
+}

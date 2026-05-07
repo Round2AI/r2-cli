@@ -48,3 +48,27 @@ export interface QRCodeStatusData {
   /** 登录成功后的token */
   token: string | null;
 }
+
+// ==================== 闲鱼店铺授权 ====================
+
+/** 闲鱼授权状态 */
+export type XianyuAuthStatus = "waiting" | "success" | "expired";
+
+/** 获取闲鱼授权 URL 响应 */
+export interface XianyuAuthUrlData {
+  /** 授权链接 */
+  url: string;
+  /** 轮询 token */
+  state: string;
+  /** 过期时间（毫秒，可能为空，默认 300000） */
+  expireTime?: string;
+  /** 轮询间隔（毫秒，可能为空，默认 1000） */
+  pollInterval?: string;
+}
+
+/** 闲鱼授权状态响应 */
+export interface XianyuAuthStatusData {
+  status: XianyuAuthStatus;
+  shopId: string | null;
+  shopName: string | null;
+}

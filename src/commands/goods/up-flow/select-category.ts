@@ -7,12 +7,10 @@ import ora from "ora";
 import { CliError } from "../../../errors/index.js";
 import type { XyCategory, XyCategoryGroup } from "../../../types/xianyu.js";
 import { DEFAULT_SP_BIZ_TYPE } from "../../../types/xianyu.js";
-import { getXianyuApi } from "../../../services/api/modules/xianyu.js";
-
-type XyApi = ReturnType<typeof getXianyuApi>;
+import * as xianyuApi from "../../../services/api/modules/xianyu.js";
 
 export async function selectCategory(
-  api: XyApi,
+  api: typeof xianyuApi,
   preferredCatId?: string,
   preferredChannelCatId?: string,
 ): Promise<{ categoryId: string; channelCatId: string }> {

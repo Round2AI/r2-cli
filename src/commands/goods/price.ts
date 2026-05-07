@@ -4,7 +4,7 @@
 
 import { Command } from "commander";
 import chalk from "chalk";
-import { getXianyuApi } from "../../services/api/modules/xianyu.js";
+import * as xianyuApi from "../../services/api/modules/xianyu.js";
 import { handleCommandError } from "../shared.js";
 
 export function createPriceCommand(): Command {
@@ -22,10 +22,9 @@ export function createPriceCommand(): Command {
         return;
       }
 
-      const api = getXianyuApi();
       console.log(chalk.cyan(`正在修改价格...`));
 
-      await api.updatePrice(id, String(priceNum));
+      await xianyuApi.updatePrice(id, String(priceNum));
       console.log(chalk.green(`价格已修改为 ¥${priceNum}`));
     } catch (error) {
       handleCommandError(error);

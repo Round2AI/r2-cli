@@ -4,9 +4,8 @@
 
 import { Command } from "commander";
 import chalk from "chalk";
-import { getXianyuApi } from "../../services/api/modules/xianyu.js";
+import * as xianyuApi from "../../services/api/modules/xianyu.js";
 import { handleCommandError } from "../shared.js";
-import { renderOnce } from "../../utils/render.js";
 
 export function createShopsCommand(): Command {
   const command = new Command("shops");
@@ -15,8 +14,7 @@ export function createShopsCommand(): Command {
 
   command.action(async (options: { platform: string }) => {
     try {
-      const api = getXianyuApi();
-      const shops = await api.getShops(options.platform);
+      const shops = await xianyuApi.getShops(options.platform);
 
       const platformName = options.platform === "douyin" ? "抖音" : "闲鱼";
 
@@ -28,9 +26,9 @@ export function createShopsCommand(): Command {
         return;
       }
 
-      const React = await import("react");
       const { ShopsTable } = await import("../../components/ShopsTable.js");
-      renderOnce(React.createElement(ShopsTable, { shops, platform: options.platform }));
+      const { renderComponent } = await import("../../utils/render.js");
+      renderComponent(ShopsTable, { shops, platform: options.platform });
     } catch (error) {
       handleCommandError(error);
     }

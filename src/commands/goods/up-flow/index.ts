@@ -6,9 +6,8 @@
 import { input, confirm, select } from "@inquirer/prompts";
 import chalk from "chalk";
 import ora from "ora";
-import React from "react";
-import { getXianyuApi } from "../../../services/api/modules/xianyu.js";
-import { renderOnce } from "../../../utils/render.js";
+import * as xianyuApi from "../../../services/api/modules/xianyu.js";
+import { renderComponent } from "../../../utils/render.js";
 import { StepHeader } from "../../../components/StepHeader.js";
 import { SubmitResult } from "../../../components/SubmitResult.js";
 import { STUFF_LABELS } from "../../../types/xianyu.js";
@@ -33,27 +32,25 @@ const TOTAL_STEPS = 7;
 
 /** 打印上架向导步骤标题 */
 function stepHeader(step: number, title: string): void {
-  renderOnce(React.createElement(StepHeader, { step, total: TOTAL_STEPS, title }));
+  renderComponent(StepHeader, { step, total: TOTAL_STEPS, title });
 }
 
 export class UpFlowService {
-  private api = getXianyuApi();
-
   async run(_goodsInfoId?: string, options?: UpOptions): Promise<void> {
     const opts = options ?? {};
 
     // 店铺选择（优先缓存，非编号步骤）
-    const { shop } = await resolveShop(this.api, opts.shop);
+    const { shop } = await resolveShop(xianyuApi, opts.shop);
 
     // 步骤 1: 选择商品
     stepHeader(1, "选择商品");
-    const productResult = await selectProduct(this.api);
+    const productResult = await selectProduct(xianyuApi);
     if (!productResult) return;
     const { id: selectedId, item: selectedItem } = productResult;
 
     // 获取商品详情
     const detailSpinner = ora("获取商品信息...").start();
-    const goodsDetail = await this.api.getXyGoodsInfo(selectedId, shop.thirdUserId);
+    const goodsDetail = await xianyuApi.getXyGoodsInfo(selectedId, shop.thirdUserId);
     detailSpinner.succeed("商品信息已获取");
 
     // 步骤 2: 选择成色
@@ -77,7 +74,7 @@ export class UpFlowService {
 
     // 步骤 4: 选择类目
     stepHeader(4, "选择类目");
-    const { categoryId, channelCatId } = await selectCategory(this.api, opts.catId, opts.channelCatId);
+    const { categoryId, channelCatId } = await selectCategory(xianyuApi, opts.catId, opts.channelCatId);
 
     // 步骤 5: 售价
     stepHeader(5, "售价");
@@ -95,7 +92,7 @@ export class UpFlowService {
 
     // 步骤 6: 选择属性
     stepHeader(6, "选择属性");
-    const itemAttrList = await selectProps(this.api, channelCatId, goodsDetail, selectedItem?.size);
+    const itemAttrList = await selectProps(xianyuApi, channelCatId, goodsDetail, selectedItem?.size);
 
     // 步骤 7: 服务保障 + 确认提交
     stepHeader(7, "确认提交");
@@ -132,11 +129,11 @@ export class UpFlowService {
 
     console.log(chalk.cyan("\n提交上架中..."));
     try {
-      const result = await this.api.upGoods(params);
-      renderOnce(React.createElement(SubmitResult, { success: true, message: `上架成功！${result.result ?? ""}` }));
+      const result = await xianyuApi.upGoods(params);
+      renderComponent(SubmitResult, { success: true, message: `上架成功！${result.result ?? ""}` });
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
-      renderOnce(React.createElement(SubmitResult, { success: false, message: `上架失败: ${msg}` }));
+      renderComponent(SubmitResult, { success: false, message: `上架失败: ${msg}` });
     }
   }
 }

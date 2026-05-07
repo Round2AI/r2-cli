@@ -4,17 +4,14 @@
 
 import { select, confirm } from "@inquirer/prompts";
 import chalk from "chalk";
-import React from "react";
 import { getBusinessStorage } from "../../../services/storage/index.js";
 import { CliError } from "../../../errors/index.js";
-import { renderOnce } from "../../../utils/render.js";
+import { renderComponent } from "../../../utils/render.js";
 import { SelectionResult } from "../../../components/SelectionResult.js";
 import type { XyShop } from "../../../types/xianyu.js";
-import { getXianyuApi } from "../../../services/api/modules/xianyu.js";
+import * as xianyuApi from "../../../services/api/modules/xianyu.js";
 
-type XyApi = ReturnType<typeof getXianyuApi>;
-
-export async function resolveShop(api: XyApi, preferredShopId?: string): Promise<{ shop: XyShop; platform: string }> {
+export async function resolveShop(api: typeof xianyuApi, preferredShopId?: string): Promise<{ shop: XyShop; platform: string }> {
   const storage = getBusinessStorage();
   const cached = await storage.getShop();
 
@@ -25,7 +22,7 @@ export async function resolveShop(api: XyApi, preferredShopId?: string): Promise
       const shops = await api.getShops(cached.platform);
       const found = shops.find((s) => s.thirdUserId === cached.thirdUserId);
       if (found && Date.now() <= found.expiresIn) {
-        renderOnce(React.createElement(SelectionResult, { label: "已选择店铺", value: `${found.name} (${found.thirdUserId})` }));
+        renderComponent(SelectionResult, { label: "已选择店铺", value: `${found.name} (${found.thirdUserId})` });
         return { shop: found, platform: cached.platform };
       }
       console.log(chalk.yellow("  缓存店铺已过期或不可用，请重新选择"));
@@ -54,7 +51,7 @@ export async function resolveShop(api: XyApi, preferredShopId?: string): Promise
     name: shop.name,
     platform,
   });
-  renderOnce(React.createElement(SelectionResult, { label: "已选择店铺", value: `${shop.name} (${shop.thirdUserId})` }));
+  renderComponent(SelectionResult, { label: "已选择店铺", value: `${shop.name} (${shop.thirdUserId})` });
 
   return { shop, platform };
 }
@@ -66,7 +63,7 @@ export async function selectShop(shops: XyShop[], preferredShopId?: string): Pro
   if (preferredShopId) {
     const found = shopList.find((s) => s.thirdUserId === preferredShopId || s.id === preferredShopId);
     if (found) {
-      renderOnce(React.createElement(SelectionResult, { label: "已选择店铺", value: found.name }));
+      renderComponent(SelectionResult, { label: "已选择店铺", value: found.name });
       return found;
     }
     console.log(chalk.yellow(`  未找到指定店铺 "${preferredShopId}"，请从列表中选择`));
@@ -75,7 +72,7 @@ export async function selectShop(shops: XyShop[], preferredShopId?: string): Pro
   if (shopList.length === 1) {
     const only = shopList[0];
     if (!only) throw new CliError("店铺列表为空");
-    renderOnce(React.createElement(SelectionResult, { label: "已选择店铺", value: only.name }));
+    renderComponent(SelectionResult, { label: "已选择店铺", value: only.name });
     return only;
   }
 

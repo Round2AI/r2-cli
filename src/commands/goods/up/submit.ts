@@ -4,9 +4,9 @@
  */
 
 import { Command } from "commander";
-import { getXianyuApi } from "../../../services/api/modules/xianyu.js";
+import * as xianyuApi from "../../../services/api/modules/xianyu.js";
 import { parseJsonArg } from "../../../utils/index.js";
-import { agentError } from "../../shared.js";
+import { agentError, agentAction } from "../../shared.js";
 import type { ItemAttr, XyGoodsUpParams } from "../../../types/xianyu.js";
 
 export function createUpSubmitCommand(): Command {
@@ -28,7 +28,7 @@ export function createUpSubmitCommand(): Command {
   cmd.option("--services <json>", "服务保障 JSON（或 @file.json）");
 
   cmd.action(
-    async (options: {
+    agentAction(async (options: {
       data: string;
       divisionId: string;
       catId: string;
@@ -43,11 +43,8 @@ export function createUpSubmitCommand(): Command {
       attrs?: string;
       services?: string;
     }) => {
-      try {
-        const api = getXianyuApi();
-
-        // 读取 goodsDetail 作为基础参数，排除 price 字段
-        const raw = (await parseJsonArg(options.data, "--data")) as Record<string, unknown>;
+      // 读取 goodsDetail 作为基础参数，排除 price 字段
+      const raw = (await parseJsonArg(options.data, "--data")) as Record<string, unknown>;
         const { price: _price, ...base } = raw;
 
         // 属性列表
@@ -108,13 +105,9 @@ export function createUpSubmitCommand(): Command {
           agentError("缺少必填参数: --channel-cat-id");
         }
 
-        const result = await api.upGoods(params as unknown as XyGoodsUpParams);
+        const result = await xianyuApi.upGoods(params as unknown as XyGoodsUpParams);
         console.log(JSON.stringify({ success: true, result }, null, 2));
-      } catch (error) {
-        const msg = error instanceof Error ? error.message : String(error);
-        agentError(msg);
-      }
-    },
+    }),
   );
 
   return cmd;

@@ -6,11 +6,9 @@ import { select, input } from "@inquirer/prompts";
 import chalk from "chalk";
 import ora from "ora";
 import type { XyProp, XyPropValue, XyGoodsDetail, ItemAttr } from "../../../types/xianyu.js";
-import { getXianyuApi } from "../../../services/api/modules/xianyu.js";
+import * as xianyuApi from "../../../services/api/modules/xianyu.js";
 
-type XyApi = ReturnType<typeof getXianyuApi>;
-
-export async function selectProps(api: XyApi, channelCatId: string, detail: XyGoodsDetail, size?: string): Promise<ItemAttr[]> {
+export async function selectProps(api: typeof xianyuApi, channelCatId: string, detail: XyGoodsDetail, size?: string): Promise<ItemAttr[]> {
   const propsSpinner = ora("加载属性...").start();
   const props = await api.getProps(channelCatId);
   if (!props.length) {
@@ -102,7 +100,7 @@ export async function selectProps(api: XyApi, channelCatId: string, detail: XyGo
   return attrList.filter((a): a is ItemAttr => a !== undefined);
 }
 
-async function selectBrand(api: XyApi, prop: XyProp, brandName?: string): Promise<ItemAttr | null> {
+async function selectBrand(api: typeof xianyuApi, prop: XyProp, brandName?: string): Promise<ItemAttr | null> {
   if (brandName) {
     try {
       const values = await api.getPropValues(prop.channelCatId, prop.propId, brandName);

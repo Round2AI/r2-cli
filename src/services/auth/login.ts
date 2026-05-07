@@ -2,14 +2,11 @@
  * 登录服务
  */
 
-import path from "node:path";
-import os from "node:os";
-import fs from "node:fs";
 import chalk from "chalk";
 import type { UserInfo, GenerateQRCodeData } from "../../types/auth.js";
 import { poll } from "../../utils/polling.js";
-import { ApiClientService } from "../api/client.js";
-import { QRCodeAuthApiService } from "../api/modules/qrcode-auth.js";
+import { renderQRCode } from "../../utils/qrcode.js";
+import * as qrcodeAuth from "../api/modules/qrcode-auth.js";
 import { getAuthStorage, AuthStorage } from "../storage/index.js";
 import { AuthError } from "../../errors/index.js";
 
@@ -29,11 +26,9 @@ export interface LoginResult {
 // ==================== 登录服务 ====================
 
 export class LoginService {
-  private authApi: QRCodeAuthApiService;
   private storage: AuthStorage;
 
-  constructor(authApi?: QRCodeAuthApiService, storage?: AuthStorage) {
-    this.authApi = authApi ?? new QRCodeAuthApiService(new ApiClientService());
+  constructor(storage?: AuthStorage) {
     this.storage = storage ?? getAuthStorage();
   }
 
@@ -41,8 +36,8 @@ export class LoginService {
    * 步骤1: 生成二维码，返回 unicode 文本 + qrData（不含轮询）
    */
   async generateQR(): Promise<QRCodeResult> {
-    const qrData = await this.authApi.generateQRCode();
-    const { unicodeQR, qrPath } = await this.renderQRCode(qrData);
+    const qrData = await qrcodeAuth.generateQRCode();
+    const { unicodeQR, qrPath } = await this.renderLoginQRCode(qrData);
     return { qrData, unicodeQR, qrPath };
   }
 
@@ -52,7 +47,7 @@ export class LoginService {
   async waitForLogin(qrToken: string, expireTimeMs: number, pollIntervalMs: number, signal?: AbortSignal): Promise<LoginResult> {
     try {
       const result = await poll(
-        () => this.authApi.getQRCodeStatus(qrToken),
+        () => qrcodeAuth.getQRCodeStatus(qrToken),
         {
           interval: pollIntervalMs,
           timeout: expireTimeMs,
@@ -128,47 +123,18 @@ export class LoginService {
   /**
    * 渲染二维码（PNG + Unicode 半块字符）
    */
-  private async renderQRCode(qrData: GenerateQRCodeData): Promise<{ unicodeQR: string; qrPath: string }> {
+  private async renderLoginQRCode(qrData: GenerateQRCodeData): Promise<{ unicodeQR: string; qrPath: string }> {
     const qrContent = `https://m.puresnake.com/r2/auth/login?qrToken=${qrData.qrContent}&from=wechat`;
-
-    const configDir = path.join(os.homedir(), ".r2-cli");
-    fs.mkdirSync(configDir, { recursive: true });
-    const qrPath = path.join(configDir, "qrcode.png");
-
-    const { createRequire } = await import("node:module");
-    const require = createRequire(import.meta.url);
-    const QRCodeLib = require("qrcode") as typeof import("qrcode");
-
-    await QRCodeLib.toFile(qrPath, qrContent, { width: 300, margin: 2 });
-
-    const qrMatrix = QRCodeLib.create(qrContent, { errorCorrectionLevel: "L" });
-    const size = qrMatrix.modules.size;
-    const data = qrMatrix.modules.data;
-
-    let unicodeQR = "";
-    for (let row = 0; row < size; row += 2) {
-      for (let col = 0; col < size; col++) {
-        const top = data[row * size + col];
-        const bottom = row + 1 < size ? data[(row + 1) * size + col] : false;
-        if (top && bottom) unicodeQR += "█";
-        else if (top) unicodeQR += "▀";
-        else if (bottom) unicodeQR += "▄";
-        else unicodeQR += " ";
-      }
-      unicodeQR += "\n";
-    }
-
-    return { unicodeQR, qrPath };
+    return renderQRCode(qrContent, "qrcode.png");
   }
 
   /**
    * 显示用户信息
    */
   private async displayUserInfo(userInfo: UserInfo): Promise<void> {
-    const React = await import("react");
     const { UserInfoCard } = await import("../../components/UserInfoCard.js");
-    const { renderOnce } = await import("../../utils/render.js");
-    renderOnce(React.createElement(UserInfoCard, { userInfo }));
+    const { renderComponent } = await import("../../utils/render.js");
+    renderComponent(UserInfoCard, { userInfo });
   }
 
   /**
@@ -207,10 +173,9 @@ export class LoginService {
     const daysSinceLogin = Math.floor((Date.now() - credentials!.timestamp) / (1000 * 60 * 60 * 24));
 
     console.log(chalk.green("✅ 已登录\n"));
-    const React = await import("react");
     const { UserInfoCard } = await import("../../components/UserInfoCard.js");
-    const { renderOnce } = await import("../../utils/render.js");
-    renderOnce(React.createElement(UserInfoCard, { userInfo, lastLogin, daysSinceLogin }));
+    const { renderComponent } = await import("../../utils/render.js");
+    renderComponent(UserInfoCard, { userInfo, lastLogin, daysSinceLogin });
   }
 
   private async clearCredentials(): Promise<void> {

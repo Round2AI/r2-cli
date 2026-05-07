@@ -4,10 +4,9 @@
 
 import { Command } from "commander";
 import chalk from "chalk";
-import { getXianyuApi } from "../../services/api/modules/xianyu.js";
+import * as xianyuApi from "../../services/api/modules/xianyu.js";
 import { handleCommandError } from "../shared.js";
 import { validateStatus, validatePositiveInt } from "../../utils/index.js";
-import { renderOnce } from "../../utils/render.js";
 
 const MAX_PAGE_SIZE = 100;
 
@@ -26,11 +25,10 @@ export function createListCommand(): Command {
       const page = validatePositiveInt(options.page, "页码") ?? 1;
       const size = Math.min(validatePositiveInt(options.size, "每页数量") ?? 20, MAX_PAGE_SIZE);
 
-      const api = getXianyuApi();
       const params: Record<string, unknown> = { page, size };
       if (options.status) params.status = options.status;
       if (options.keyword) params.key = options.keyword;
-      const result = await api.getSellerGoodsList(params);
+      const result = await xianyuApi.getSellerGoodsList(params);
 
       if (!result.items.length) {
         console.log(chalk.yellow("暂无商品"));
@@ -38,15 +36,13 @@ export function createListCommand(): Command {
         return;
       }
 
-      const React = await import("react");
       const { GoodsTable } = await import("../../components/GoodsTable.js");
-      renderOnce(
-        React.createElement(GoodsTable, {
-          items: result.items,
-          total: result.total,
-          statusFilter: options.status || "",
-        }),
-      );
+      const { renderComponent } = await import("../../utils/render.js");
+      renderComponent(GoodsTable, {
+        items: result.items,
+        total: result.total,
+        statusFilter: options.status || "",
+      });
     } catch (error) {
       handleCommandError(error);
     }

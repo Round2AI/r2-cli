@@ -66,7 +66,18 @@ const esbuildConfig = {
  */
 async function cleanDist() {
   const distDir = path.join(rootDir, "dist");
-  await fs.rm(distDir, { recursive: true, force: true });
+  try {
+    await fs.rm(distDir, { recursive: true, force: true });
+  } catch (e) {
+    if (e.code === "EBUSY" || e.code === "EPERM") {
+      const files = await fs.readdir(distDir);
+      for (const file of files) {
+        await fs.rm(path.join(distDir, file), { recursive: true, force: true });
+      }
+    } else {
+      throw e;
+    }
+  }
   await fs.mkdir(distDir, { recursive: true });
   console.log("🧹 清理输出目录完成");
 }

@@ -45,3 +45,14 @@ export function renderOnce(component: React.ReactElement<any>): void {
     chalk.level = prevLevel;
   }
 }
+
+/**
+ * 渲染组件的快捷方法 — 封装 createElement + renderOnce
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function renderComponent<P extends Record<string, any>>(
+  Component: React.ComponentType<P>,
+  props: P,
+): void {
+  renderOnce(React.createElement(Component, props));
+}
