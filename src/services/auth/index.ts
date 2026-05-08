@@ -1,2 +1,2 @@
-export { LoginService, getLoginService, type QRCodeResult, type LoginResult } from "./login.js";
-export { XianyuAuthService, getXianyuAuthService, type XianyuAuthResult } from "./xianyu-auth.js";
+export { LoginService, getLoginService } from "./login.js";
+export { generateAuthQR, waitForAuth, authorize } from "./xianyu-auth.js";
