@@ -47,3 +47,17 @@ export function agentAction<T extends unknown[]>(fn: (...args: T) => Promise<voi
     }
   };
 }
+
+/** JSON 输出时需要过滤的敏感字段 */
+export const SENSITIVE_KEYS = new Set(["accessToken", "refreshExpireIn"]);
+
+/** 过滤敏感字段，用于 --json 输出 */
+export function sanitizeShops(shops: readonly object[]): Record<string, unknown>[] {
+  return shops.map((shop) => {
+    const safe: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(shop)) {
+      if (!SENSITIVE_KEYS.has(key)) safe[key] = value;
+    }
+    return safe;
+  });
+}

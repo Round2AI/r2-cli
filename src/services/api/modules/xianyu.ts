@@ -12,6 +12,10 @@ import type {
   XyProp,
   XyPropValue,
   XyGoodsUpParams,
+  UserShop,
+  UserStock,
+  SelectGoodsListParams,
+  SelectGoodsListResult,
 } from "../../../types/xianyu.js";
 
 const client = new ApiClientService();
@@ -27,7 +31,8 @@ function toParams(obj: Record<string, unknown>): URLSearchParams {
 }
 
 export async function getShops(platform: string = "xianyu"): Promise<XyShop[]> {
-  return client.get<XyShop[]>("platform/shop/list", toParams({ platform }));
+  const data = await client.get<XyShop[]>("platform/shop/list", toParams({ platform }));
+  return data ?? [];
 }
 
 export async function getSellerGoodsList(params: SellerGoodsListParams): Promise<SellerGoodsListResult> {
@@ -64,4 +69,23 @@ export async function batchReUp(goodsChannelIds: string): Promise<Record<string,
 
 export async function updatePrice(id: string, price: string): Promise<Record<string, unknown>> {
   return client.post("mms/seller/xy/goods/update/price", { id, price });
+}
+
+// ==================== 用户级接口 ====================
+
+export async function getUserShopList(): Promise<UserShop[]> {
+  const data = await client.get<UserShop[]>("mms/user/shop/list");
+  return data ?? [];
+}
+
+export async function getUserStockList(): Promise<UserStock[]> {
+  const data = await client.get<UserStock[]>("mms/user/stock/list");
+  return data ?? [];
+}
+
+export async function getSelectGoodsList(params?: SelectGoodsListParams): Promise<SelectGoodsListResult> {
+  return client.get<SelectGoodsListResult>(
+    "mms/seller/goods/select/list",
+    params ? toParams({ ...params }) : undefined,
+  );
 }

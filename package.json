@@ -1,6 +1,6 @@
 {
   "name": "@round2ai/r2-cli",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "R2-CLI，向 AI 开放二手潮奢交易全链路能力",
   "main": "dist/r2-cli.js",
   "type": "module",

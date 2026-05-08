@@ -18,8 +18,9 @@ export function createListCommand(): Command {
   command.option("--keyword <keyword>", "搜索关键词");
   command.option("--page <page>", "页码", "1");
   command.option("--size <size>", "每页数量", "20");
+  command.option("--json", "输出 JSON（供 AI Agent 使用）");
 
-  command.action(async (options: { status?: string; keyword?: string; page?: string; size?: string }) => {
+  command.action(async (options: { status?: string; keyword?: string; page?: string; size?: string; json?: boolean }) => {
     try {
       validateStatus(options.status);
       const page = validatePositiveInt(options.page, "页码") ?? 1;
@@ -29,6 +30,11 @@ export function createListCommand(): Command {
       if (options.status) params.status = options.status;
       if (options.keyword) params.key = options.keyword;
       const result = await xianyuApi.getSellerGoodsList(params);
+
+      if (options.json) {
+        console.log(JSON.stringify(result, null, 2));
+        return;
+      }
 
       if (!result.items.length) {
         console.log(chalk.yellow("暂无商品"));

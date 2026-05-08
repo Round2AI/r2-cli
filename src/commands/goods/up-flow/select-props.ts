@@ -105,21 +105,19 @@ async function selectBrand(api: typeof xianyuApi, prop: XyProp, brandName?: stri
     try {
       const values = await api.getPropValues(prop.channelCatId, prop.propId, brandName);
       if (values.length > 0) {
-        const MANUAL = "__manual__" as const;
-        const value = await select({
+        const value = await select<XyPropValue | "__manual__">({
           message: `确认品牌（已匹配 ${chalk.green(values[0]!.valueName)}）`,
           choices: [
-            ...values.map((v) => ({ name: v.valueName, value: v as XyPropValue | typeof MANUAL })),
-            { name: "（手动搜索其他品牌）", value: MANUAL as unknown as XyPropValue },
+            ...values.map((v) => ({ name: v.valueName, value: v })),
+            { name: "（手动搜索其他品牌）", value: "__manual__" },
           ],
-          default: values[0]! as XyPropValue | typeof MANUAL,
+          default: values[0]!,
         });
-        if (value !== MANUAL) {
-          const v = value as XyPropValue;
+        if (value !== "__manual__") {
           return {
             propId: prop.propId,
-            valueId: v.valueId,
-            valueName: v.valueName,
+            valueId: value.valueId,
+            valueName: value.valueName,
             channelCatId: prop.channelCatId,
             propName: prop.propName,
           };

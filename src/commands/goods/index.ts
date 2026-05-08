@@ -8,6 +8,7 @@ import { createListCommand } from "./list.js";
 import { createUpCommand } from "./up/index.js";
 import { createDownCommand, createReUpCommand } from "./down.js";
 import { createPriceCommand } from "./price.js";
+import { createSelectCommand } from "./select.js";
 
 export function createGoodsCommand(): Command {
   const command = new Command("goods");
@@ -19,6 +20,7 @@ export function createGoodsCommand(): Command {
   command.addCommand(createDownCommand());
   command.addCommand(createReUpCommand());
   command.addCommand(createPriceCommand());
+  command.addCommand(createSelectCommand());
 
   return command;
 }
