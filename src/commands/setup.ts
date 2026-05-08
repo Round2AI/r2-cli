@@ -12,8 +12,6 @@ import { createChatCommand } from "./ai/chat.js";
 import { createSkillsCommand } from "./ai/skills.js";
 import { createGoodsCommand } from "./goods/index.js";
 import { createUninstallCommand } from "./uninstall.js";
-import { createShopsCommand } from "./shops.js";
-import { createStocksCommand } from "./stocks.js";
 import { setupStubCommands } from "./stubs.js";
 
 export function setupCommands(program: Command): void {
@@ -38,8 +36,6 @@ export function setupCommands(program: Command): void {
   aiCommand.addCommand(createSkillsCommand());
 
   program.addCommand(createGoodsCommand());
-  program.addCommand(createShopsCommand());
-  program.addCommand(createStocksCommand());
   program.addCommand(createUninstallCommand());
 
   // 开发中命令

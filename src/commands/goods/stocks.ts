@@ -4,8 +4,8 @@
 
 import { Command } from "commander";
 import chalk from "chalk";
-import * as xianyuApi from "../services/api/modules/xianyu.js";
-import { handleCommandError } from "./shared.js";
+import * as xianyuApi from "../../services/api/modules/xianyu.js";
+import { handleCommandError } from "../shared.js";
 
 export function createStocksCommand(): Command {
   const command = new Command("stocks");
@@ -26,8 +26,8 @@ export function createStocksCommand(): Command {
         return;
       }
 
-      const { StocksTable } = await import("../components/StocksTable.js");
-      const { renderComponent } = await import("../utils/render.js");
+      const { StocksTable } = await import("../../components/StocksTable.js");
+      const { renderComponent } = await import("../../utils/render.js");
       renderComponent(StocksTable, { stocks });
     } catch (error) {
       handleCommandError(error);

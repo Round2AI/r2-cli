@@ -4,14 +4,9 @@
 
 import { ApiClientService } from "../client.js";
 import type {
-  XyShop,
-  SellerGoodsListParams,
-  SellerGoodsListResult,
-  XyGoodsDetail,
-  XyCategory,
-  XyProp,
-  XyPropValue,
-  XyGoodsUpParams,
+  ListingUpParams,
+  ListingGetParams,
+  ListingInfo,
   UserShop,
   UserStock,
   SelectGoodsListParams,
@@ -30,45 +25,14 @@ function toParams(obj: Record<string, unknown>): URLSearchParams {
   return params;
 }
 
-export async function getShops(platform: string = "xianyu"): Promise<XyShop[]> {
-  const data = await client.get<XyShop[]>("platform/shop/list", toParams({ platform }));
-  return data ?? [];
+// ==================== 上架（Listing） ====================
+
+export async function listingUpXianyu(params: ListingUpParams): Promise<ListingInfo> {
+  return client.post<ListingInfo>("mms/goods/listing/up/xianyu", params);
 }
 
-export async function getSellerGoodsList(params: SellerGoodsListParams): Promise<SellerGoodsListResult> {
-  return client.get<SellerGoodsListResult>("mms/seller/goods/info/list", toParams({ ...params }));
-}
-
-export async function getXyGoodsInfo(goodsInfoId: string, xyShopId: string): Promise<XyGoodsDetail> {
-  return client.get<XyGoodsDetail>("mms/seller/xy/goods/info", toParams({ goodsInfoId, xyShopId }));
-}
-
-export async function getCategories(spBizType: number): Promise<XyCategory[]> {
-  return client.get<XyCategory[]>("platform/xy/cat", toParams({ spBizType }));
-}
-
-export async function getProps(channelCatId: string): Promise<XyProp[]> {
-  return client.get<XyProp[]>("platform/xy/props", toParams({ channelCatId }));
-}
-
-export async function getPropValues(channelCatId: string, propId: string, key?: string): Promise<XyPropValue[]> {
-  return client.get<XyPropValue[]>("platform/xy/props/value", toParams({ channelCatId, propId, key }));
-}
-
-export async function upGoods(params: XyGoodsUpParams): Promise<{ result: string }> {
-  return client.post<{ result: string }>("mms/seller/xy/goods/up", params);
-}
-
-export async function batchDown(goodsChannelIds: string): Promise<Record<string, unknown>> {
-  return client.get("mms/seller/xy/goods/batch/down", toParams({ goodsChannelIds }));
-}
-
-export async function batchReUp(goodsChannelIds: string): Promise<Record<string, unknown>> {
-  return client.get("mms/seller/xy/goods/reUp", toParams({ goodsChannelIds }));
-}
-
-export async function updatePrice(id: string, price: string): Promise<Record<string, unknown>> {
-  return client.post("mms/seller/xy/goods/update/price", { id, price });
+export async function getListingInfo(params: ListingGetParams): Promise<ListingInfo> {
+  return client.get<ListingInfo>("mms/goods/listing/get", toParams({ ...params }));
 }
 
 // ==================== 用户级接口 ====================
