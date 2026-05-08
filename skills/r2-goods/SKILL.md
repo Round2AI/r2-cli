@@ -21,20 +21,52 @@ npm install -g @round2ai/r2-cli@latest
 
 | 命令 | 说明 |
 |------|------|
-| `r2-cli goods shops` | 查看已授权店铺（`-p xianyu/douyin`） |
-| `r2-cli goods list` | 寄售商品列表（`--status wait/on/sold/down`） |
+| `r2-cli goods shops [-p xianyu/douyin] [--json]` | 查看已授权店铺 |
+| `r2-cli goods list [--status/--keyword/--page/--size] [--json]` | 寄售商品列表 |
 | `r2-cli goods up` | 交互式上架向导（7步） |
 | `r2-cli goods down <ids...>` | 下架商品（支持批量） |
 | `r2-cli goods reup <ids...>` | 重新上架（支持批量） |
 | `r2-cli goods price <id> --price <amount>` | 修改售价 |
+| `r2-cli goods select [--stock-id/--stock-goods-id/--page/--size] [--json]` | 选品商品列表（今日数据） |
+
+## goods shops 选项
+
+- `-p, --platform <xianyu|douyin>` — 平台筛选（默认 xianyu）
+- `--json` — 输出 JSON（供 AI Agent 使用）
+
+Agent 调用示例：
+```bash
+r2-cli goods shops --json
+r2-cli goods shops -p douyin --json
+```
 
 ## goods list 选项
 
 - `--status <status>` — `wait`(待上架)、`on`(已上架)、`sold`(已售)、`down`(已下架)
 - `--keyword <keyword>` — 搜索关键词
 - `--page <n>` / `--size <n>` — 分页（size 上限 100）
+- `--json` — 输出 JSON（供 AI Agent 使用）
 
-## 交互式上架（7步）
+Agent 调用示例：
+```bash
+r2-cli goods list --status wait --json
+r2-cli goods list --status on --json --page 1 --size 20
+```
+
+## goods select 选项
+
+- `--stock-id <id>` — 按仓库 ID 筛选
+- `--stock-goods-id <id>` — 按选品 ID 筛选
+- `--page <n>` / `--size <n>` — 分页（size 上限 100）
+- `--json` — 输出 JSON（供 AI Agent 使用）
+
+Agent 调用示例：
+```bash
+r2-cli goods select --json
+r2-cli goods select --json --stock-id 2703 --page 1 --size 20
+```
+
+## 交互式上架
 
 `r2-cli goods up` 直接进入交互式向导：
 
@@ -47,26 +79,27 @@ npm install -g @round2ai/r2-cli@latest
 7. **选择属性** — 品牌/尺码/成色自动匹配
 8. **确认提交** — 展示摘要确认
 
-> 目前仅支持普通商品（bizType=2），严选商品暂不支持。
+> 目前仅支持普通商品（itemBizType=2），严选商品暂不支持。
 
 ## AI Agent 分步上架流程
 
 Agent 无法操作交互式选择器，使用子命令逐步执行：
 
 ```
-1. r2-cli goods list --status wait     → 获取待上架商品列表
-2. r2-cli goods up info <id>           → 获取商品详情 + 店铺 + 地址 + 预填值
-3. r2-cli goods up address ...         → （仅地址为 null 时）设置发货地址
-4. r2-cli goods up categories          → 获取分类树
-5. r2-cli goods up props <catId>       → 获取分类属性 + 品牌搜索
-6. r2-cli goods up submit ...          → 提交上架
+1. r2-cli goods list --status wait --json  → 获取待上架商品列表
+2. r2-cli goods up info <id>               → 获取商品详情 + 店铺 + 地址 + 预填值
+3. r2-cli goods up address ...             → （仅地址为 null 时）设置发货地址
+4. r2-cli goods up categories              → 获取分类树
+5. r2-cli goods up props <catId>           → 获取分类属性 + 品牌搜索
+6. r2-cli goods up submit ...              → 提交上架
 ```
 
 ### 第1步：获取待上架商品列表
 
 ```bash
-r2-cli goods list --status wait
-# 表格输出：ID、名称、货号、规格、售价
+r2-cli goods list --status wait --json
+# JSON 输出：{ items: [...], total, page, size }
+# 每个 item 包含：goodsInfoId, title, goodsNo, size, reservePrice 等
 ```
 
 ### 第2步：获取商品详情
@@ -169,6 +202,7 @@ r2-cli goods up submit \
 ```json
 [
   { "propId": "xxx", "valueId": "yyy", "valueName": "JORDAN" }
+]
 ```
 
 ## 缓存

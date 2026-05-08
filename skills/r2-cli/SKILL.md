@@ -27,14 +27,14 @@ npm install -g @round2ai/r2-cli@latest
 
 ## 前置条件
 
-- 必须先登录：`r2-cli auth login`（扫码登录）
+- 必须先登录：`r2-cli auth login`（扫码登录，支持第二回合 APP / 微信 / 支付宝扫码）
 - 检查登录状态：`r2-cli auth status`
 - Token 过期后需重新登录（内存缓存带过期检查，不会无限使用过期 token）
 - Token 存储在 `~/.r2-cli/config.json`（原子写入，防止中断导致丢失）
 
 ## 错误格式
 
-Agent 子命令（`goods up info/submit/categories/props/address`）统一错误格式：
+Agent 子命令统一错误格式：
 
 ```json
 { "success": false, "error": "错误信息" }
@@ -50,21 +50,42 @@ Agent 应检查 `success` 字段判断成败。验证错误（如参数缺失、
 
 | 命令 | 说明 |
 |------|------|
-| `r2-cli auth login` | 扫码登录（生成二维码 → 手机扫码 → 确认） |
-| `r2-cli auth xianyu` | 闲鱼店铺授权（扫码或复制链接授权） |
+| `r2-cli auth login` | 扫码登录（显示 unicode 二维码 + 浏览器链接，支持第二回合 APP / 微信 / 支付宝扫码，页面实时更新状态） |
+| `r2-cli auth xianyu` | 闲鱼店铺授权（扫码授权，链接页面展示第二回合品牌） |
 | `r2-cli auth logout` | 退出登录 |
 | `r2-cli auth status` | 查看登录状态和用户信息 |
+
+> 认证登录的 Agent 两步式流程（qr + poll）见 **r2-auth** skill。Agent 调用 `qr` 子命令时，`qrUrl` 链接页面会实时更新扫码状态，成功后自动关闭。
 
 ## 商品管理命令 `r2-cli goods`
 
 | 命令 | 说明 |
 |------|------|
-| `r2-cli goods shops` | 查看已授权店铺（`-p xianyu/douyin`） |
-| `r2-cli goods list` | 寄售商品列表（`--status wait/on/sold/down`） |
+| `r2-cli goods shops [-p xianyu/douyin] [--json]` | 查看已授权店铺 |
+| `r2-cli goods list [--status wait/on/sold/down] [--keyword <kw>] [--page <n>] [--size <n>] [--json]` | 寄售商品列表 |
 | `r2-cli goods up` | 上架商品（交互式7步向导） |
 | `r2-cli goods down <ids...>` | 下架商品（支持批量） |
 | `r2-cli goods reup <ids...>` | 重新上架（支持批量） |
 | `r2-cli goods price <id> --price <amount>` | 修改售价 |
+| `r2-cli goods select [--stock-id <id>] [--stock-goods-id <id>] [--page <n>] [--size <n>] [--json]` | 选品商品列表（今日数据） |
 
-> 商品管理的详细用法（交互式向导、AI Agent 分步上架）见 **r2-goods** skill。
-> 认证登录的 Agent 两步式流程见 **r2-auth** skill。
+### Agent 专用上架命令
+
+| 命令 | 说明 |
+|------|------|
+| `r2-cli goods up info <id> [--shop <shopId>] [-p xianyu/douyin]` | 获取商品详情 + 预填值 |
+| `r2-cli goods up address [--provinces/--cities/--areas/--save/--set]` | 设置/查看发货地址 |
+| `r2-cli goods up categories` | 获取分类树 |
+| `r2-cli goods up props <channelCatId> [--brand <keyword>]` | 获取分类属性 + 品牌搜索 |
+| `r2-cli goods up submit --data @detail.json --division-id <id> --cat-id <id> --channel-cat-id <id> [可选参数...]` | 提交上架 |
+
+> 商品上架的详细流程（交互式7步 + Agent 分步）见 **r2-goods** skill。
+
+## 用户级命令
+
+| 命令 | 说明 |
+|------|------|
+| `r2-cli shops [--json]` | 查看所有已授权店铺（跨平台：闲鱼/抖音等） |
+| `r2-cli stocks [--json]` | 查看所有仓库 |
+
+> 所有 `--json` 命令输出结构化 JSON，Agent 应优先使用。不加 `--json` 则输出人类可读的表格。
