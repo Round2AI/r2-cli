@@ -7,6 +7,10 @@ import type {
   ListingUpParams,
   ListingGetParams,
   ListingInfo,
+  ListingDownParams,
+  ListingUpdatePriceParams,
+  ListingListParams,
+  ListingListResult,
   UserShop,
   UserStock,
   SelectGoodsListParams,
@@ -33,6 +37,18 @@ export async function listingUpXianyu(params: ListingUpParams): Promise<ListingI
 
 export async function getListingInfo(params: ListingGetParams): Promise<ListingInfo> {
   return client.get<ListingInfo>("mms/goods/listing/get", toParams({ ...params }));
+}
+
+export async function listingDownXianyu(params: ListingDownParams): Promise<unknown> {
+  return client.post("mms/goods/listing/down/xianyu", params);
+}
+
+export async function listingUpdatePrice(params: ListingUpdatePriceParams): Promise<unknown> {
+  return client.post("mms/goods/listing/update/xyPrice", params);
+}
+
+export async function getListingList(params?: ListingListParams): Promise<ListingListResult> {
+  return client.get<ListingListResult>("mms/goods/listing/list", params ? toParams({ ...params }) : undefined);
 }
 
 // ==================== 用户级接口 ====================

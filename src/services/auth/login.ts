@@ -5,7 +5,7 @@
 import chalk from "chalk";
 import type { UserInfo, GenerateQRCodeData } from "../../types/auth.js";
 import { poll } from "../../utils/polling.js";
-import { renderQRCode, type QRCodeOutput, type QrPageStatus } from "../../utils/qrcode.js";
+import { renderLoginQR, type QRCodeOutput, type QrPageStatus } from "../../qr-server/index.js";
 import * as qrcodeAuth from "../api/modules/qrcode-auth.js";
 import { getAuthStorage, AuthStorage } from "../storage/index.js";
 import { AuthError } from "../../errors/index.js";
@@ -34,7 +34,7 @@ export class LoginService {
   async generateQR(): Promise<QRCodeResult> {
     const qrData = await qrcodeAuth.generateQRCode();
     const qrContent = `https://m.puresnake.com/r2/auth/login?qrToken=${qrData.qrContent}&from=wechat`;
-    const rendered = await renderQRCode(qrContent, "qrcode.png");
+    const rendered = await renderLoginQR(qrContent);
     return { qrData, ...rendered };
   }
 
@@ -106,12 +106,11 @@ export class LoginService {
   async login(signal?: AbortSignal): Promise<LoginResult> {
     console.log(chalk.cyan("\n🔐 正在启动扫码登录..."));
 
-    const { qrData, unicodeQR, qrPath, qrUrl, setStatus, closeServer } = await this.generateQR();
+    const { qrData, unicodeQR, qrUrl, setStatus, closeServer } = await this.generateQR();
     console.log(chalk.green("✅ 二维码已生成\n"));
     console.log("\n📱 请使用 第二回合 扫描二维码登录\n");
     console.log(unicodeQR);
     console.log(chalk.cyan(`  或打开链接: ${qrUrl}`));
-    console.log(chalk.gray(`  二维码已保存到: ${qrPath}`));
     console.log(chalk.yellow("\n⏳ 等待扫码...\n"));
 
     const expireTimeMs = Number.parseInt(qrData.expireTime, 10);

@@ -128,6 +128,18 @@ async function copyFiles() {
       // file doesn't exist, skip
     }
   }
+
+  // 复制 QR 页面 HTML 文件到 dist/pages/
+  const pagesDir = path.join(rootDir, "dist", "pages");
+  await fs.mkdir(pagesDir, { recursive: true });
+  const htmlSrcDir = path.join(rootDir, "src", "qr-server", "pages");
+  const htmlFiles = await fs.readdir(htmlSrcDir);
+  for (const file of htmlFiles) {
+    if (file.endsWith(".html")) {
+      await fs.copyFile(path.join(htmlSrcDir, file), path.join(pagesDir, file));
+      console.log(`📄 已复制 pages/${file}`);
+    }
+  }
 }
 
 /**
