@@ -51,7 +51,7 @@ npm install -g @round2ai/r2-cli@latest
 |------|------|
 | `r2-cli goods shops [--json]` | 查看所有已授权店铺 |
 | `r2-cli goods stocks [--json]` | 查看所有仓库 |
-| `r2-cli goods list --stock-id <id> [--json]` | 查看仓库中的选品商品 |
+| `r2-cli goods list [--stock-id <id>] [--stock-goods-id <id>] [--json]` | 查看选品商品（可按仓库或商品 ID 过滤） |
 | `r2-cli goods listing [--json]` | 查询上架列表（支持 --id/--shop-id/--status 过滤） |
 | `r2-cli goods up` | 交互式上架 |
 | `r2-cli goods up --stock-goods-id <id> --shop-id <id> --price <amount> --json` | Agent 直接上架（自动轮询结果） |
@@ -64,7 +64,7 @@ npm install -g @round2ai/r2-cli@latest
 
 1. `r2-cli goods shops --json` → 展示店铺（shopId、shopName、platform）→ 用户选择
 2. `r2-cli goods stocks --json` → 展示仓库（stockId、stockName）→ 用户选择
-3. `r2-cli goods list --stock-id <id> --json` → 展示商品（stockGoodsId、goodsName、brand、size、salePrice）→ 用户选择
+3. `r2-cli goods list --stock-id <id> --json` → 展示商品（stockGoodsId、goodsName、brand、size、salePrice）→ 用户选择（也可用 `--stock-goods-id <id>` 查询单个商品）
 4. `r2-cli goods up --stock-goods-id <id> --shop-id <id> --price <amount> --json` → 提交上架（自动轮询结果）
 
 > 完整流程和参数说明见 **r2-goods** skill。

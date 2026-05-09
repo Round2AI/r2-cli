@@ -121,17 +121,24 @@ export class QrServer {
 }
 
 let instance: QrServer | null = null;
+let listenersRegistered = false;
 
 function cleanup() {
   if (instance) instance.close();
 }
 
+function ensureProcessListeners() {
+  if (listenersRegistered) return;
+  listenersRegistered = true;
+  process.on("exit", cleanup);
+  process.on("SIGINT", cleanup);
+  process.on("SIGTERM", cleanup);
+}
+
 export function getQrServer(): QrServer {
   if (!instance) {
     instance = new QrServer();
-    process.on("exit", cleanup);
-    process.on("SIGINT", cleanup);
-    process.on("SIGTERM", cleanup);
+    ensureProcessListeners();
   }
   return instance;
 }

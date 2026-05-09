@@ -69,7 +69,9 @@ export class ConfigStore {
       await fs.rename(tmpPath, this.configPath);
       this.configLoaded = true;
     } catch (error) {
-      await fs.unlink(tmpPath).catch(() => {});
+      await fs.unlink(tmpPath).catch((e) => {
+        if (typeof process.env.DEBUG !== "undefined") console.error("[config] cleanup tmp failed:", e);
+      });
       throw new StorageError("Failed to save config", this.configPath, (error as NodeJS.ErrnoException).code);
     }
   }

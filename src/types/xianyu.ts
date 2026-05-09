@@ -213,8 +213,8 @@ export interface SelectGoodsItem {
 export interface SelectGoodsListParams {
   page?: number;
   size?: number;
-  stockId?: string;
-  stockGoodsId?: string;
+  stockId?: string | undefined;
+  stockGoodsId?: string | undefined;
 }
 
 /** 选品商品列表返回 */

@@ -39,12 +39,12 @@ export async function getListingInfo(params: ListingGetParams): Promise<ListingI
   return client.get<ListingInfo>("mms/goods/listing/get", toParams({ ...params }));
 }
 
-export async function listingDownXianyu(params: ListingDownParams): Promise<unknown> {
-  return client.post("mms/goods/listing/down/xianyu", params);
+export async function listingDownXianyu(params: ListingDownParams): Promise<Record<string, unknown>> {
+  return client.post<Record<string, unknown>>("mms/goods/listing/down/xianyu", params);
 }
 
-export async function listingUpdatePrice(params: ListingUpdatePriceParams): Promise<unknown> {
-  return client.post("mms/goods/listing/update/xyPrice", params);
+export async function listingUpdatePrice(params: ListingUpdatePriceParams): Promise<Record<string, unknown>> {
+  return client.post<Record<string, unknown>>("mms/goods/listing/update/xyPrice", params);
 }
 
 export async function getListingList(params?: ListingListParams): Promise<ListingListResult> {
@@ -64,8 +64,6 @@ export async function getUserStockList(): Promise<UserStock[]> {
 }
 
 export async function getSelectGoodsList(params?: SelectGoodsListParams): Promise<SelectGoodsListResult> {
-  return client.get<SelectGoodsListResult>(
-    "mms/seller/goods/select/list",
-    params ? toParams({ ...params }) : undefined,
-  );
+  const queryParams = params ? toParams({ ...params }) : undefined;
+  return client.get<SelectGoodsListResult>("mms/seller/goods/select/list", queryParams);
 }

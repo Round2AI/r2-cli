@@ -48,17 +48,21 @@ export async function poll<T>(
 
 export function sleep(ms: number, signal?: AbortSignal): Promise<void> {
   return new Promise<void>((resolve, reject) => {
-    const timer = setTimeout(resolve, ms);
-    if (!signal) return;
-    if (signal.aborted) {
-      clearTimeout(timer);
+    if (signal?.aborted) {
       reject(new PollingError("轮询被中止"));
       return;
     }
+
     const onAbort = () => {
       clearTimeout(timer);
       reject(new PollingError("轮询被中止"));
     };
-    signal.addEventListener("abort", onAbort, { once: true });
+
+    const timer = setTimeout(() => {
+      signal?.removeEventListener("abort", onAbort);
+      resolve();
+    }, ms);
+
+    signal?.addEventListener("abort", onAbort, { once: true });
   });
 }

@@ -13,20 +13,27 @@ export function createListCommand(): Command {
 
   command
     .option("--stock-id <id>", "仓库 ID（从 goods stocks 获取）")
+    .option("--stock-goods-id <id>", "库存商品 ID")
     .option("--page <n>", "页码", "1")
     .option("--size <n>", "每页数量", "20")
     .option("--json", "输出 JSON（供 AI Agent 使用）");
 
   command.action(
-    async (options: { stockId?: string; page?: string; size?: string; json?: boolean }) => {
+    async (options: { stockId?: string; stockGoodsId?: string; page?: string; size?: string; json?: boolean }) => {
       if (options.json) {
         try {
           const result = await xianyuApi.getSelectGoodsList({
-            stockId: options.stockId ?? "",
+            stockId: options.stockId || undefined,
+            stockGoodsId: options.stockGoodsId || undefined,
             page: Number(options.page) || 1,
             size: Number(options.size) || 20,
           });
-          console.log(JSON.stringify(result ?? { items: [], total: 0 }, null, 2));
+          const data = result ?? { items: [], total: 0 };
+          if (!data.items?.length) {
+            console.log(JSON.stringify({ ...data, hint: "选品商品为空，请先在后台生成选品表数据后再试" }, null, 2));
+          } else {
+            console.log(JSON.stringify(data, null, 2));
+          }
         } catch (error) {
           const msg = error instanceof Error ? error.message : String(error);
           console.log(JSON.stringify({ success: false, error: msg }));
@@ -36,19 +43,15 @@ export function createListCommand(): Command {
       }
 
       try {
-        if (!options.stockId) {
-          console.log(chalk.yellow("请指定仓库 ID: r2-cli goods list --stock-id <id>"));
-          return;
-        }
-
         const result = await xianyuApi.getSelectGoodsList({
-          stockId: options.stockId,
+          stockId: options.stockId || undefined,
+          stockGoodsId: options.stockGoodsId || undefined,
           page: Number(options.page) || 1,
           size: Number(options.size) || 20,
         });
 
         if (!result.items?.length) {
-          console.log(chalk.yellow("该仓库没有选品商品"));
+          console.log(chalk.yellow("暂无选品商品，请先绑定仓库或在后台生成选品表数据"));
           return;
         }
 

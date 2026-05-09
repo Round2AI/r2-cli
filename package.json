@@ -8,6 +8,7 @@
     "r2-cli": "./dist/r2-cli.js"
   },
   "scripts": {
+    "postinstall": "node scripts/install-skills.js",
     "build": "cross-env NODE_ENV=development node scripts/build.js",
     "build:prod": "cross-env NODE_ENV=production node scripts/build.js",
     "dev": "node scripts/dev.js"
