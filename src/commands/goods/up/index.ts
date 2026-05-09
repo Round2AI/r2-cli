@@ -9,10 +9,10 @@
 import { Command } from "commander";
 import chalk from "chalk";
 import { select, input, confirm } from "@inquirer/prompts";
-import * as xianyuApi from "../../../services/api/modules/xianyu.js";
+import * as xianyuApi from "../../../services/api/modules/goods.js";
 import { handleCommandError } from "../../shared.js";
 import { poll } from "../../../utils/polling.js";
-import type { ListingInfo } from "../../../types/xianyu.js";
+import type { ListingInfo } from "../../../types/goods.js";
 
 /** 上架提交后的轮询：每 2 秒查询一次，最多 10 秒 */
 const LISTING_POLL_INTERVAL = 2000;

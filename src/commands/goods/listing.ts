@@ -4,7 +4,7 @@
 
 import { Command } from "commander";
 import chalk from "chalk";
-import * as xianyuApi from "../../services/api/modules/xianyu.js";
+import * as xianyuApi from "../../services/api/modules/goods.js";
 import { handleCommandError } from "../shared.js";
 
 const STATUS_MAP: Record<string, string> = {
@@ -37,27 +37,7 @@ export function createListingCommand(): Command {
       platform: string;
       json?: boolean;
     }) => {
-      if (options.json) {
-        try {
-          const result = await xianyuApi.getListingList({
-            id: options.id,
-            stockGoodsId: options.stockGoodsId ? Number(options.stockGoodsId) : undefined,
-            shopId: options.shopId,
-            stockId: options.stockId,
-            status: options.status,
-            platform: options.platform,
-          });
-          console.log(JSON.stringify(result ?? { list: [], total: 0 }, null, 2));
-        } catch (error) {
-          const msg = error instanceof Error ? error.message : String(error);
-          console.log(JSON.stringify({ success: false, error: msg }));
-          process.exit(1);
-        }
-        return;
-      }
-
       try {
-        console.log(chalk.cyan("📋 正在查询上架列表..."));
         const result = await xianyuApi.getListingList({
           id: options.id,
           stockGoodsId: options.stockGoodsId ? Number(options.stockGoodsId) : undefined,
@@ -65,19 +45,35 @@ export function createListingCommand(): Command {
           stockId: options.stockId,
           status: options.status,
           platform: options.platform,
-        }) ?? { list: [], total: 0 };
+        });
 
-        if (!result.list?.length) {
+        const data = result ?? { list: [], total: 0 };
+
+        if (options.json) {
+          if (!data.list?.length) {
+            console.log(JSON.stringify({ ...data, hint: "暂无上架记录" }, null, 2));
+          } else {
+            console.log(JSON.stringify(data, null, 2));
+          }
+          return;
+        }
+
+        if (!data.list?.length) {
           console.log(chalk.yellow("暂无上架记录"));
           return;
         }
 
-        console.log(chalk.green(`✅ 共 ${result.total} 条记录\n`));
-        for (const item of result.list) {
+        console.log(chalk.green(`✅ 共 ${data.total} 条记录\n`));
+        for (const item of data.list) {
           const statusText = STATUS_MAP[item.status] ?? item.status;
           console.log(`  ID: ${item.id} | 状态: ${statusText} | 价格: ${item.price} | stockGoodsId: ${item.stockGoodsId}`);
         }
       } catch (error) {
+        if (options.json) {
+          const msg = error instanceof Error ? error.message : String(error);
+          console.log(JSON.stringify({ success: false, error: msg }));
+          process.exit(1);
+        }
         handleCommandError(error);
       }
     },

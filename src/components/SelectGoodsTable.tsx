@@ -1,5 +1,5 @@
 import { Box, Text } from "ink";
-import type { SelectGoodsItem } from "../types/xianyu.js";
+import type { SelectGoodsItem } from "../types/goods.js";
 
 interface SelectGoodsTableProps {
   items: SelectGoodsItem[];

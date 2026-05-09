@@ -11,8 +11,26 @@ export interface PollingOptions<T> {
   timeout: number;
   /** 条件函数 — 返回 true 表示完成 */
   condition: (data: T, attempt: number) => boolean;
-  /** 进度回调 */
-  onProgress?: (attempt: number, elapsed: number) => void;
+}
+
+/** 带超时的 fn() 调用包装，防止单次请求挂起 */
+async function callWithTimeout<T>(fn: () => Promise<T>, ms: number, parentSignal?: AbortSignal): Promise<T> {
+  const controller = new AbortController();
+  const onParentAbort = () => controller.abort();
+  parentSignal?.addEventListener("abort", onParentAbort, { once: true });
+
+  const timer = setTimeout(() => controller.abort(), ms);
+  try {
+    return await fn();
+  } catch (error) {
+    if (controller.signal.aborted && !parentSignal?.aborted) {
+      throw new PollingError("单次轮询请求超时");
+    }
+    throw error;
+  } finally {
+    clearTimeout(timer);
+    parentSignal?.removeEventListener("abort", onParentAbort);
+  }
 }
 
 /**
@@ -23,7 +41,7 @@ export async function poll<T>(
   options: PollingOptions<T>,
   signal?: AbortSignal,
 ): Promise<T> {
-  const { interval, timeout, condition, onProgress } = options;
+  const { interval, timeout, condition } = options;
   const startTime = Date.now();
   let attempts = 0;
 
@@ -33,8 +51,8 @@ export async function poll<T>(
     }
 
     attempts++;
-    const data = await fn();
-    onProgress?.(attempts, Date.now() - startTime);
+    const remaining = timeout - (Date.now() - startTime);
+    const data = await callWithTimeout(fn, remaining, signal);
 
     if (condition(data, attempts)) {
       return data;

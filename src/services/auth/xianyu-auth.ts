@@ -69,12 +69,10 @@ export async function waitForAuth(
 export async function authorize(signal?: AbortSignal): Promise<XianyuAuthStatusData> {
   console.log(chalk.cyan("\n🔗 正在获取闲鱼授权地址..."));
 
-  const { authData, unicodeQR, qrUrl, setStatus, closeServer } = await generateAuthQR();
+  const { authData, qrUrl, setStatus, closeServer } = await generateAuthQR();
 
-  console.log(chalk.green("✅ 授权二维码已生成\n"));
-  console.log("📱 请使用微信扫描二维码授权\n");
-  console.log(unicodeQR);
-  console.log(chalk.cyan(`  或打开链接: ${qrUrl}`));
+  console.log(chalk.green("✅ 授权二维码已生成，请在浏览器中扫码授权\n"));
+  console.log(chalk.cyan(`  链接: ${qrUrl}`));
   console.log(chalk.gray(`  或复制链接打开: ${authData.url}`));
   console.log(chalk.yellow("\n⏳ 等待授权...\n"));
 

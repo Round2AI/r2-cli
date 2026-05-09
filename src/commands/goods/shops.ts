@@ -4,7 +4,7 @@
 
 import { Command } from "commander";
 import chalk from "chalk";
-import * as xianyuApi from "../../services/api/modules/xianyu.js";
+import * as xianyuApi from "../../services/api/modules/goods.js";
 import { handleCommandError, sanitizeShops } from "../shared.js";
 
 export function createShopsCommand(): Command {

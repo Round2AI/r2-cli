@@ -1,5 +1,5 @@
 import { Box, Text } from "ink";
-import type { XyShop, UserShop } from "../types/xianyu.js";
+import type { XyShop, UserShop } from "../types/goods.js";
 
 interface ShopDisplay {
   id: string;

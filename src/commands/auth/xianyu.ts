@@ -1,10 +1,10 @@
 /**
  * 闲鱼店铺授权命令
  *
- * 支持三种模式：
- * - `auth xianyu`         一键授权
- * - `auth xianyu qr`      获取授权二维码，输出 JSON（AI Agent 用）
- * - `auth xianyu poll`    轮询授权状态（AI Agent 用）
+ * 支持两种模式：
+ * - `auth xianyu`          一键授权（人类）
+ * - `auth xianyu --json`   获取授权二维码并自动轮询，输出 JSON（AI Agent）
+ * - `auth xianyu poll`     轮询授权状态（AI Agent 备选）
  */
 
 import { Command } from "commander";
@@ -13,25 +13,9 @@ import { handleCommandError, agentAction, agentError } from "../shared.js";
 
 export function createXianyuAuthCommand(): Command {
   const command = new Command("xianyu");
-  command.description("闲鱼店铺授权");
-
-  const qrCmd = new Command("qr")
-    .description("获取闲鱼授权二维码（返回 JSON，供 AI Agent 使用）")
-    .action(agentAction(async () => {
-      const { authData, ...output } = await generateAuthQR();
-      const expireMs = authData.expireTime ? Number.parseInt(authData.expireTime, 10) : 300000;
-      const intervalMs = authData.pollInterval ? Number.parseInt(authData.pollInterval, 10) : 1000;
-      console.log(JSON.stringify({
-        state: authData.state,
-        expireTimeMs: expireMs,
-        pollIntervalMs: intervalMs,
-        ...output,
-      }, null, 2));
-      // 后台轮询：更新页面状态，完成后延迟关闭服务器
-      pollAuthPageStatus(authData.state, expireMs, intervalMs, output.setStatus)
-        .then(() => { setTimeout(output.closeServer, 3000); })
-        .catch(() => { output.closeServer(); });
-    }));
+  command
+    .description("闲鱼店铺授权")
+    .option("--json", "输出 JSON（供 AI Agent 使用）");
 
   const pollCmd = new Command("poll")
     .description("轮询闲鱼授权状态（供 AI Agent 使用）")
@@ -52,13 +36,44 @@ export function createXianyuAuthCommand(): Command {
       }
     }));
 
-  command.addCommand(qrCmd);
   command.addCommand(pollCmd);
 
-  command.action(async () => {
+  command.action(async (options: { json?: boolean }) => {
     try {
-      await authorize();
+      if (options.json) {
+        const { authData, qrUrl, setStatus, closeServer } = await generateAuthQR();
+        const expireMs = authData.expireTime ? Number.parseInt(authData.expireTime, 10) : 300000;
+        const intervalMs = authData.pollInterval ? Number.parseInt(authData.pollInterval, 10) : 1000;
+        console.log(JSON.stringify({
+          state: authData.state,
+          expireTimeMs: expireMs,
+          pollIntervalMs: intervalMs,
+          qrUrl,
+        }, null, 2));
+        try {
+          const result = await waitForAuth(authData.state, expireMs, intervalMs, undefined, setStatus);
+          if (result.status === "success") {
+            console.log(JSON.stringify({ success: true, shopId: result.shopId, shopName: result.shopName }));
+          } else {
+            console.log(JSON.stringify({ success: false, error: `授权状态: ${result.status}` }));
+            process.exit(1);
+          }
+        } catch (error) {
+          const msg = error instanceof Error ? error.message : String(error);
+          console.log(JSON.stringify({ success: false, error: msg }));
+          process.exit(1);
+        } finally {
+          setTimeout(closeServer, 1000);
+        }
+      } else {
+        await authorize();
+      }
     } catch (error) {
+      if (options.json) {
+        const msg = error instanceof Error ? error.message : String(error);
+        console.log(JSON.stringify({ success: false, error: msg }));
+        process.exit(1);
+      }
       handleCommandError(error);
     }
   });

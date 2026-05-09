@@ -1,5 +1,5 @@
 import { Box, Text } from "ink";
-import type { UserStock } from "../types/xianyu.js";
+import type { UserStock } from "../types/goods.js";
 
 interface StocksTableProps {
   stocks: UserStock[];

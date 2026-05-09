@@ -15,7 +15,7 @@ import type {
   UserStock,
   SelectGoodsListParams,
   SelectGoodsListResult,
-} from "../../../types/xianyu.js";
+} from "../../../types/goods.js";
 
 const client = new ApiClientService();
 

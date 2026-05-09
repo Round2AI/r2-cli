@@ -38,29 +38,7 @@ export class LoginService {
     return { qrData, ...rendered };
   }
 
-  /**
-   * 轻量级状态轮询：仅更新页面状态，不打印日志、不保存凭证
-   */
-  async pollPageStatus(qrToken: string, expireMs: number, intervalMs: number, setStatus: (status: QrPageStatus) => void, signal?: AbortSignal): Promise<void> {
-    await poll(
-      () => qrcodeAuth.getQRCodeStatus(qrToken),
-      {
-        interval: intervalMs,
-        timeout: expireMs,
-        condition: (data) => {
-          switch (data.status) {
-            case "scanned": setStatus("scanning"); return false;
-            case "confirmed": setStatus("success"); return true;
-            case "expired": case "canceled": setStatus("expired"); return true;
-            default: return false;
-          }
-        },
-      },
-      signal,
-    );
-  }
-
-  async waitForLogin(qrToken: string, expireTimeMs: number, pollIntervalMs: number, signal?: AbortSignal, setStatus?: (status: QrPageStatus) => void): Promise<LoginResult> {
+  async waitForLogin(qrToken: string, expireTimeMs: number, pollIntervalMs: number, signal?: AbortSignal, setStatus?: (status: QrPageStatus) => void, silent?: boolean): Promise<LoginResult> {
     const result = await poll(
       () => qrcodeAuth.getQRCodeStatus(qrToken),
       {
@@ -69,20 +47,22 @@ export class LoginService {
         condition: (data) => {
           switch (data.status) {
             case "scanned":
-              console.log(chalk.cyan(`\n🔍 已扫码: ${data.userInfo?.nickname || "未知用户"}`));
-              console.log(chalk.yellow("请在 APP 上确认登录"));
+              if (!silent) {
+                console.log(chalk.cyan(`\n🔍 已扫码: ${data.userInfo?.nickname || "未知用户"}`));
+                console.log(chalk.yellow("请在 APP 上确认登录"));
+              }
               setStatus?.("scanning");
               return false;
             case "confirmed":
-              console.log(chalk.green("\n✅ 用户已确认登录"));
+              if (!silent) console.log(chalk.green("\n✅ 用户已确认登录"));
               setStatus?.("success");
               return true;
             case "expired":
-              console.log(chalk.red("\n⏰ 二维码已过期"));
+              if (!silent) console.log(chalk.red("\n⏰ 二维码已过期"));
               setStatus?.("expired");
               return true;
             case "canceled":
-              console.log(chalk.red("\n🚫 用户已取消登录"));
+              if (!silent) console.log(chalk.red("\n🚫 用户已取消登录"));
               setStatus?.("expired");
               return true;
             default:
@@ -106,12 +86,10 @@ export class LoginService {
   async login(signal?: AbortSignal): Promise<LoginResult> {
     console.log(chalk.cyan("\n🔐 正在启动扫码登录..."));
 
-    const { qrData, unicodeQR, qrUrl, setStatus, closeServer } = await this.generateQR();
-    console.log(chalk.green("✅ 二维码已生成\n"));
-    console.log("\n📱 请使用 第二回合 扫描二维码登录\n");
-    console.log(unicodeQR);
-    console.log(chalk.cyan(`  或打开链接: ${qrUrl}`));
-    console.log(chalk.yellow("\n⏳ 等待扫码...\n"));
+    const { qrData, qrUrl, setStatus, closeServer } = await this.generateQR();
+    console.log(chalk.green("✅ 二维码已生成，请在浏览器中扫码登录\n"));
+    console.log(chalk.cyan(`  链接: ${qrUrl}\n`));
+    console.log(chalk.yellow("⏳ 等待扫码...\n"));
 
     const expireTimeMs = Number.parseInt(qrData.expireTime, 10);
     const pollIntervalMs = Number.parseInt(qrData.pollInterval, 10);

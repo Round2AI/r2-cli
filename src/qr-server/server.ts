@@ -13,6 +13,8 @@ export class QrServer {
   private server: http.Server | null = null;
   private pages = new Map<string, PageState>();
   private port = 0;
+  private idleTimer: ReturnType<typeof setTimeout> | null = null;
+  private static readonly IDLE_TIMEOUT_MS = 30_000;
 
   async start(): Promise<number> {
     if (this.server) return this.port;
@@ -43,6 +45,7 @@ export class QrServer {
     } else {
       this.pages.set(route, { html, qrBuffer, status: "waiting", sseClients: [], config });
     }
+    this.resetIdleTimer();
   }
 
   unregisterPage(route: string): void {
@@ -64,6 +67,7 @@ export class QrServer {
 
   close(): void {
     if (!this.server) return;
+    if (this.idleTimer) { clearTimeout(this.idleTimer); this.idleTimer = null; }
     for (const page of this.pages.values()) {
       for (const client of page.sseClients) client.end();
       page.sseClients.length = 0;
@@ -73,6 +77,14 @@ export class QrServer {
     this.server = null;
     this.port = 0;
     instance = null;
+  }
+
+  private resetIdleTimer(): void {
+    if (this.idleTimer) clearTimeout(this.idleTimer);
+    this.idleTimer = setTimeout(() => {
+      const hasClients = [...this.pages.values()].some(p => p.sseClients.length > 0);
+      if (!hasClients) this.close();
+    }, QrServer.IDLE_TIMEOUT_MS);
   }
 
   private handleRequest(req: http.IncomingMessage, res: http.ServerResponse): void {
@@ -133,6 +145,8 @@ function ensureProcessListeners() {
   process.on("exit", cleanup);
   process.on("SIGINT", cleanup);
   process.on("SIGTERM", cleanup);
+  // Windows: 父进程断开 stdin 时触发（TaskStop 场景）
+  process.stdin?.on("end", cleanup);
 }
 
 export function getQrServer(): QrServer {
