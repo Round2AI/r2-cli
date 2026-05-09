@@ -13,9 +13,7 @@ img#qr{max-width:200px;border-radius:12px;transition:all .3s ease}
 img#qr.dimmed{opacity:.15;filter:blur(4px);transform:scale(.95)}
 .status-text{font-size:16px;font-weight:600;color:var(--text);margin-top:16px}
 .hint{color:var(--text-muted);font-size:13px;margin-top:6px}
-.scan-methods{display:flex;justify-content:center;gap:8px;margin-top:20px;flex-wrap:wrap}
-.scan-methods span{font-size:11px;font-weight:500;padding:4px 12px;border-radius:6px;border:1px solid var(--border);color:var(--text-muted);background:var(--card);transition:all .2s ease}
-.scan-methods span:hover{border-color:var(--primary);color:var(--primary-dark)}
+.scan-hint{color:var(--text-muted);font-size:12px;margin-top:16px}
 .status-icon{font-size:56px;margin-bottom:8px;animation:popIn .4s cubic-bezier(.175,.885,.32,1.275)}
 @keyframes popIn{0%{transform:scale(0);opacity:0}100%{transform:scale(1);opacity:1}}
 .success-bg .card{border-color:var(--success);box-shadow:0 2px 16px rgba(82,196,26,.12)}
@@ -26,16 +24,13 @@ img#qr.dimmed{opacity:.15;filter:blur(4px);transform:scale(.95)}
 .scanning-bg .status-text{color:var(--info)}
 .pulse{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--info);animation:pulse 1.4s infinite;margin-right:6px;vertical-align:middle}
 @keyframes pulse{0%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.8)}100%{opacity:1;transform:scale(1)}}
-.divider{display:flex;align-items:center;gap:12px;margin-top:20px;color:var(--text-muted);font-size:11px}
-.divider::before,.divider::after{content:"";flex:1;height:1px;background:var(--border)}
 </style></head>
 <body>
 <div class="card" id="app">
   <div class="brand"><div class="brand-name">第二回合</div><div class="brand-sub">Round2AI</div></div>
   <img id="qr" src="./qr.png" alt="第二回合 - 扫码登录"/>
   <p class="status-text" id="statusText">请扫码登录</p>
-  <div class="divider">支持扫码方式</div>
-  <div class="scan-methods"><span>第二回合 APP</span><span>微信</span><span>支付宝</span></div>
+  <p class="scan-hint">支持 第二回合 APP / 微信 / 支付宝 扫码</p>
   <p class="hint" id="hint"></p>
 </div>
 <script>

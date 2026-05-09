@@ -9,6 +9,7 @@
 
 import { Command } from "commander";
 import { getLoginService } from "../../services/auth/index.js";
+import { openUrl } from "../../qr-server/index.js";
 import { handleCommandError, agentAction } from "../shared.js";
 
 export function createLoginCommand(): Command {
@@ -48,6 +49,7 @@ export function createLoginCommand(): Command {
           url: `https://m.puresnake.com/r2/auth/login?qrToken=${qrData.qrContent}&from=wechat`,
           qrUrl,
         }, null, 2));
+        openUrl(qrUrl);
         try {
           const result = await service.waitForLogin(qrData.qrToken, expireMs, intervalMs, undefined, setStatus, true);
           console.log(JSON.stringify({ success: true, userInfo: result.userInfo }));

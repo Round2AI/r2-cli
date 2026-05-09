@@ -5,7 +5,7 @@
 import chalk from "chalk";
 import type { UserInfo, GenerateQRCodeData } from "../../types/auth.js";
 import { poll } from "../../utils/polling.js";
-import { renderLoginQR, type QRCodeOutput, type QrPageStatus } from "../../qr-server/index.js";
+import { renderLoginQR, openUrl, type QRCodeOutput, type QrPageStatus } from "../../qr-server/index.js";
 import * as qrcodeAuth from "../api/modules/qrcode-auth.js";
 import { getAuthStorage, AuthStorage } from "../storage/index.js";
 import { AuthError } from "../../errors/index.js";
@@ -87,8 +87,9 @@ export class LoginService {
     console.log(chalk.cyan("\n🔐 正在启动扫码登录..."));
 
     const { qrData, qrUrl, setStatus, closeServer } = await this.generateQR();
-    console.log(chalk.green("✅ 二维码已生成，请在浏览器中扫码登录\n"));
+    console.log(chalk.green("✅ 二维码已生成\n"));
     console.log(chalk.cyan(`  链接: ${qrUrl}\n`));
+    openUrl(qrUrl);
     console.log(chalk.yellow("⏳ 等待扫码...\n"));
 
     const expireTimeMs = Number.parseInt(qrData.expireTime, 10);

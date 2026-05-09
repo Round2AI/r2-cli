@@ -14,7 +14,7 @@ export class QrServer {
   private pages = new Map<string, PageState>();
   private port = 0;
   private idleTimer: ReturnType<typeof setTimeout> | null = null;
-  private static readonly IDLE_TIMEOUT_MS = 30_000;
+  private static readonly IDLE_TIMEOUT_MS = 10_000;
 
   async start(): Promise<number> {
     if (this.server) return this.port;
@@ -145,8 +145,11 @@ function ensureProcessListeners() {
   process.on("exit", cleanup);
   process.on("SIGINT", cleanup);
   process.on("SIGTERM", cleanup);
-  // Windows: 父进程断开 stdin 时触发（TaskStop 场景）
-  process.stdin?.on("end", cleanup);
+  // Windows: stdin 断开（父进程被杀）或 idle 超时都无法可靠清理时，
+  // 用 setInterval 轮询检测进程是否应该退出
+  setInterval(() => {
+    if (process.stdin?.destroyed) cleanup();
+  }, 3_000).unref();
 }
 
 export function getQrServer(): QrServer {

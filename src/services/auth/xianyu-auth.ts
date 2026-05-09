@@ -5,7 +5,7 @@
 import chalk from "chalk";
 import * as xianyuAuthApi from "../api/modules/xianyu-auth.js";
 import { poll } from "../../utils/polling.js";
-import { renderXianyuAuthQR, type QRCodeOutput, type QrPageStatus } from "../../qr-server/index.js";
+import { renderXianyuAuthQR, openUrl, type QRCodeOutput, type QrPageStatus } from "../../qr-server/index.js";
 import { AuthError } from "../../errors/index.js";
 import type { XianyuAuthUrlData, XianyuAuthStatusData } from "../../types/auth.js";
 
@@ -71,9 +71,10 @@ export async function authorize(signal?: AbortSignal): Promise<XianyuAuthStatusD
 
   const { authData, qrUrl, setStatus, closeServer } = await generateAuthQR();
 
-  console.log(chalk.green("✅ 授权二维码已生成，请在浏览器中扫码授权\n"));
+  console.log(chalk.green("✅ 授权二维码已生成\n"));
   console.log(chalk.cyan(`  链接: ${qrUrl}`));
   console.log(chalk.gray(`  或复制链接打开: ${authData.url}`));
+  openUrl(qrUrl);
   console.log(chalk.yellow("\n⏳ 等待授权...\n"));
 
   const expireMs = authData.expireTime ? Number.parseInt(authData.expireTime, 10) : 300000;

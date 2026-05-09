@@ -8,7 +8,8 @@
  */
 
 import { Command } from "commander";
-import { generateAuthQR, waitForAuth, authorize, pollAuthPageStatus } from "../../services/auth/xianyu-auth.js";
+import { generateAuthQR, waitForAuth, authorize } from "../../services/auth/xianyu-auth.js";
+import { openUrl } from "../../qr-server/index.js";
 import { handleCommandError, agentAction, agentError } from "../shared.js";
 
 export function createXianyuAuthCommand(): Command {
@@ -50,6 +51,7 @@ export function createXianyuAuthCommand(): Command {
           pollIntervalMs: intervalMs,
           qrUrl,
         }, null, 2));
+        openUrl(qrUrl);
         try {
           const result = await waitForAuth(authData.state, expireMs, intervalMs, undefined, setStatus);
           if (result.status === "success") {

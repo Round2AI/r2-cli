@@ -22,13 +22,11 @@ async function generateQRBuffer(content: string): Promise<Buffer> {
   return QRCodeLib.toBuffer(content, { width: 300, margin: 2 });
 }
 
-function openBrowser(url: string): void {
+export function openUrl(url: string): void {
   const cmd = process.platform === "win32" ? `start "" "${url}"`
     : process.platform === "darwin" ? `open "${url}"`
     : `xdg-open "${url}"`;
-  exec(cmd, (err) => {
-    if (err) console.log(`请手动打开: ${url}`);
-  });
+  exec(cmd);
 }
 
 async function renderQRPage(
@@ -46,7 +44,6 @@ async function renderQRPage(
   server.registerPage(route, html, qrBuffer, config);
 
   const qrUrl = `http://127.0.0.1:${port}${route}/`;
-  openBrowser(qrUrl);
 
   return {
     url: content,
