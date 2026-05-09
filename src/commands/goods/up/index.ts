@@ -10,18 +10,18 @@ import { Command } from "commander";
 import chalk from "chalk";
 import { select, input, confirm } from "@inquirer/prompts";
 import * as xianyuApi from "../../../services/api/modules/xianyu.js";
-import { handleCommandError, agentAction } from "../../shared.js";
+import { handleCommandError } from "../../shared.js";
 import { poll } from "../../../utils/polling.js";
 import type { ListingInfo } from "../../../types/xianyu.js";
 
-/** 上架提交后的轮询：每 3 秒查询一次，最多 60 秒 */
-const LISTING_POLL_INTERVAL = 3000;
-const LISTING_POLL_TIMEOUT = 60000;
+/** 上架提交后的轮询：每 2 秒查询一次，最多 10 秒 */
+const LISTING_POLL_INTERVAL = 2000;
+const LISTING_POLL_TIMEOUT = 10000;
 
-/** 判断上架是否还在处理中 */
+/** 判断上架是否还在处理中（init 表示待处理，仍在队列中） */
 function isProcessing(info: ListingInfo): boolean {
   const status = info.status?.toLowerCase() ?? "";
-  return status === "" || status === "pending" || status === "processing";
+  return status === "" || status === "init" || status === "pending" || status === "processing";
 }
 
 /** 轮询上架状态直到完成 */
@@ -143,7 +143,7 @@ export function createUpCommand(): Command {
         }
 
         const stockGoodsId = Number(selectedGoods);
-        const result = await xianyuApi.listingUpXianyu({
+        await xianyuApi.listingUpXianyu({
           stockGoodsId,
           shopId: selectedShop,
           price: Number(priceInput),

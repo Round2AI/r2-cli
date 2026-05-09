@@ -6,7 +6,7 @@ interface PageState {
   qrBuffer: Buffer;
   status: QrPageStatus;
   sseClients: http.ServerResponse[];
-  config?: Record<string, string>;
+  config?: Record<string, string> | undefined;
 }
 
 export class QrServer {

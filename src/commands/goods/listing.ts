@@ -5,7 +5,7 @@
 import { Command } from "commander";
 import chalk from "chalk";
 import * as xianyuApi from "../../services/api/modules/xianyu.js";
-import { handleCommandError, agentAction } from "../shared.js";
+import { handleCommandError } from "../shared.js";
 
 const STATUS_MAP: Record<string, string> = {
   init: "待上架",
@@ -38,7 +38,7 @@ export function createListingCommand(): Command {
       json?: boolean;
     }) => {
       if (options.json) {
-        await agentAction(async () => {
+        try {
           const result = await xianyuApi.getListingList({
             id: options.id,
             stockGoodsId: options.stockGoodsId ? Number(options.stockGoodsId) : undefined,
@@ -47,8 +47,12 @@ export function createListingCommand(): Command {
             status: options.status,
             platform: options.platform,
           });
-          console.log(JSON.stringify(result, null, 2));
-        });
+          console.log(JSON.stringify(result ?? { list: [], total: 0 }, null, 2));
+        } catch (error) {
+          const msg = error instanceof Error ? error.message : String(error);
+          console.log(JSON.stringify({ success: false, error: msg }));
+          process.exit(1);
+        }
         return;
       }
 
@@ -61,7 +65,7 @@ export function createListingCommand(): Command {
           stockId: options.stockId,
           status: options.status,
           platform: options.platform,
-        });
+        }) ?? { list: [], total: 0 };
 
         if (!result.list?.length) {
           console.log(chalk.yellow("暂无上架记录"));

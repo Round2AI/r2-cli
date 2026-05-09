@@ -1,11 +1,11 @@
 ---
 name: r2-cli
-description: R2-CLI 二手潮奢交易工具。用于认证登录、商品上架。Agent 获取数据后展示给用户选择，完成 4 步上架流程。
+description: R2-CLI 二手潮奢交易 CLI 工具。用于认证登录、商品上架/下架/改价、查看店铺/仓库/选品商品/上架列表。Agent 获取数据后展示给用户选择，完成 4 步上架流程。触发词：r2-cli、登录、上架、下架、改价、商品、goods、auth、shops、stocks、listing。
 ---
 
 # R2-CLI Skill
 
-R2-CLI 是二手潮奢交易命令行工具，支持商品上架、认证登录等。
+二手潮奢交易命令行工具。
 
 ## 安装
 
@@ -21,36 +21,20 @@ npm install -g @round2ai/r2-cli@latest
 2. 存在 `dist/r2-cli.js` → `node dist/r2-cli.js`
 3. `r2-cli --version` 成功 → `r2-cli`
 
-以下文档使用 `r2-cli` 作为前缀，根据检测结果替换。
-
-> **注意**：部分平台 npm 会拦截 `--help`/`-h` 等 flag，若 `npm run dev -- --help` 显示的是 npm 帮助，改用 `npx tsx src/entrypoints/r2-cli.tsx --help`。
+> 部分平台 npm 会拦截 `--help` 等 flag，改用 `npx tsx src/entrypoints/r2-cli.tsx --help`。
 
 ## 前置条件
 
-- 必须先登录：`r2-cli auth login`（扫码登录，支持第二回合 APP / 微信 / 支付宝扫码）
-- 检查登录状态：`r2-cli auth status`
-- Token 过期后需重新登录
-- Token 存储在 `~/.r2-cli/config.json`
+- 先登录：`r2-cli auth login`（支持第二回合 APP / 微信 / 支付宝扫码）
+- 检查状态：`r2-cli auth status`
 
-## 错误格式
+所有 `--json` 命令输出 `{ success: false, error: "..." }` 格式错误，检查 `success` 判断成败。
 
-Agent 子命令统一错误格式：
-
-```json
-{ "success": false, "error": "错误信息" }
-```
-
-Agent 应检查 `success` 字段判断成败。
-
-## 进程信号
-
-- SIGINT（Ctrl+C）和 SIGTERM 均触发优雅退出
-
-## 认证命令 `r2-cli auth`
+## 认证命令
 
 | 命令 | 说明 |
 |------|------|
-| `r2-cli auth login` | 扫码登录（交互式，人类使用） |
+| `r2-cli auth login` | 扫码登录（交互式，人类用） |
 | `r2-cli auth login qr` | 生成登录二维码 JSON（Agent 第1步） |
 | `r2-cli auth login poll --token <>` | 轮询登录状态 JSON（Agent 第2步） |
 | `r2-cli auth xianyu` | 闲鱼店铺授权（交互式） |
@@ -61,24 +45,26 @@ Agent 应检查 `success` 字段判断成败。
 
 > 认证登录的 Agent 两步式流程见 **r2-auth** skill。
 
-## 商品管理命令 `r2-cli goods`
+## 商品管理命令
 
 | 命令 | 说明 |
 |------|------|
 | `r2-cli goods shops [--json]` | 查看所有已授权店铺 |
 | `r2-cli goods stocks [--json]` | 查看所有仓库 |
 | `r2-cli goods list --stock-id <id> [--json]` | 查看仓库中的选品商品 |
-| `r2-cli goods listing --stock-goods-id <id> --shop-id <id> [--json]` | 查询上架信息 |
+| `r2-cli goods listing [--json]` | 查询上架列表（支持 --id/--shop-id/--status 过滤） |
 | `r2-cli goods up` | 交互式上架 |
 | `r2-cli goods up --stock-goods-id <id> --shop-id <id> --price <amount> --json` | Agent 直接上架（自动轮询结果） |
+| `r2-cli goods down --id <id> [--json]` | 下架商品（**必须先确认**） |
+| `r2-cli goods price --id <id> --price <amount> [--json]` | 修改上架价格（**必须先询问用户新价格**） |
 
 ### Agent 上架 4 步流程
 
 **核心理念：Agent 获取数据后展示给用户选择，不要让用户自己提供 ID。**
 
-1. `r2-cli goods shops --json` → 展示店铺列表（shopId、shopName、platform）→ 用户选择
-2. `r2-cli goods stocks --json` → 展示仓库列表（stockId、stockName）→ 用户选择
-3. `r2-cli goods list --stock-id <id> --json` → 展示商品列表（stockGoodsId、goodsName、brand、size、salePrice）→ 用户选择
+1. `r2-cli goods shops --json` → 展示店铺（shopId、shopName、platform）→ 用户选择
+2. `r2-cli goods stocks --json` → 展示仓库（stockId、stockName）→ 用户选择
+3. `r2-cli goods list --stock-id <id> --json` → 展示商品（stockGoodsId、goodsName、brand、size、salePrice）→ 用户选择
 4. `r2-cli goods up --stock-goods-id <id> --shop-id <id> --price <amount> --json` → 提交上架（自动轮询结果）
 
 > 完整流程和参数说明见 **r2-goods** skill。

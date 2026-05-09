@@ -100,21 +100,21 @@ export interface ListingInfo {
 /** 下架参数（id 或 stockGoodsId+shopId 二选一） */
 export interface ListingDownParams {
   /** 上架记录ID */
-  id?: string;
+  id?: string | undefined;
   /** 仓库商品ID */
-  stockGoodsId?: number;
+  stockGoodsId?: number | undefined;
   /** 平台店铺ID */
-  shopId?: string;
+  shopId?: string | undefined;
 }
 
 /** 改价参数（id 或 stockGoodsId+shopId 二选一，price 必填） */
 export interface ListingUpdatePriceParams {
   /** 上架记录ID */
-  id?: string;
+  id?: string | undefined;
   /** 仓库商品ID */
-  stockGoodsId?: number;
+  stockGoodsId?: number | undefined;
   /** 平台店铺ID */
-  shopId?: string;
+  shopId?: string | undefined;
   /** 新价格（单位：元，必填） */
   price: number;
 }
@@ -122,17 +122,17 @@ export interface ListingUpdatePriceParams {
 /** 上架列表查询参数 */
 export interface ListingListParams {
   /** 平台店铺ID */
-  shopId?: string;
+  shopId?: string | undefined;
   /** 上架渠道平台 */
-  platform?: string;
+  platform?: string | undefined;
   /** 仓库商品ID */
-  stockGoodsId?: number;
+  stockGoodsId?: number | undefined;
   /** 上架记录ID */
-  id?: string;
+  id?: string | undefined;
   /** 仓库ID */
-  stockId?: string;
+  stockId?: string | undefined;
   /** 订单状态 init=待上架 fail=上架失败 down=已下架 up=已上架 sold=已售出 */
-  status?: string;
+  status?: string | undefined;
 }
 
 /** 上架列表返回 */

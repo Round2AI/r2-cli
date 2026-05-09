@@ -5,7 +5,7 @@
 import { Command } from "commander";
 import chalk from "chalk";
 import * as xianyuApi from "../../services/api/modules/xianyu.js";
-import { handleCommandError, agentAction } from "../shared.js";
+import { handleCommandError } from "../shared.js";
 
 export function createListCommand(): Command {
   const command = new Command("list");
@@ -20,14 +20,18 @@ export function createListCommand(): Command {
   command.action(
     async (options: { stockId?: string; page?: string; size?: string; json?: boolean }) => {
       if (options.json) {
-        await agentAction(async () => {
+        try {
           const result = await xianyuApi.getSelectGoodsList({
-            stockId: options.stockId,
-            page: options.page ? Number(options.page) : undefined,
-            size: options.size ? Number(options.size) : undefined,
+            stockId: options.stockId ?? "",
+            page: Number(options.page) || 1,
+            size: Number(options.size) || 20,
           });
-          console.log(JSON.stringify(result, null, 2));
-        });
+          console.log(JSON.stringify(result ?? { items: [], total: 0 }, null, 2));
+        } catch (error) {
+          const msg = error instanceof Error ? error.message : String(error);
+          console.log(JSON.stringify({ success: false, error: msg }));
+          process.exit(1);
+        }
         return;
       }
 
@@ -39,8 +43,8 @@ export function createListCommand(): Command {
 
         const result = await xianyuApi.getSelectGoodsList({
           stockId: options.stockId,
-          page: options.page ? Number(options.page) : undefined,
-          size: options.size ? Number(options.size) : undefined,
+          page: Number(options.page) || 1,
+          size: Number(options.size) || 20,
         });
 
         if (!result.items?.length) {
