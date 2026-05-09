@@ -30,6 +30,11 @@ export function createStocksCommand(): Command {
       const { renderComponent } = await import("../../utils/render.js");
       renderComponent(StocksTable, { stocks });
     } catch (error) {
+      if (options.json) {
+        const msg = error instanceof Error ? error.message : String(error);
+        console.log(JSON.stringify({ success: false, error: msg }));
+        process.exit(1);
+      }
       handleCommandError(error);
     }
   });

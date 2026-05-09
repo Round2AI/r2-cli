@@ -49,7 +49,7 @@ npm install -g @round2ai/r2-cli@latest
 
 | 命令 | 说明 |
 |------|------|
-| `r2-cli goods shops [--json]` | 查看所有已授权店铺（跨平台） |
+| `r2-cli goods shops [--json]` | 查看所有已授权店铺（跨平台，`--json` 自动过滤敏感字段） |
 | `r2-cli goods stocks [--json]` | 查看所有仓库 |
 | `r2-cli goods list [--stock-id <id>] [--stock-goods-id <id>] [--json]` | 查看选品商品（两个过滤参数均为可选，支持 `--page` 和 `--size`） |
 | `r2-cli goods listing [--json]` | 查询上架列表（支持 `--id` / `--shop-id` / `--stock-goods-id` / `--stock-id` / `--status` / `--platform` 过滤） |

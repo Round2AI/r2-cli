@@ -46,6 +46,8 @@ r2-cli goods shops --json
 
 展示给用户选择后记录 `shopId`。
 
+> `--json` 输出会自动过滤敏感字段（`accessToken`、`refreshExpireIn`），Agent 可直接展示。
+
 ### 第 2 步：获取仓库 → 用户选择
 
 ```bash
@@ -88,6 +90,8 @@ r2-cli goods list --stock-id <stockId> --page 2 --size 20 --json
 ```bash
 r2-cli goods up --stock-goods-id <stockGoodsId> --shop-id <shopId> --price <amount> --json
 ```
+
+> Agent 模式下，三个必填参数（`--stock-goods-id`、`--shop-id`、`--price`）必须同时提供。缺少任何一个参数时命令返回 `{ "success": false, "error": "Agent 模式需要 --stock-goods-id, --shop-id, --price" }`，**不会**进入交互模式。
 
 命令会自动轮询上架进度（每 2 秒查询一次，最多 10 秒），最终返回：
 
@@ -204,3 +208,4 @@ r2-cli goods listing --id <id> --json                       # 精确查询
 | `请指定下架条件：--id 或 --stock-goods-id + --shop-id` | 缺少必要参数 | 补充参数 |
 | `--price <amount> 为必填参数` | 改价时未提供价格 | 询问用户新价格后传入 |
 | `轮询超时` | 上架结果查询超时 | 建议用户稍后用 `goods listing` 查看 |
+| `Agent 模式需要 --stock-goods-id, --shop-id, --price` | `goods up --json` 缺少必填参数 | 补齐三个参数后重试 |

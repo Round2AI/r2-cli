@@ -63,6 +63,12 @@ export function createUpCommand(): Command {
     .option("--json", "输出 JSON（Agent 用）")
     .action(async (options: { stockGoodsId?: string; shopId?: string; price?: string; platform: string; json?: boolean }) => {
       try {
+        // Agent 模式：缺少必要参数时直接返回 JSON 错误，不落入交互模式
+        if (options.json && !(options.stockGoodsId && options.shopId && options.price)) {
+          console.log(JSON.stringify({ success: false, error: "Agent 模式需要 --stock-goods-id, --shop-id, --price" }));
+          process.exit(1);
+        }
+
         // Agent 模式：所有参数齐全则直接提交
         if (options.stockGoodsId && options.shopId && options.price) {
           const stockGoodsId = Number(options.stockGoodsId);
@@ -158,6 +164,11 @@ export function createUpCommand(): Command {
         console.log(statusOk ? chalk.green("✓ 上架成功") : chalk.red("✗ 上架失败"));
         console.log(JSON.stringify(listingInfo, null, 2));
       } catch (error) {
+        if (options.json) {
+          const msg = error instanceof Error ? error.message : String(error);
+          console.log(JSON.stringify({ success: false, error: msg }));
+          process.exit(1);
+        }
         handleCommandError(error);
       }
     });

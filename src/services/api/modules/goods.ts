@@ -19,6 +19,7 @@ import type {
 
 const client = new ApiClientService();
 
+/** 将对象转为 URLSearchParams，过滤掉 undefined/null/空字符串（GET 请求专用） */
 function toParams(obj: Record<string, unknown>): URLSearchParams {
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(obj)) {
@@ -31,38 +32,46 @@ function toParams(obj: Record<string, unknown>): URLSearchParams {
 
 // ==================== 上架（Listing） ====================
 
+/** 提交上架到闲鱼，返回上架提交结果 */
 export async function listingUpXianyu(params: ListingUpParams): Promise<ListingInfo> {
   return client.post<ListingInfo>("mms/goods/listing/up/xianyu", params);
 }
 
+/** 查询上架进度，用于轮询上架状态（init/up/down/fail） */
 export async function getListingInfo(params: ListingGetParams): Promise<ListingInfo> {
   return client.get<ListingInfo>("mms/goods/listing/get", toParams({ ...params }));
 }
 
+/** 下架闲鱼商品，支持通过上架记录 ID 或 stockGoodsId+shopId 定位 */
 export async function listingDownXianyu(params: ListingDownParams): Promise<Record<string, unknown>> {
   return client.post<Record<string, unknown>>("mms/goods/listing/down/xianyu", params);
 }
 
+/** 修改闲鱼上架商品价格 */
 export async function listingUpdatePrice(params: ListingUpdatePriceParams): Promise<Record<string, unknown>> {
   return client.post<Record<string, unknown>>("mms/goods/listing/update/xyPrice", params);
 }
 
+/** 查询上架列表，支持按状态/店铺/商品/仓库等条件过滤 */
 export async function getListingList(params?: ListingListParams): Promise<ListingListResult> {
   return client.get<ListingListResult>("mms/goods/listing/list", params ? toParams({ ...params }) : undefined);
 }
 
 // ==================== 用户级接口 ====================
 
+/** 获取用户已授权的所有店铺（跨平台） */
 export async function getUserShopList(): Promise<UserShop[]> {
   const data = await client.get<UserShop[]>("mms/user/shop/list");
-  return data ?? [];
+  return data ?? []; // API 返回 null 时兜底空数组，防止 .length/.map 报错
 }
 
+/** 获取用户的所有仓库 */
 export async function getUserStockList(): Promise<UserStock[]> {
   const data = await client.get<UserStock[]>("mms/user/stock/list");
-  return data ?? [];
+  return data ?? []; // 同上
 }
 
+/** 获取选品商品列表，可按仓库 ID 或商品 ID 过滤，支持分页 */
 export async function getSelectGoodsList(params?: SelectGoodsListParams): Promise<SelectGoodsListResult> {
   const queryParams = params ? toParams({ ...params }) : undefined;
   return client.get<SelectGoodsListResult>("mms/seller/goods/select/list", queryParams);

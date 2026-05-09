@@ -1,5 +1,5 @@
 /**
- * 二维码认证 API
+ * 二维码认证 API — 唯一不携带认证 token 的模块
  */
 
 import { ApiClientService } from "../client.js";
@@ -7,10 +7,12 @@ import type { GenerateQRCodeData, QRCodeStatusData } from "../../../types/auth.j
 
 const client = new ApiClientService({ auth: false });
 
+/** 生成扫码登录二维码，返回 qrToken、过期时间、轮询间隔 */
 export async function generateQRCode(): Promise<GenerateQRCodeData> {
   return client.post<GenerateQRCodeData>("app/qrcode/generate");
 }
 
+/** 查询二维码扫码状态（waiting/scanned/confirmed/expired），登录成功时附带 token 和用户信息 */
 export async function getQRCodeStatus(qrToken: string): Promise<QRCodeStatusData> {
   const params = new URLSearchParams();
   params.append("qrToken", qrToken);
