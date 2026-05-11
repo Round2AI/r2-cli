@@ -224,3 +224,93 @@ export interface SelectGoodsListResult {
   page: number;
   perPage: number;
 }
+
+// ==================== 挂售上架（Hang Up） ====================
+
+/** 图片上传响应 */
+export interface ImageUploadResult {
+  imageId: number;
+  width?: number;
+  height?: number;
+}
+
+/** 商品属性 */
+export interface XyItemAttr {
+  channelCatId?: string | undefined;
+  propId?: string | undefined;
+  propName?: string | undefined;
+  valueId?: string | undefined;
+  valueName?: string | undefined;
+}
+
+/** 商品图片信息（长图） */
+export interface ImageInfo {
+  imageId: number;
+  width?: number | undefined;
+  height?: number | undefined;
+}
+
+/** 售后服务 */
+export interface AfterSales {
+  supportFd10msPolicy?: boolean | undefined;
+  supportFd24hsPolicy?: boolean | undefined;
+  supportNfrPolicy?: boolean | undefined;
+  supportSdrPolicy?: boolean | undefined;
+  supportVnrPolicy?: boolean | undefined;
+  supportGpaPolicy?: boolean | undefined;
+  supportFd48hsPolicy?: boolean | undefined;
+}
+
+/** 挂售上架参数 */
+export interface HangUpParams {
+  /** 闲鱼用户名（店铺 ID） */
+  account: string;
+  /** 商品标题 */
+  title: string;
+  /** 售价 */
+  reservePrice: number;
+  /** 大分类 ID（手机、数码等） */
+  categoryId: number;
+  /** 小分类 ID */
+  channelCatId: string;
+  /** 图片 ID 列表（先上传获取，最多 9 张） */
+  imageIdList: number[];
+  /** 成色：100 全新 / -1 准新 / 99 99新 / 95 95新 / 90 9新 */
+  stuffStatus: number;
+  /** 图片类型 ID */
+  imageType?: string | undefined;
+  /** 货号 */
+  goodsNo?: string | undefined;
+  /** 商品描述 */
+  desc?: string | undefined;
+  /** 行政区划 ID（市级） */
+  divisionId?: number | undefined;
+  /** 商品长图（最多 15 张） */
+  longImageList?: ImageInfo[] | undefined;
+  /** 商品业务类型，默认 2（普通商品） */
+  itemBizType?: number | undefined;
+  /** 原价 */
+  originalPrice?: number | undefined;
+  /** 商品业务分类，默认 "16"（奢品） */
+  spBizType?: string | undefined;
+  /** 交易方式：0 仅在线 / 1 仅线下 / 2 线上或线下，默认 0 */
+  tradeType?: number | undefined;
+  /** 运费，默认 0（包邮） */
+  transportFee?: number | undefined;
+  /** 是否开启验货宝，默认 false */
+  yhb?: boolean | undefined;
+  /** 商品属性列表 */
+  itemAttrList?: XyItemAttr[] | undefined;
+  /** 售后服务 */
+  apiAfterSalesDo?: AfterSales | undefined;
+  /** 品牌名称 */
+  brandName?: string | undefined;
+  /** 类目名称 */
+  catName?: string | undefined;
+  /** 尺码 */
+  size?: string | undefined;
+  /** 商家编码（同店铺唯一） */
+  outItemNo?: string | undefined;
+  /** 商品原名称 */
+  oriGoodsName?: string | undefined;
+}

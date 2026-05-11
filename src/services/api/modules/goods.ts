@@ -3,6 +3,8 @@
  */
 
 import { ApiClientService } from "../client.js";
+import { readFileSync } from "node:fs";
+import { basename } from "node:path";
 import type {
   ListingUpParams,
   ListingGetParams,
@@ -15,6 +17,8 @@ import type {
   UserStock,
   SelectGoodsListParams,
   SelectGoodsListResult,
+  HangUpParams,
+  ImageUploadResult,
 } from "../../../types/goods.js";
 
 const client = new ApiClientService();
@@ -75,4 +79,28 @@ export async function getUserStockList(): Promise<UserStock[]> {
 export async function getSelectGoodsList(params?: SelectGoodsListParams): Promise<SelectGoodsListResult> {
   const queryParams = params ? toParams({ ...params }) : undefined;
   return client.get<SelectGoodsListResult>("mms/seller/goods/select/list", queryParams);
+}
+
+// ==================== 挂售上架（Hang Up） ====================
+
+/** 批量上传图片到闲鱼，返回图片 ID 列表（必须在挂售前调用） */
+export async function uploadXyImages(shopId: string, filePaths: string[]): Promise<ImageUploadResult[]> {
+  const results: ImageUploadResult[] = [];
+  for (const filePath of filePaths) {
+    const fileBuffer = readFileSync(filePath);
+    const fileName = basename(filePath);
+    const formData = new FormData();
+    formData.append("file", new Blob([fileBuffer]), fileName);
+    const result = await client.upload<ImageUploadResult>(
+      `platform/xy/media/upload?shopId=${encodeURIComponent(shopId)}`,
+      formData,
+    );
+    results.push(result);
+  }
+  return results;
+}
+
+/** 闲鱼挂售上架（完整商品信息模式） */
+export async function listingHangUpXianyu(params: HangUpParams): Promise<Record<string, unknown>> {
+  return client.post<Record<string, unknown>>("mms/goods/listing/hang/up/xianyu", params);
 }

@@ -132,4 +132,60 @@ export class ApiClientService {
   async delete<T = unknown>(path: string, headers?: Record<string, string>): Promise<T> {
     return this.request<T>(path, { method: "DELETE", headers });
   }
+
+  /** 上传文件（multipart/form-data），不设置 Content-Type 让运行时自动处理 boundary */
+  async upload<T = unknown>(path: string, formData: FormData, headers?: Record<string, string>): Promise<T> {
+    const url = this.buildUrl(path);
+    const token = await this.getAuthToken();
+    const allHeaders: Record<string, string> = { ...headers, ...(token ? { token } : {}) };
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 60000);
+
+    const init: RequestInit = {
+      method: "POST",
+      headers: allHeaders,
+      body: formData,
+      signal: controller.signal,
+    };
+
+    if (this.config.debug) {
+      console.error("[API UPLOAD]", url);
+    }
+
+    try {
+      const response = await fetch(url, init);
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          if (this.authStorage) {
+            this.cachedToken = null;
+            await this.authStorage.clearCredentials().catch(() => {});
+          }
+          throw new AuthError("登录已过期，请运行 r2-cli auth login 重新登录");
+        }
+        const errorText = await response.text();
+        throw new ApiError(errorText || `${response.status} ${response.statusText}`, response.status);
+      }
+
+      const result = (await response.json()) as ApiResponse<T>;
+
+      if (this.config.debug) {
+        console.error("[API Response]", result);
+      }
+
+      if (!result.success || result.status !== 0) {
+        throw new ApiError(result.msg || "未知错误", result.status, result);
+      }
+
+      return result.data;
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") {
+        throw new ApiError("上传超时 (60000ms)", 408);
+      }
+      throw error;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
 }
