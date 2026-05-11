@@ -196,11 +196,59 @@ r2-cli goods listing --id <id> --json                       # 精确查询
 
 ## 闲鱼挂售上架（hang-up）
 
-挂售模式支持完整的商品信息：图片、类目、属性、售后服务等。**图片必须先上传再提交挂售。**
+挂售模式支持完整的商品信息：图片、类目、属性、售后服务等。
 
-### Agent 操作流程（2 步）
+**核心流程：查询类目/属性 → 上传图片 → 提交挂售**
 
-#### 第 1 步：上传图片
+### Agent 操作流程（4 步）
+
+#### 第 1 步：获取类目 → 用户选择
+
+```bash
+r2-cli goods hang-up categories --json
+```
+
+返回类目列表，每个类目包含：
+
+| 字段 | 说明 |
+|------|------|
+| `catId` | 大分类 ID（**--category-id 取这个**） |
+| `catName` | 大分类名称 |
+| `channel` | 小分类名称 |
+| `channelCatId` | 小分类 ID（**--channel-cat-id 取这个**） |
+
+展示给用户选择后记录 `catId` 和 `channelCatId`。
+
+#### 第 2 步：获取属性 → 用户选择
+
+```bash
+r2-cli goods hang-up props --channel-cat-id <channelCatId> --json
+```
+
+返回属性列表，每个属性包含：
+
+| 字段 | 说明 |
+|------|------|
+| `propId` | 属性 ID |
+| `propName` | 属性名称（品牌、成色、尺码等） |
+| `propsValues` | 可选值列表（`valueId` + `valueName`） |
+
+**特殊处理 — 品牌属性**：品牌的 `propsValues` 通常为空，需要用 brands 子命令搜索：
+
+```bash
+r2-cli goods hang-up brands --channel-cat-id <id> --prop-id <品牌propId> --key "Nike" --json
+```
+
+用户选择每个属性的值后，Agent 构建属性列表：
+
+```json
+[
+  { "propId": "xx", "valueId": "yy", "valueName": "Nike" },
+  { "propId": "zz", "valueId": "ww", "valueName": "99新" }
+]
+```
+
+#### 第 3 步：上传图片
 
 ```bash
 r2-cli goods hang-up upload-images --shop-id <shopId> --files /path/to/img1.jpg,/path/to/img2.jpg --json
@@ -226,7 +274,7 @@ r2-cli goods hang-up upload-images --shop-id <shopId> --files /path/to/img1.jpg,
 
 > 图片路径是用户本地文件路径，Agent 需要向用户获取。
 
-#### 第 2 步：提交挂售
+#### 第 4 步：提交挂售
 
 ```bash
 r2-cli goods hang-up \
@@ -239,6 +287,7 @@ r2-cli goods hang-up \
   --stuff-status 99 \
   --brand-name "Nike" \
   --size "42" \
+  --item-attrs '[{"propId":"xx","valueId":"yy","valueName":"Nike"}]' \
   --json
 ```
 
@@ -282,6 +331,7 @@ r2-cli goods hang-up \
 | `--out-item-no <no>` | — | 商家编码（同店铺唯一） |
 | `--trade-type <n>` | `0` | 交易方式：0 仅在线 / 1 仅线下 / 2 线上或线下 |
 | `--transport-fee <amount>` | `0` | 运费（0 = 包邮） |
+| `--item-attrs <json>` | — | 商品属性列表 JSON（来自 props/brands 选择结果） |
 | `--yhb` | `false` | 是否开启验货宝 |
 
 > 默认值：`itemBizType=2`（普通商品）、`spBizType="16"`（奢品）、`tradeType=0`（仅在线交易）、`transportFee=0`（包邮）、`yhb=false`

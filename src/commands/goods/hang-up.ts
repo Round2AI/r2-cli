@@ -1,16 +1,16 @@
 /**
  * 闲鱼挂售上架命令
  *
- * 完整商品信息模式：上传图片 → 提交挂售
+ * 完整商品信息模式：查询类目/属性 → 上传图片 → 提交挂售
  * - 人类模式：交互式上传图片 + 填写商品信息
- * - Agent 模式：upload-images 子命令上传图片 → 主命令提交挂售
+ * - Agent 模式：categories/props/brands 子命令查询 → upload-images 上传 → 主命令提交挂售
  */
 
 import { Command } from "commander";
 import chalk from "chalk";
 import * as goodsApi from "../../services/api/modules/goods.js";
-import { handleCommandError, agentAction } from "../shared.js";
-import type { HangUpParams } from "../../types/goods.js";
+import { handleCommandError } from "../shared.js";
+import type { HangUpParams, XyItemAttr } from "../../types/goods.js";
 
 const STUFF_STATUS_MAP: Record<number, string> = {
   100: "全新",
@@ -24,7 +24,114 @@ export function createHangUpCommand(): Command {
   const command = new Command("hang-up");
   command.description("闲鱼挂售上架（完整商品信息模式）");
 
-  // 子命令：批量上传图片
+  // ====== 子命令：获取类目 ======
+  const categoriesCmd = new Command("categories")
+    .description("获取闲鱼类目列表（大分类 → 小分类）")
+    .option("--sp-biz-type <n>", "业务分类，16=奢品", "16")
+    .option("--json", "输出 JSON（供 AI Agent 使用）")
+    .action(async (options: { spBizType: string; json?: boolean }) => {
+      try {
+        const cats = await goodsApi.getXyCategories(Number(options.spBizType));
+
+        if (options.json) {
+          console.log(JSON.stringify(cats, null, 2));
+          return;
+        }
+
+        // 按 catId 分组展示
+        const grouped = new Map<string, { catName: string; children: { channel: string; channelCatId: string }[] }>();
+        for (const cat of cats) {
+          const key = String(cat.catId);
+          if (!grouped.has(key)) {
+            grouped.set(key, { catName: cat.catName, children: [] });
+          }
+          grouped.get(key)!.children.push({ channel: cat.channel, channelCatId: cat.channelCatId });
+        }
+
+        for (const [, group] of grouped) {
+          console.log(chalk.bold(group.catName));
+          for (const child of group.children) {
+            console.log(`  ${child.channel} (channelCatId: ${chalk.green(child.channelCatId)})`);
+          }
+        }
+      } catch (error) {
+        if (options.json) {
+          const msg = error instanceof Error ? error.message : String(error);
+          console.log(JSON.stringify({ success: false, error: msg }));
+          process.exit(1);
+        }
+        handleCommandError(error);
+      }
+    });
+
+  // ====== 子命令：获取属性 ======
+  const propsCmd = new Command("props")
+    .description("获取指定类目下的属性列表（含可选值）")
+    .requiredOption("--channel-cat-id <id>", "小分类 ID（从 categories 获取）")
+    .option("--json", "输出 JSON（供 AI Agent 使用）")
+    .action(async (options: { channelCatId: string; json?: boolean }) => {
+      try {
+        const props = await goodsApi.getXyProps(options.channelCatId);
+
+        if (options.json) {
+          console.log(JSON.stringify(props, null, 2));
+          return;
+        }
+
+        for (const prop of props) {
+          console.log(chalk.bold(`\n${prop.propName} (propId: ${prop.propId})`));
+          if (prop.propsValues?.length) {
+            for (const val of prop.propsValues) {
+              console.log(`  ${val.valueName} (valueId: ${val.valueId})`);
+            }
+          } else {
+            console.log(chalk.gray("  （使用 brands 子命令搜索）"));
+          }
+        }
+      } catch (error) {
+        if (options.json) {
+          const msg = error instanceof Error ? error.message : String(error);
+          console.log(JSON.stringify({ success: false, error: msg }));
+          process.exit(1);
+        }
+        handleCommandError(error);
+      }
+    });
+
+  // ====== 子命令：品牌搜索 ======
+  const brandsCmd = new Command("brands")
+    .description("搜索闲鱼品牌（按关键字过滤）")
+    .requiredOption("--channel-cat-id <id>", "小分类 ID")
+    .requiredOption("--prop-id <id>", "属性 ID（品牌属性的 propId）")
+    .requiredOption("--key <keyword>", "搜索关键字")
+    .option("--json", "输出 JSON（供 AI Agent 使用）")
+    .action(async (options: { channelCatId: string; propId: string; key: string; json?: boolean }) => {
+      try {
+        const values = await goodsApi.getXyPropValues(options.channelCatId, options.propId, options.key);
+
+        if (options.json) {
+          console.log(JSON.stringify(values, null, 2));
+          return;
+        }
+
+        if (!values.length) {
+          console.log(chalk.yellow("未找到匹配的品牌"));
+          return;
+        }
+        for (const val of values) {
+          console.log(`  ${val.valueName} (valueId: ${val.valueId})`);
+        }
+      } catch (error) {
+        if (options.json) {
+          const msg = error instanceof Error ? error.message : String(error);
+          console.log(JSON.stringify({ success: false, error: msg }));
+          process.exit(1);
+        }
+        handleCommandError(error);
+      }
+    });
+
+  // ====== 子命令：批量上传图片 ======
   const uploadImagesCmd = new Command("upload-images")
     .description("批量上传图片到闲鱼（挂售前必须先上传图片）")
     .requiredOption("--shop-id <id>", "店铺 ID")
@@ -63,17 +170,21 @@ export function createHangUpCommand(): Command {
       }
     });
 
+  command.addCommand(categoriesCmd);
+  command.addCommand(propsCmd);
+  command.addCommand(brandsCmd);
   command.addCommand(uploadImagesCmd);
 
-  // 主命令：提交挂售
+  // ====== 主命令：提交挂售 ======
   command
     .option("--shop-id <id>", "店铺 ID（即闲鱼用户名 account）")
     .option("--title <title>", "商品标题")
     .option("--price <amount>", "售价")
-    .option("--category-id <id>", "大分类 ID")
-    .option("--channel-cat-id <id>", "小分类 ID")
+    .option("--category-id <id>", "大分类 ID（从 categories 获取）")
+    .option("--channel-cat-id <id>", "小分类 ID（从 categories 获取）")
     .option("--image-ids <ids>", "图片 ID 列表，逗号分隔（先通过 upload-images 获取）")
     .option("--stuff-status <n>", "成色：100 全新 / -1 准新 / 99 99新 / 95 95新 / 90 9新")
+    .option("--item-attrs <json>", "商品属性列表 JSON，格式: [{\"propId\":\"x\",\"valueId\":\"y\",\"valueName\":\"z\"}]")
     .option("--brand-name <name>", "品牌名称")
     .option("--desc <desc>", "商品描述")
     .option("--size <size>", "尺码")
@@ -92,6 +203,7 @@ export function createHangUpCommand(): Command {
       channelCatId?: string;
       imageIds?: string;
       stuffStatus?: string;
+      itemAttrs?: string;
       brandName?: string;
       desc?: string;
       size?: string;
@@ -104,7 +216,6 @@ export function createHangUpCommand(): Command {
       json?: boolean;
     }) => {
       try {
-        // Agent 模式：缺少必填参数时直接返回 JSON 错误
         const required: Record<string, string | undefined> = {
           "--shop-id": options.shopId,
           "--title": options.title,
@@ -145,6 +256,7 @@ export function createHangUpCommand(): Command {
           ...(options.goodsNo && { goodsNo: options.goodsNo }),
           ...(options.originalPrice && { originalPrice: Number(options.originalPrice) }),
           ...(options.outItemNo && { outItemNo: options.outItemNo }),
+          ...(options.itemAttrs && { itemAttrList: JSON.parse(options.itemAttrs) as XyItemAttr[] }),
         };
 
         if (!options.json) {
@@ -153,6 +265,9 @@ export function createHangUpCommand(): Command {
           console.log(chalk.gray(`  售价: ¥${params.reservePrice}`));
           console.log(chalk.gray(`  成色: ${STUFF_STATUS_MAP[params.stuffStatus] ?? params.stuffStatus}`));
           console.log(chalk.gray(`  图片: ${imageIdList.length} 张`));
+          if (params.itemAttrList?.length) {
+            console.log(chalk.gray(`  属性: ${params.itemAttrList.length} 项`));
+          }
         }
 
         const result = await goodsApi.listingHangUpXianyu(params);

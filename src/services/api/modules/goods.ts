@@ -19,6 +19,9 @@ import type {
   SelectGoodsListResult,
   HangUpParams,
   ImageUploadResult,
+  XyCatItem,
+  XyPropItem,
+  XyPropValue,
 } from "../../../types/goods.js";
 
 const client = new ApiClientService();
@@ -103,4 +106,24 @@ export async function uploadXyImages(shopId: string, filePaths: string[]): Promi
 /** 闲鱼挂售上架（完整商品信息模式） */
 export async function listingHangUpXianyu(params: HangUpParams): Promise<Record<string, unknown>> {
   return client.post<Record<string, unknown>>("mms/goods/listing/hang/up/xianyu", params);
+}
+
+// ==================== 闲鱼类目/属性查询 ====================
+
+/** 获取闲鱼类目列表（spBizType=16 为奢品） */
+export async function getXyCategories(spBizType = 16): Promise<XyCatItem[]> {
+  const data = await client.get<XyCatItem[]>("platform/xy/cat", toParams({ spBizType }));
+  return data ?? [];
+}
+
+/** 获取指定类目下的属性列表（含可选值） */
+export async function getXyProps(channelCatId: string): Promise<XyPropItem[]> {
+  const data = await client.get<XyPropItem[]>("platform/xy/props", toParams({ channelCatId }));
+  return data ?? [];
+}
+
+/** 获取属性值列表（用于品牌搜索） */
+export async function getXyPropValues(channelCatId: string, propId: string, key?: string): Promise<XyPropValue[]> {
+  const data = await client.get<XyPropValue[]>("platform/xy/props/value", toParams({ channelCatId, propId, key }));
+  return data ?? [];
 }

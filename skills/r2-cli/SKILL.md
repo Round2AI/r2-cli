@@ -57,6 +57,9 @@ npm install -g @round2ai/r2-cli@latest
 | `r2-cli goods up --stock-goods-id <id> --shop-id <id> --price <amount> --json` | Agent 直接上架（自动轮询上架结果） |
 | `r2-cli goods down --id <id> [--json]` | 下架商品（也可用 `--stock-goods-id <id> --shop-id <id>`） |
 | `r2-cli goods price --id <id> --price <amount> [--json]` | 修改上架价格（也可用 `--stock-goods-id <id> --shop-id <id>`） |
+| `r2-cli goods hang-up categories [--json]` | 获取闲鱼类目列表（大分类 → 小分类） |
+| `r2-cli goods hang-up props --channel-cat-id <id> [--json]` | 获取指定类目下的属性列表（含可选值） |
+| `r2-cli goods hang-up brands --channel-cat-id <id> --prop-id <id> --key <keyword> [--json]` | 品牌搜索 |
 | `r2-cli goods hang-up upload-images --shop-id <id> --files <paths> --json` | 批量上传图片到闲鱼（挂售前必须先上传） |
 | `r2-cli goods hang-up --shop-id <id> --title <> --price <> --category-id <> --channel-cat-id <> --image-ids <> --stuff-status <> --json` | 闲鱼挂售上架（完整商品信息模式） |
 

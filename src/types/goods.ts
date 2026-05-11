@@ -227,6 +227,29 @@ export interface SelectGoodsListResult {
 
 // ==================== 挂售上架（Hang Up） ====================
 
+/** 闲鱼类目项 */
+export interface XyCatItem {
+  catId: number;
+  catName: string;
+  channel: string;
+  channelCatId: string;
+}
+
+/** 闲鱼属性项 */
+export interface XyPropItem {
+  propId: string;
+  propName: string;
+  channelCatId: string;
+  propsValues: XyPropValue[];
+}
+
+/** 闲鱼属性值 */
+export interface XyPropValue {
+  valueId: string;
+  valueName: string;
+  propId?: string;
+}
+
 /** 图片上传响应 */
 export interface ImageUploadResult {
   imageId: number;
