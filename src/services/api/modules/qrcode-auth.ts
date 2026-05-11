@@ -2,10 +2,10 @@
  * 二维码认证 API — 唯一不携带认证 token 的模块
  */
 
-import { ApiClientService } from "../client.js";
+import { noAuthClient } from "../client.js";
 import type { GenerateQRCodeData, QRCodeStatusData } from "../../../types/auth.js";
 
-const client = new ApiClientService({ auth: false });
+const client = noAuthClient;
 
 /** 生成扫码登录二维码，返回 qrToken、过期时间、轮询间隔 */
 export async function generateQRCode(): Promise<GenerateQRCodeData> {

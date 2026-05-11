@@ -1,21 +1,31 @@
 ---
 name: r2-auth
-description: R2-CLI 认证登录专家。扫码登录和闲鱼店铺授权。用于登录、login、auth、扫码、二维码、授权、xianyu、logout、登出、状态查询场景。Agent 使用 auth login --json 一步完成登录。Agent 必须先将 qrUrl 链接展示给用户，再等待扫码结果。
+version: 1.0.0
+description: "R2-CLI 认证登录专家。扫码登录和闲鱼店铺授权。用于登录、login、auth、扫码、二维码、授权、xianyu、logout、登出、状态查询场景。Agent 使用 auth login --json 一步完成登录。Agent 必须先将 qrUrl 链接展示给用户，再等待扫码结果。"
+metadata:
+  requires:
+    bins: ["r2-cli"]
+  cliHelp: "r2-cli auth --help"
+  related:
+    - "r2-shared"
 ---
 
-# R2-Auth Skill
+# R2-Auth (v1)
+
+> **Tip**: Agent 使用 `--json` 一步完成登录：生成二维码 + 自动打开浏览器 + 自动轮询。**必须先将 qrUrl 展示给用户**，再等待扫码结果。
+> **Tip**: 二维码 5 分钟过期，超时需重新执行命令。Token 存储在 `~/.r2-cli/config.json`。
 
 扫码登录 + 闲鱼店铺授权，专为 AI Agent 设计。
 
-## 命令前缀
+## CRITICAL
 
-见 **r2-cli** skill 的"命令前缀自动检测"章节。以下文档使用 `r2-cli` 作为前缀，根据检测结果替换。
+安装、统一错误格式见 **r2-shared** skill。
 
 ---
 
-## 扫码登录（一步式，推荐）
+## 扫码登录（auth login）
 
-一条命令完成：生成扫码页面 + 自动打开浏览器 + 自动轮询登录状态：
+### 一步式（推荐）
 
 ```bash
 r2-cli auth login --json
@@ -23,7 +33,7 @@ r2-cli auth login --json
 
 命令会依次输出两段 JSON：
 
-### 第 1 段：二维码信息（立即输出）
+**第 1 段：二维码信息（立即输出）**
 
 ```json
 {
@@ -39,22 +49,13 @@ r2-cli auth login --json
 |------|------|
 | `qrToken` | 二维码 token（轮询用，不需要手动使用） |
 | `expireTimeMs` | 二维码过期时间（毫秒），默认 5 分钟 |
-| `pollIntervalMs` | 轮询间隔（毫秒），不需要手动使用 |
 | `url` | 扫码链接（用户也可手动访问） |
 | `qrUrl` | 本地浏览器扫码页面链接 |
 
-### 第 2 段：登录结果（用户扫码确认后输出）
-
-成功：
+**第 2 段：登录结果（用户扫码确认后输出）**
 
 ```json
 { "success": true, "userInfo": { "nickname": "...", "mobile": "..." } }
-```
-
-失败：
-
-```json
-{ "success": false, "error": "二维码已过期" }
 ```
 
 ### Agent 操作步骤
@@ -73,11 +74,9 @@ r2-cli auth login --json
 
 **为什么必须先展示链接**：自动打开浏览器在某些环境下可能失败（远程服务器、SSH、无头终端）。链接是用户扫码的唯一保障，必须优先展示。
 
-> 旧版两步式流程（先 `auth login qr` 再 `auth login poll`）已废弃。如需手动轮询，可使用 `auth login poll --token <>`。
-
 ---
 
-## 闲鱼店铺授权
+## 闲鱼店铺授权（auth xianyu）
 
 流程与登录类似，同样一步完成：
 
@@ -85,7 +84,7 @@ r2-cli auth login --json
 r2-cli auth xianyu --json
 ```
 
-### 第 1 段：授权二维码信息（立即输出）
+**第 1 段：授权二维码信息（立即输出）**
 
 ```json
 {
@@ -100,28 +99,15 @@ r2-cli auth xianyu --json
 |------|------|
 | `state` | 授权状态 token（轮询用） |
 | `expireTimeMs` | 过期时间（毫秒），默认 5 分钟 |
-| `pollIntervalMs` | 轮询间隔（毫秒） |
 | `qrUrl` | 本地浏览器授权页面链接 |
 
-### 第 2 段：授权结果（用户扫码确认后输出）
-
-成功：
+**第 2 段：授权结果（用户扫码确认后输出）**
 
 ```json
 { "success": true, "shopId": "...", "shopName": "..." }
 ```
 
-失败：
-
-```json
-{ "success": false, "error": "授权链接已过期" }
-```
-
-Agent 操作步骤与登录相同：
-1. 获取第 1 段 JSON
-2. **先展示 `qrUrl` 链接给用户**（单独一行，醒目格式）
-3. 告知用户浏览器会尝试自动打开，如未打开请手动点击链接
-4. 等待第 2 段 JSON
+Agent 操作步骤与登录相同：获取第 1 段 JSON → **先展示 `qrUrl`** → 等待第 2 段 JSON。
 
 ---
 
@@ -129,20 +115,20 @@ Agent 操作步骤与登录相同：
 
 | 命令 | 说明 |
 |------|------|
-| `r2-cli auth login` | 扫码登录（自动打开浏览器，人类使用） |
-| `r2-cli auth login --json` | 扫码登录（输出 JSON + 自动打开浏览器，Agent 推荐） |
+| `r2-cli auth login` | 扫码登录（人类使用，自动打开浏览器） |
+| `r2-cli auth xianyu` | 闲鱼店铺授权（人类使用，自动打开浏览器） |
 | `r2-cli auth login poll --token <>` | 手动轮询登录状态（备选，不推荐） |
-| `r2-cli auth xianyu` | 闲鱼店铺授权（自动打开浏览器，人类使用） |
-| `r2-cli auth xianyu --json` | 闲鱼店铺授权（输出 JSON + 自动打开浏览器，Agent 推荐） |
 | `r2-cli auth xianyu poll --state <>` | 手动轮询授权状态（备选，不推荐） |
 | `r2-cli auth status` | 查看登录状态 |
 | `r2-cli auth logout` | 退出登录 |
 
 ---
 
-## 注意事项
+## 错误处理
 
-- 命令会尝试自动打开浏览器展示扫码页面，但链接始终会输出到终端，确保即使浏览器未打开用户也能手动访问
-- 二维码默认 5 分钟过期，超时需重新执行命令
-- 登录成功后 Token 存储在 `~/.r2-cli/config.json`（原子写入，防止中断导致丢失），后续 `goods` 等命令可直接使用
-- 内存缓存的 Token 带过期检查（5 分钟安全边际），过期自动重新读取
+| 错误信息 | 原因 | 解决方法 |
+|----------|------|----------|
+| `请先运行 r2-cli auth login 登录` | 未登录或 Token 过期 | 执行 `r2-cli auth login --json` |
+| `二维码已过期` | 扫码超时（5 分钟） | 重新执行命令 |
+| `授权链接已过期` | 授权扫码超时（5 分钟） | 重新执行命令 |
+| `网络连接失败` | API 服务不可达 | 检查网络连接，确认 SERVER_BASEURL 配置 |

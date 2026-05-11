@@ -2,7 +2,7 @@
  * 闲鱼 API — 模块级函数
  */
 
-import { ApiClientService } from "../client.js";
+import { authClient } from "../client.js";
 import { readFileSync } from "node:fs";
 import { basename } from "node:path";
 import type {
@@ -24,7 +24,7 @@ import type {
   XyPropValue,
 } from "../../../types/goods.js";
 
-const client = new ApiClientService();
+const client = authClient;
 
 /** 将对象转为 URLSearchParams，过滤掉 undefined/null/空字符串（GET 请求专用） */
 function toParams(obj: Record<string, unknown>): URLSearchParams {

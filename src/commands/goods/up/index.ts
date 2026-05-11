@@ -10,7 +10,7 @@ import { Command } from "commander";
 import chalk from "chalk";
 import { select, input, confirm } from "@inquirer/prompts";
 import * as xianyuApi from "../../../services/api/modules/goods.js";
-import { handleCommandError } from "../../shared.js";
+import { jsonAction } from "../../shared.js";
 import { poll } from "../../../utils/polling.js";
 import type { ListingInfo } from "../../../types/goods.js";
 
@@ -61,117 +61,108 @@ export function createUpCommand(): Command {
     .option("--price <amount>", "上架价格")
     .option("-p, --platform <platform>", "平台", "xianyu")
     .option("--json", "输出 JSON（Agent 用）")
-    .action(async (options: { stockGoodsId?: string; shopId?: string; price?: string; platform: string; json?: boolean }) => {
-      try {
-        // Agent 模式：缺少必要参数时直接返回 JSON 错误，不落入交互模式
-        if (options.json && !(options.stockGoodsId && options.shopId && options.price)) {
-          console.log(JSON.stringify({ success: false, error: "Agent 模式需要 --stock-goods-id, --shop-id, --price" }));
-          process.exit(1);
-        }
-
-        // Agent 模式：所有参数齐全则直接提交
-        if (options.stockGoodsId && options.shopId && options.price) {
-          const stockGoodsId = Number(options.stockGoodsId);
-          const shopId = options.shopId;
-          const price = Number(options.price);
-          const platform = options.platform;
-
-          const result = await xianyuApi.listingUpXianyu({ stockGoodsId, shopId, price, platform });
-
-          // 提交成功后轮询上架进度
-          const listingInfo = await pollListingStatus(stockGoodsId, shopId, platform, options.json);
-
-          if (options.json) {
-            console.log(JSON.stringify({ success: true, data: { submit: result, listing: listingInfo } }, null, 2));
-          } else {
-            const statusOk = listingInfo.status?.toLowerCase() !== "failed";
-            console.log(statusOk ? chalk.green("✓ 上架成功") : chalk.red("✗ 上架失败"));
-            console.log(JSON.stringify(listingInfo, null, 2));
-          }
-          return;
-        }
-
-        // 人类交互式模式
-        const shops = await xianyuApi.getUserShopList();
-        if (shops.length === 0) {
-          console.log(chalk.yellow("没有已授权店铺，请先运行 r2-cli auth xianyu 授权"));
-          return;
-        }
-
-        const selectedShop = await select({
-          message: "选择店铺",
-          choices: shops.map((s) => ({ name: `${s.shopName} (${s.platform})`, value: s.shopId })),
-        });
-
-        const stocks = await xianyuApi.getUserStockList();
-        if (stocks.length === 0) {
-          console.log(chalk.yellow("没有可用的仓库"));
-          return;
-        }
-
-        const selectedStock = await select({
-          message: "选择仓库",
-          choices: stocks.map((s) => ({ name: s.stockName, value: s.stockId })),
-        });
-
-        // 获取仓库中的选品商品
-        const goodsList = await xianyuApi.getSelectGoodsList({ stockId: selectedStock, size: 100 });
-        if (!goodsList.items?.length) {
-          console.log(chalk.yellow("该仓库没有可选的商品"));
-          return;
-        }
-
-        const selectedGoods = await select({
-          message: "选择商品",
-          choices: goodsList.items.map((g) => ({
-            name: `${g.goodsName} ${g.size ? `| ${g.size}` : ""} | ¥${g.salePrice}`,
-            value: g.stockGoodsId,
-          })),
-        });
-
-        const priceInput = await input({
-          message: "输入上架价格",
-          default: goodsList.items.find((g) => g.stockGoodsId === selectedGoods)?.salePrice?.toString() ?? "",
-          validate: (v) => {
-            const n = Number(v);
-            return n > 0 ? true : "价格必须为正数";
-          },
-        });
-
-        const confirmed = await confirm({
-          message: `确认上架？价格 ¥${priceInput}`,
-          default: true,
-        });
-
-        if (!confirmed) {
-          console.log(chalk.gray("已取消"));
-          return;
-        }
-
-        const stockGoodsId = Number(selectedGoods);
-        await xianyuApi.listingUpXianyu({
-          stockGoodsId,
-          shopId: selectedShop,
-          price: Number(priceInput),
-          platform: "xianyu",
-        });
-
-        console.log(chalk.green("✓ 上架已提交，正在查询进度..."));
-
-        // 轮询上架结果
-        const listingInfo = await pollListingStatus(stockGoodsId, selectedShop, "xianyu");
-        const statusOk = listingInfo.status?.toLowerCase() !== "failed";
-        console.log(statusOk ? chalk.green("✓ 上架成功") : chalk.red("✗ 上架失败"));
-        console.log(JSON.stringify(listingInfo, null, 2));
-      } catch (error) {
-        if (options.json) {
-          const msg = error instanceof Error ? error.message : String(error);
-          console.log(JSON.stringify({ success: false, error: msg }));
-          process.exit(1);
-        }
-        handleCommandError(error);
+    .action(jsonAction(async (options: { stockGoodsId?: string; shopId?: string; price?: string; platform: string; json?: boolean }) => {
+      // Agent 模式：缺少必要参数时直接返回 JSON 错误，不落入交互模式
+      if (options.json && !(options.stockGoodsId && options.shopId && options.price)) {
+        console.log(JSON.stringify({ success: false, error: "Agent 模式需要 --stock-goods-id, --shop-id, --price" }));
+        process.exit(1);
       }
-    });
+
+      // Agent 模式：所有参数齐全则直接提交
+      if (options.stockGoodsId && options.shopId && options.price) {
+        const stockGoodsId = Number(options.stockGoodsId);
+        const shopId = options.shopId;
+        const price = Number(options.price);
+        const platform = options.platform;
+
+        const result = await xianyuApi.listingUpXianyu({ stockGoodsId, shopId, price, platform });
+
+        // 提交成功后轮询上架进度
+        const listingInfo = await pollListingStatus(stockGoodsId, shopId, platform, options.json);
+
+        if (options.json) {
+          console.log(JSON.stringify({ success: true, data: { submit: result, listing: listingInfo } }, null, 2));
+        } else {
+          const statusOk = listingInfo.status?.toLowerCase() !== "failed";
+          console.log(statusOk ? chalk.green("✓ 上架成功") : chalk.red("✗ 上架失败"));
+          console.log(JSON.stringify(listingInfo, null, 2));
+        }
+        return;
+      }
+
+      // 人类交互式模式
+      const shops = await xianyuApi.getUserShopList();
+      if (shops.length === 0) {
+        console.log(chalk.yellow("没有已授权店铺，请先运行 r2-cli auth xianyu 授权"));
+        return;
+      }
+
+      const selectedShop = await select({
+        message: "选择店铺",
+        choices: shops.map((s) => ({ name: `${s.shopName} (${s.platform})`, value: s.shopId })),
+      });
+
+      const stocks = await xianyuApi.getUserStockList();
+      if (stocks.length === 0) {
+        console.log(chalk.yellow("没有可用的仓库"));
+        return;
+      }
+
+      const selectedStock = await select({
+        message: "选择仓库",
+        choices: stocks.map((s) => ({ name: s.stockName, value: s.stockId })),
+      });
+
+      // 获取仓库中的选品商品
+      const goodsList = await xianyuApi.getSelectGoodsList({ stockId: selectedStock, size: 100 });
+      if (!goodsList.items?.length) {
+        console.log(chalk.yellow("该仓库没有可选的商品"));
+        return;
+      }
+
+      const selectedGoods = await select({
+        message: "选择商品",
+        choices: goodsList.items.map((g) => ({
+          name: `${g.goodsName} ${g.size ? `| ${g.size}` : ""} | ¥${g.salePrice}`,
+          value: g.stockGoodsId,
+        })),
+      });
+
+      const priceInput = await input({
+        message: "输入上架价格",
+        default: goodsList.items.find((g) => g.stockGoodsId === selectedGoods)?.salePrice?.toString() ?? "",
+        validate: (v) => {
+          const n = Number(v);
+          return n > 0 ? true : "价格必须为正数";
+        },
+      });
+
+      const confirmed = await confirm({
+        message: `确认上架？价格 ¥${priceInput}`,
+        default: true,
+      });
+
+      if (!confirmed) {
+        console.log(chalk.gray("已取消"));
+        return;
+      }
+
+      const stockGoodsId = Number(selectedGoods);
+      await xianyuApi.listingUpXianyu({
+        stockGoodsId,
+        shopId: selectedShop,
+        price: Number(priceInput),
+        platform: "xianyu",
+      });
+
+      console.log(chalk.green("✓ 上架已提交，正在查询进度..."));
+
+      // 轮询上架结果
+      const listingInfo = await pollListingStatus(stockGoodsId, selectedShop, "xianyu");
+      const statusOk = listingInfo.status?.toLowerCase() !== "failed";
+      console.log(statusOk ? chalk.green("✓ 上架成功") : chalk.red("✗ 上架失败"));
+      console.log(JSON.stringify(listingInfo, null, 2));
+    }));
 
   return command;
 }

@@ -36,7 +36,28 @@ export function agentError(msg: string): never {
   process.exit(1);
 }
 
-/** Agent 子命令 action 包装器：自动 catch 并格式化为 JSON 错误 */
+/**
+ * 双模命令 action 包装器：根据 options.json 自动选择错误输出方式。
+ * 替代每个命令中重复的 try-catch-if-json 模式。
+ *
+ * 用法：`.action(jsonAction(async (options) => { ... }))`
+ */
+export function jsonAction<T extends { json?: boolean }>(fn: (options: T) => Promise<void>): (options: T) => Promise<void> {
+  return async (options: T) => {
+    try {
+      await fn(options);
+    } catch (error) {
+      if (options.json) {
+        const msg = error instanceof Error ? error.message : String(error);
+        console.log(JSON.stringify({ success: false, error: msg }));
+        process.exit(1);
+      }
+      handleCommandError(error);
+    }
+  };
+}
+
+/** @deprecated 使用 jsonAction 代替 */
 export function agentAction<T extends unknown[]>(fn: (...args: T) => Promise<void>): (...args: T) => Promise<void> {
   return async (...args: T) => {
     try {

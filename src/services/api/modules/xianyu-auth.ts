@@ -2,10 +2,10 @@
  * 闲鱼店铺授权 API — 获取授权链接和轮询授权状态
  */
 
-import { ApiClientService } from "../client.js";
+import { authClient } from "../client.js";
 import type { XianyuAuthUrlData, XianyuAuthStatusData } from "../../../types/auth.js";
 
-const client = new ApiClientService();
+const client = authClient;
 
 /** 获取闲鱼店铺授权二维码链接，返回 state、授权 URL、过期时间 */
 export async function getAuthUrl(): Promise<XianyuAuthUrlData> {

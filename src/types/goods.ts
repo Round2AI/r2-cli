@@ -252,9 +252,8 @@ export interface XyPropValue {
 
 /** 图片上传响应 */
 export interface ImageUploadResult {
-  imageId: number;
-  width?: number;
-  height?: number;
+  value: string;
+  [key: string]: unknown;
 }
 
 /** 商品属性 */
@@ -296,8 +295,8 @@ export interface HangUpParams {
   categoryId: number;
   /** 小分类 ID */
   channelCatId: string;
-  /** 图片 ID 列表（先上传获取，最多 9 张） */
-  imageIdList: number[];
+  /** 图片 ID 列表（先上传获取，最多 9 张，19 位数字保持字符串避免精度丢失） */
+  imageIdList: string[];
   /** 成色：100 全新 / -1 准新 / 99 99新 / 95 95新 / 90 9新 */
   stuffStatus: number;
   /** 图片类型 ID */

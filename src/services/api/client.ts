@@ -189,3 +189,9 @@ export class ApiClientService {
     }
   }
 }
+
+/** 共享实例：带认证（供 goods / xianyu-auth 模块使用） */
+export const authClient = new ApiClientService();
+
+/** 共享实例：无认证（仅供 qrcode-auth 模块使用） */
+export const noAuthClient = new ApiClientService({ auth: false });

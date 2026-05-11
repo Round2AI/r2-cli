@@ -11,7 +11,9 @@
     "postinstall": "node scripts/install-skills.js",
     "build": "cross-env NODE_ENV=development node scripts/build.js",
     "build:prod": "cross-env NODE_ENV=production node scripts/build.js",
-    "dev": "node scripts/dev.js"
+    "dev": "node scripts/dev.js",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "keywords": [
     "round2ai",
@@ -56,6 +58,7 @@
     "cross-env": "^10.1.0",
     "dotenv": "^17.4.2",
     "esbuild": "^0.28.0",
-    "typescript": "^6.0.2"
+    "typescript": "^6.0.2",
+    "vitest": "^4.1.5"
   }
 }
