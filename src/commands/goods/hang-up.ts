@@ -194,6 +194,15 @@ export function createHangUpCommand(): Command {
           ...(options.originalPrice && { originalPrice: Number(options.originalPrice) }),
           outItemNo: options.outItemNo,
           divisionId: Number(options.divisionId) || 330100,
+          apiAfterSalesDo: {
+            supportFd10msPolicy: false,
+            supportFd24hsPolicy: true,
+            supportNfrPolicy: true,
+            supportSdrPolicy: true,
+            supportVnrPolicy: false,
+            supportGpaPolicy: false,
+            supportFd48hsPolicy: false,
+          },
           ...(options.itemAttrs && { itemAttrList: JSON.parse(options.itemAttrs) as XyItemAttr[] }),
         };
 

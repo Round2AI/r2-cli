@@ -30,14 +30,11 @@ function setupCliApp(): { program: Command; updateCheckPromise: Promise<void> } 
 
   program.name("r2-cli").description("R2-CLI，向 AI 开放二手潮奢交易全链路能力");
 
-  const pkgPaths = [
-    path.join(import.meta.dirname, "../../package.json"),  // 项目根目录
-    path.join(import.meta.dirname, "package.json"),        // dist 目录下
-  ];
   let version = "0.0.0";
-  for (const p of pkgPaths) {
+  // npm 安装后：dist/ → ../package.json；开发模式：src/entrypoints/ → ../../package.json
+  for (const rel of ["../package.json", "../../package.json"]) {
     try {
-      version = JSON.parse(readFileSync(p, "utf-8")).version;
+      version = JSON.parse(readFileSync(path.join(import.meta.dirname, rel), "utf-8")).version;
       break;
     } catch { /* next */ }
   }

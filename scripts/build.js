@@ -115,7 +115,7 @@ async function buildEntryPoint(name, entry) {
  * 复制必要文件
  */
 async function copyFiles() {
-  const filesToCopy = ["package.json", "README.md"];
+  const filesToCopy = ["README.md"];
 
   for (const file of filesToCopy) {
     const src = path.join(rootDir, file);
