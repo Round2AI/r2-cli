@@ -15,13 +15,27 @@ metadata:
 
 > **Tip**: Agent 获取数据后展示给用户选择，不要让用户自己提供 ID。这是核心原则。
 > **Tip**: `goods up` 自动轮询上架结果（每 2 秒，最多 10 秒），无需手动查询。
-> **Tip**: `hang-up` 挂售是独立流程（类目→属性→图片→提交），与普通上架（`goods up`）不同。
+> **Tip**: `hang-up` 挂售流程：**先上传图片 → Agent 用 Read 工具查看图片识别商品信息 → 自动匹配类目/属性 → 提交**。Agent 利用多模态能力自动填充标题、品牌、类目、描述。
 
 商品管理专家，指导 AI Agent 完成商品上架、下架、改价、挂售全流程。
 
 ## CRITICAL
 
 安装、统一错误格式见 **r2-shared** skill。认证登录见 **r2-auth** skill。
+
+## 上架路由决策
+
+用户说"上架商品"时，按以下规则选择上架方式：
+
+| 条件 | 上架方式 | 流程 |
+|------|----------|------|
+| 商品**在选品库**中（用户没提供图片、类目等详细信息） | `goods up`（普通上架） | 店铺 → 仓库 → 选品商品 → 输入价格 → 提交 |
+| 用户**提供了图片**，或商品**不在选品库** | `goods hang-up`（挂售上架） | 上传图片 → AI 读图识别 → 类目/属性 → 提交 |
+
+**判断方法**：
+1. 用户只说"上架"没给细节 → 先查选品库（`goods list`），有商品就走 `goods up`
+2. 用户提供了图片文件 → 直接走 `goods hang-up`，Agent 会用 Read 工具查看图片自动识别商品信息
+3. 不确定时 → 问用户："商品在选品库里吗？还是有图片需要挂售上架？"
 
 ## 命令概览
 
@@ -172,51 +186,18 @@ r2-cli goods price --stock-goods-id <id> --shop-id <id> --price <新价格> --js
 
 挂售模式支持完整商品信息：图片、类目、属性等。与普通上架（`goods up`）是不同流程。
 
-### Agent 挂售 4 步流程
+**核心理念**：先上传图片，Agent 用 Read 工具查看图片识别商品信息，自动填充标题、品牌、类目、描述等字段。
 
-#### 第 1 步：获取类目 → 用户选择
+### Agent 挂售流程
 
-```bash
-r2-cli goods hang-up categories --json
-```
+**核心原则**：
+- 缺少的必填信息（价格、商家编码）**在流程中尽早询问**，不要积攒到最后
+- Agent 自动识别图片、匹配类目/属性、构建参数，**直接提交**，不需要用户确认
+- `item-attrs` 中 `propId` 和 `valueId` 是不同的值，构建时从 props 返回数据中取准确值
 
-| 字段 | 说明 |
-|------|------|
-| `catId` | 大分类 ID（**--category-id 取这个**） |
-| `catName` | 大分类名称 |
-| `channel` | 小分类名称 |
-| `channelCatId` | 小分类 ID（**--channel-cat-id 取这个**） |
+#### 第 1 步：上传图片 + 读图识别（并行）
 
-展示给用户选择后记录 `catId` 和 `channelCatId`。
-
-#### 第 2 步：获取属性 → 用户选择
-
-```bash
-r2-cli goods hang-up props --channel-cat-id <channelCatId> --json
-```
-
-| 字段 | 说明 |
-|------|------|
-| `propId` | 属性 ID |
-| `propName` | 属性名称（品牌、成色、尺码等） |
-| `propsValues` | 可选值列表（`valueId` + `valueName`） |
-
-**品牌属性特殊处理**：品牌的 `propsValues` 通常为空，需用 brands 搜索：
-
-```bash
-r2-cli goods hang-up brands --channel-cat-id <id> --prop-id <品牌propId> --key "Nike" --json
-```
-
-用户选择属性值后，Agent 构建属性列表：
-
-```json
-[
-  { "propId": "xx", "valueId": "yy", "valueName": "Nike" },
-  { "propId": "zz", "valueId": "ww", "valueName": "99新" }
-]
-```
-
-#### 第 3 步：上传图片
+**上传图片**：
 
 ```bash
 r2-cli goods hang-up upload-images --shop-id <shopId> --files /path/img1.jpg,/path/img2.jpg --json
@@ -234,9 +215,78 @@ r2-cli goods hang-up upload-images --shop-id <shopId> --files /path/img1.jpg,/pa
 }
 ```
 
-> 图片路径是用户本地文件路径，Agent 需要向用户获取。`--image-ids` 保持字符串，不要转数字（19 位 ID 会精度丢失）。
+> 图片路径是用户本地文件路径。`--image-ids` 保持字符串，不要转数字（19 位 ID 会精度丢失）。
 
-#### 第 4 步：提交挂售
+**同时读图识别**：Agent 用 **Read 工具查看用户提供的图片文件**，利用多模态能力识别：
+
+| 识别内容 | 提取信息 | 用途 |
+|----------|----------|------|
+| 商品类型 | 鞋/包/衣服/配饰/数码等 | 匹配闲鱼类目 |
+| 品牌 Logo/标签 | Nike/Gucci/LV 等 | `--brand-name` + brands 搜索 |
+| 成色状态 | 全新/轻微使用/明显磨损 | `--stuff-status` |
+| 颜色 | 白色/黑色/彩色等 | item-attrs 属性 |
+| 款式/材质 | 低帮鞋/皮质/帆布等 | item-attrs 属性 |
+| 尺码标签 | 42/EU40/M 等 | `--size` |
+| 综合信息 | — | 生成 `--title` 和 `--desc` |
+
+**识别后自动生成**：
+- `--title`：根据品牌+品类+关键特征生成简洁标题（如 "Nike Air Force 1 白色 42码 95新"）
+- `--desc`：综合图片信息生成商品描述
+
+**成色判断映射**：
+
+| 图片中商品状态 | `--stuff-status` 值 |
+|----------------|---------------------|
+| 带吊牌/未拆封 | `100`（全新） |
+| 几乎无使用痕迹 | `-1`（准新）或 `99`（99新） |
+| 轻微使用痕迹 | `95`（95新） |
+| 明显使用痕迹 | `90`（9新） |
+
+**如果用户没提供价格和商家编码，此时询问**（不要留到最后）。
+
+#### 第 2 步：匹配类目 + 属性（串行）
+
+**获取类目并自动匹配**：
+
+```bash
+r2-cli goods hang-up categories --json
+```
+
+Agent 根据图片识别结果自动匹配类目。常见匹配：
+
+| 识别结果 | 推荐匹配 |
+|----------|----------|
+| 运动鞋/板鞋 | 鞋靴 → 男鞋/女鞋 → 低帮鞋 |
+| 手提包/斜挎包 | 箱包 → 女士包/男士包 |
+| T恤/卫衣/外套 | 服装 → 男装/女装 |
+| 手表 | 腕表/饰品 |
+
+**获取属性并自动匹配**：
+
+```bash
+r2-cli goods hang-up props --channel-cat-id <channelCatId> --json
+```
+
+> props 响应可能很大（几十 KB），Agent 应直接搜索关键属性名（款式/鞋码/成色/品牌），用 Grep 提取 propId 和匹配的 valueId/valueName。
+
+Agent 根据图片识别结果自动匹配属性值。品牌用 brands 搜索确认：
+
+```bash
+r2-cli goods hang-up brands --channel-cat-id <id> --prop-id <品牌propId> --key "Nike" --json
+```
+
+最终构建 `--item-attrs`（**注意 propId 和 valueId 是不同字段**）：
+
+```json
+[
+  { "propId": "1d6d7611...", "valueId": "af8266ea...", "valueName": "运动鞋" },
+  { "propId": "30dc3038...", "valueId": "d64b3e52...", "valueName": "42" }
+]
+```
+
+#### 第 3 步：提交挂售
+
+**所有参数就绪后直接提交，不需要用户确认**：
 
 ```bash
 r2-cli goods hang-up submit \
@@ -260,6 +310,18 @@ r2-cli goods hang-up submit \
 ```json
 { "success": true, "data": "上架成功" }
 ```
+
+### 必填字段处理
+
+缺少时**在流程中尽早询问用户**，不要等所有信息都收集完再问：
+
+| 缺失字段 | 何时询问 | 询问方式 |
+|----------|----------|----------|
+| `--price`（售价） | 上传图片时 | "这个商品上架价格是多少？" |
+| `--out-item-no`（商家编码） | 上传图片时 | "商家编码是什么？（同店铺唯一标识）" |
+| `--shop-id`（店铺） | 流程开始时 | 展示店铺列表让用户选择 |
+| `--title`（标题） | 图片识别无法生成时 | "商品标题用什么？" |
+| `--desc`（描述） | 图片识别无法生成时 | "商品描述？" |
 
 ### 必填参数
 

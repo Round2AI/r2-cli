@@ -59,6 +59,15 @@ npm install -g @round2ai/r2-cli@latest
 | | `r2-cli goods hang-up upload-images --shop-id <> --files <> --json` | 上传图片 |
 | | `r2-cli goods hang-up submit --shop-id <> --title <> ... --json` | 提交挂售上架 |
 
+## Agent 上架路由（概要）
+
+用户说"上架商品"时需要选择正确的方式：
+- **商品在选品库** → `goods up`（店铺 → 仓库 → 选品商品 → 提交价格）
+- **用户提供了图片** → `goods hang-up`（上传图片 → AI 读图识别 → 类目/属性 → 提交）
+- **不确定** → 问用户
+
+> 详细决策规则见 **r2-goods** skill「上架路由决策」章节。
+
 ## Agent 上架 4 步流程（概要）
 
 1. `r2-cli goods shops --json` → 展示店铺 → 用户选择
