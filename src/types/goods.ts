@@ -138,7 +138,7 @@ export interface ListingListParams {
 /** 上架列表返回 */
 export interface ListingListResult {
   items: ListingInfo[];
-  total: number;
+  total: string;
   page?: number;
   perPage?: number;
 }

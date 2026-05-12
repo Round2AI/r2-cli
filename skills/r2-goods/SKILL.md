@@ -78,7 +78,7 @@ metadata:
 | 指定了具体字段（如"改标题为X"） | 直接修改指定字段，不动图片 |
 | 说"修改/更新商品信息"但没给细节 | 提示：可以提供图片自动识别商品信息，也可以指定要修改的具体字段 |
 
-**定位商品**：使用 `--stock-goods-id <id> --account <shopId>`（从上架列表获取 `stockGoodsId` 和 `shopId`）。**不要用 `--id`**，列表返回的 `id` 字段不是 edit API 的 `goodsListingId`。
+**定位商品**：优先使用 `--id <goodsListingId>`（从上架列表获取 `id` 字段），也可用 `--stock-goods-id <id> --account <shopId>`。
 
 **关键约束**：
 - `--category-id` 和 `--channel-cat-id` 是**必填的**（后端复用挂售 DTO），即使不改类目也要传当前类目
@@ -95,7 +95,7 @@ metadata:
 5. **自动查询属性**：`hang-up props --channel-cat-id <id> --json` → 根据识别结果匹配成色/尺码/季节等
 6. **自动搜索品牌**：`hang-up brands --channel-cat-id <> --prop-id <> --key <品牌名> --json` → 获取品牌 valueId
 7. **汇总展示**：当前值 vs 变更值，让用户确认
-8. **提交**：`goods edit --stock-goods-id <> --account <> --category-id <> --channel-cat-id <> --image-ids <> --item-attrs <> --brand-name <> --json`
+8. **提交**：`goods edit --id <goodsListingId> --category-id <> --channel-cat-id <> --image-ids <> --item-attrs <> --brand-name <> --json`
 
 **核心原则**：用户只需提供图片 + 确认。类目匹配、属性填充、品牌搜索全部由 Agent 自动完成。
 
@@ -118,7 +118,14 @@ metadata:
 5. **汇总展示**：自动填充的字段标 ✅，缺失字段标 ❓ 让用户补充
 6. **提交**：`hang-up submit` — 必填：`shop-id`、`title`、`price`、`category-id`、`channel-cat-id`、`image-ids`、`stuff-status`、`desc`、`out-item-no`
 
-**核心原则**：只问用户价格和商家编码，其他尽量自动填充。售后默认全关闭。
+**核心原则**：**图片里能看到的，就别问用户**。只问价格和商家编码，其他全部从图片自动提取。
+
+**关键注意事项**：
+- **品牌必须双传**：`--brand-name` + itemAttrs 中的一项（含 propId/valueId/valueName），缺一不可
+- **描述自动生成**：品牌+款式+颜色+材质+货号自动组合，不要标记为"需要补充"
+- **季节自动推断**：夹克→春秋季，羽绒服→秋冬季，T恤→夏季等，不需要问用户
+- **尺码/货号从标签读取**：图片中有标签时自动提取，读不到才问用户
+- **标题自动组合**：品牌+款式+颜色+尺码+成色
 
 > Agent 执行具体操作时，用 Read 工具读取对应的 reference 文件获取完整参数和流程说明。
 
@@ -133,7 +140,7 @@ metadata:
 | `请指定下架条件：--id 或 --stock-goods-id + --shop-id` | 下架缺少定位参数 | 补充参数 |
 | `--price <amount> 为必填参数` | 改价未提供价格 | 询问用户新价格 |
 | `请提供至少一张图片` | 挂售缺少图片 | 提供本地图片路径 |
-| `商品不存在` | edit 用了 `--id`（列表 id 不是 goodsListingId） | 改用 `--stock-goods-id <> --account <>` |
+| `商品不存在` | edit 用了无效的 `--id` 或商品已被删除 | 确认 listing 列表中的 id 值 |
 | `getCategoryId() is null` | edit 缺少 `--category-id` | 必须传 `--category-id` 和 `--channel-cat-id` |
 | `商家编码重复` | out-item-no 同店铺已存在 | 更换唯一编码 |
 | `ITEM_CONDITION_NOT_SUPPORT_SIGN` | 售后服务未开通或品类不支持 | 默认关闭售后 |

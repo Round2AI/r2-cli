@@ -13,9 +13,9 @@ export function createEditCommand(): Command {
   command.description("修改已上架商品信息（标题、描述、品牌、类目、图片、属性等）");
 
   command
-    .option("--id <id>", "商品上架 ID（不推荐，优先用 --stock-goods-id + --account）")
-    .option("--stock-goods-id <id>", "库存商品 ID（推荐，与 --account 配合）")
-    .option("--account <shopId>", "闲鱼用户名/店铺 ID（推荐，与 --stock-goods-id 配合）")
+    .option("--id <id>", "商品上架 ID（goodsListingId，推荐）")
+    .option("--stock-goods-id <id>", "库存商品 ID（与 --account 配合）")
+    .option("--account <shopId>", "闲鱼用户名/店铺 ID（与 --stock-goods-id 配合）")
     .option("--title <title>", "商品标题")
     .option("--desc <desc>", "商品描述")
     .option("--category-id <id>", "商品类目 ID（大分类，后端必填）")
@@ -47,13 +47,13 @@ export function createEditCommand(): Command {
       size?: string;
       json?: boolean;
     }) => {
-      // 验证定位参数（推荐 stock-goods-id + account）
-      if (!(options.stockGoodsId && options.account) && !options.id) {
+      // 验证定位参数
+      if (!options.id && !(options.stockGoodsId && options.account)) {
         if (options.json) {
-          console.log(JSON.stringify({ success: false, error: "请指定商品：--stock-goods-id <id> --account <shopId>" }));
+          console.log(JSON.stringify({ success: false, status: 400, error: "请指定商品：--id <goodsListingId> 或 --stock-goods-id <id> --account <shopId>" }));
           process.exit(1);
         }
-        console.log(chalk.yellow("请指定商品：--stock-goods-id <id> --account <shopId>"));
+        console.log(chalk.yellow("请指定商品：--id <goodsListingId> 或 --stock-goods-id <id> --account <shopId>"));
         return;
       }
 
@@ -78,7 +78,7 @@ export function createEditCommand(): Command {
           params.itemAttrList = JSON.parse(options.itemAttrs) as XyItemAttr[];
         } catch {
           if (options.json) {
-            console.log(JSON.stringify({ success: false, error: "--item-attrs JSON 解析失败" }));
+            console.log(JSON.stringify({ success: false, status: 400, error: "--item-attrs JSON 解析失败" }));
             process.exit(1);
           }
           console.log(chalk.yellow("--item-attrs JSON 解析失败"));
@@ -92,7 +92,7 @@ export function createEditCommand(): Command {
       );
       if (!hasUpdate) {
         if (options.json) {
-          console.log(JSON.stringify({ success: false, error: "未指定需要修改的字段" }));
+          console.log(JSON.stringify({ success: false, status: 400, error: "未指定需要修改的字段" }));
           process.exit(1);
         }
         console.log(chalk.yellow("未指定需要修改的字段"));

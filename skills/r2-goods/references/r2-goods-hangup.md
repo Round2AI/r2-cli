@@ -4,15 +4,19 @@
 
 挂售模式支持完整商品信息：图片、类目、属性等。与普通上架（`goods up`）是不同流程。
 
-**核心理念**：先上传图片，Agent 尝试识别图片内容自动填充商品信息；无法识别时向用户询问。
+**核心理念**：**图片里能看到的，就别问用户**。Agent 从图片中提取一切可识别的信息，用户只需要提供价格和商家编码。
 
 ## 核心原则
 
-- **尽量减少用户操作**：图片识别能自动填充的就不要问用户，只问无法识别的必填字段
+- **图片优先**：所有字段优先从图片提取，图片无法识别时才问用户
 - 必须问用户的只有：**价格、商家编码**
-- 其他字段尽量自动填充，最终展示汇总让用户确认/修改
+- **必须问用户的条件**：价格（永远无法从图片判断）和商家编码（用户自定义）。其他一切字段都应尝试从图片获取
+- **描述必须自动生成**：基于 AI 识别的品牌+款式+颜色+材质+货号自动组合，不要标记为"需要补充"
+- **品牌必须双传**：`--brand-name`（文本字段）+ itemAttrs 中的一项（含 propId/valueId/valueName），缺一不可
+- **季节自动推断**：根据商品类型推断适用季节（夹克/风衣→春秋季，羽绒服→秋冬季，T恤/短裤→夏季），不需要问用户
+- **尺码/货号从标签读取**：如果图片中有标签/吊牌/水洗标，尝试读取尺码和货号，读不到时才问用户
+- **标题自动组合**：品牌+款式+颜色+尺码+成色，自动组合为标题
 - 提交成功后展示上架结果摘要
-- `item-attrs` 中 `propId` 和 `valueId` 是不同的值，构建时从 props 返回数据中取准确值
 
 ## 图片识别降级策略
 
@@ -55,14 +59,15 @@ r2-cli goods hang-up upload-images --shop-id <shopId> --files /path/img1.jpg,/pa
 
 | 字段 | 可从图片识别？ | 处理方式 |
 |------|---------------|----------|
-| `--title`（标题） | ✅ | 自动生成，汇总确认 |
-| `--desc`（描述） | ✅ | 自动生成，汇总确认 |
+| `--title`（标题） | ✅ | **自动组合**：品牌+款式+颜色+尺码+成色，汇总确认 |
+| `--desc`（描述） | ✅ | **自动生成**：品牌+系列+款式+颜色+材质+货号+成色组合，不要标记为"需要补充" |
 | `--stuff-status`（成色） | ✅ | 自动判断，汇总确认 |
-| `--brand-name`（品牌） | ✅ | 识别后调 brands 搜索确认，汇总确认 |
+| `--brand-name`（品牌） | ✅ | 识别后调 brands 搜索确认，**同时加入 itemAttrs**，汇总确认 |
 | `--category-id` / `--channel-cat-id` | ✅ | 自动推断，汇总确认 |
-| `--size`（尺码） | ⚠️ | 有标签则自动填，无则汇总时问 |
+| 季节属性 | ✅ | **自动推断**：夹克/风衣→春秋季，羽绒服→秋冬季，T恤/短裤→夏季，卫衣→春秋季等 |
+| `--size`（尺码） | ⚠️ | 有标签/吊牌则读取，无则汇总时问 |
+| `--goods-no`（货号） | ⚠️ | 有标签则读取，无则留空 |
 | 款式/颜色/材质属性 | ⚠️ | 能识别则自动匹配 propsValues，不能则汇总时问 |
-| 季节/裙长/裙型等属性 | ❌ | 汇总展示时让用户补充 |
 | `--price`（售价） | ❌ | **必须问用户** |
 | `--out-item-no`（商家编码） | ❌ | **必须问用户** |
 | `--shop-id`（店铺） | ❌ | 只有一个店铺时自动选，多个则问 |
@@ -75,6 +80,15 @@ r2-cli goods hang-up upload-images --shop-id <shopId> --files /path/img1.jpg,/pa
 | 几乎无使用痕迹 | `-1`（准新）或 `99`（99新） |
 | 轻微使用痕迹 | `95`（95新） |
 | 明显使用痕迹 | `90`（9新） |
+
+**季节推断映射**：
+
+| 商品类型 | 适用季节 |
+|----------|----------|
+| 夹克、风衣、卫衣、针织衫 | 春秋季 |
+| 羽绒服、棉衣、毛呢大衣 | 秋冬季 |
+| T恤、短裤、背心、凉鞋 | 夏季 |
+| 基础款衬衫、休闲裤 | 四季 |
 
 **如果用户没提供价格和商家编码，此时询问**（不要留到最后）。
 
@@ -114,10 +128,13 @@ r2-cli goods hang-up brands --channel-cat-id <id> --prop-id <品牌propId> --key
 
 最终构建 `--item-attrs`（**注意 propId 和 valueId 是不同字段**）：
 
+**⚠️ 品牌必须同时出现在 itemAttrs 和 --brand-name 中**。只传 `--brand-name` 不会把品牌写入商品属性，品牌必须作为 itemAttrs 的一项传入（含 channelCatId、propId、valueId、valueName）。
+
 ```json
 [
-  { "propId": "1d6d7611...", "valueId": "af8266ea...", "valueName": "吊带" },
-  { "propId": "3b9f06b2...", "valueId": "d114e6ab...", "valueName": "全新" }
+  { "channelCatId": "xxx", "propId": "83b8f62c...", "valueId": "68af4e8f...", "valueName": "Nike/耐克" },
+  { "channelCatId": "xxx", "propId": "1d6d7611...", "valueId": "af8266ea...", "valueName": "吊带" },
+  { "channelCatId": "xxx", "propId": "3b9f06b2...", "valueId": "d114e6ab...", "valueName": "全新" }
 ]
 ```
 
@@ -157,11 +174,11 @@ r2-cli goods hang-up submit \
   --channel-cat-id <channelCatId> \
   --image-ids "id1,id2" \
   --stuff-status 95 \
-  --desc "商品描述" \
+  --desc "商品描述（自动生成，包含品牌/款式/颜色/材质/货号）" \
   --out-item-no "商家编码" \
-  --brand-name "Nike" \
+  --brand-name "Nike/耐克" \
   --size "42" \
-  --item-attrs '[{"propId":"xx","valueId":"yy","valueName":"Nike"}]' \
+  --item-attrs '[{"channelCatId":"xxx","propId":"83b8f62c...","valueId":"品牌valueId","valueName":"Nike/耐克"},{"channelCatId":"xxx","propId":"3b9f06b2...","valueId":"d114e6ab...","valueName":"全新"},{"channelCatId":"xxx","propId":"6562df9f...","valueId":"尺码valueId","valueName":"42"}]' \
   --json
 ```
 

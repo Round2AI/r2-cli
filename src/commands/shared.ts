@@ -49,7 +49,8 @@ export function jsonAction<T extends { json?: boolean }>(fn: (options: T) => Pro
     } catch (error) {
       if (options.json) {
         const msg = error instanceof Error ? error.message : String(error);
-        console.log(JSON.stringify({ success: false, error: msg }));
+        const status = error instanceof ApiError ? error.status : undefined;
+        console.log(JSON.stringify({ success: false, error: msg, ...(status != null && { status }) }));
         process.exit(1);
       }
       handleCommandError(error);

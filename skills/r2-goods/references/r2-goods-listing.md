@@ -64,18 +64,18 @@ r2-cli goods price --stock-goods-id <id> --shop-id <id> --price <新价格> --js
 
 修改已上架商品的标题、描述、品牌、类目、图片、属性等。
 
-### 定位商品
+### 定位商品（二选一）
 
-**必须使用** `--stock-goods-id <id> --account <shopId>`（从上架列表获取 `stockGoodsId` 和 `shopId`）。
-
-> **不要用 `--id`**：列表返回的 `id` 字段不是 edit API 的 `goodsListingId`，传了会报"商品不存在"。
+| 方式 | 参数 | 推荐度 |
+|------|------|--------|
+| 上架记录 ID | `--id <goodsListingId>` | 推荐，从 listing 的 id 字段取 |
+| 库存商品 + 店铺 | `--stock-goods-id <id> --account <shopId>` | 备选，挂售商品 stockGoodsId 可能为 0 |
 
 ### 必填参数
 
 | 参数 | 说明 |
 |------|------|
-| `--stock-goods-id <id>` | 库存商品 ID（从 listing 的 stockGoodsId 字段取） |
-| `--account <shopId>` | 店铺 ID（从 listing 的 shopId 字段取） |
+| `--id <id>` 或 `--stock-goods-id + --account` | 定位商品（二选一） |
 | `--category-id <id>` | 大分类 ID（**后端必填**，即使不改类目也要传当前值） |
 | `--channel-cat-id <id>` | 小分类 ID（**后端必填**，即使不改类目也要传当前值） |
 
@@ -114,11 +114,11 @@ r2-cli goods price --stock-goods-id <id> --shop-id <id> --price <新价格> --js
 
 ```bash
 r2-cli goods edit \
-  --stock-goods-id <id> --account <shopId> \
+  --id <goodsListingId> \
   --category-id <catId> --channel-cat-id <channelCatId> \
   --image-ids "id1,id2,id3" \
-  --item-attrs '[{...成色...},{...尺码...},{...品牌...},{...季节...}]' \
-  --brand-name "ANTA/安踏" \
+  --item-attrs '[{...品牌...},{...成色...},{...尺码...},{...季节...}]' \
+  --brand-name "Louis Vuitton/路易威登" \
   --json
 ```
 
@@ -126,12 +126,12 @@ r2-cli goods edit \
 
 ```bash
 # 改标题
-r2-cli goods edit --stock-goods-id 0 --account "2947300866" \
+r2-cli goods goods edit --id 5 \
   --category-id 50106003 --channel-cat-id "f4718bbb04d7ed1facde29f76907b07f" \
   --title "新标题" --json
 
 # 改品牌+描述
-r2-cli goods edit --stock-goods-id 0 --account "2947300866" \
+r2-cli goods edit --id 5 \
   --category-id 50106003 --channel-cat-id "f4718bbb04d7ed1facde29f76907b07f" \
   --brand-name "Nike" --desc "全新描述" --json
 ```

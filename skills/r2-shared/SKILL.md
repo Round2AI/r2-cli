@@ -1,6 +1,6 @@
 ---
 name: r2-shared
-version: 1.0.0
+version: 1.1.0
 description: "R2-CLI 共享基础技能。安装、版本检查、统一错误格式、命令概览。r2-auth 和 r2-goods 的前置依赖。触发词：r2-cli、安装、install、错误格式。"
 metadata:
   requires:
@@ -15,9 +15,9 @@ metadata:
       action: "已更名为 r2-shared，请删除旧 skill：rm -rf ~/.agents/skills/r2-cli"
 ---
 
-# R2-Shared (v1)
+# R2-Shared (v1.1)
 
-> **Tip**: 始终使用 `--json` 获取结构化输出。所有 `--json` 命令统一错误格式 `{ success: false, error: "..." }`，检查 `success` 判断成败。
+> **Tip**: 始终使用 `--json` 获取结构化输出。所有 `--json` 命令统一错误格式 `{ success: false, error: "..." [, status: number] }`，检查 `success` 判断成败。`status` 字段在 HTTP 错误（ApiError）和参数校验失败（400）时包含。
 > **Tip**: Agent 获取数据后展示给用户选择，不要让用户自己提供 ID。
 
 二手潮奢交易命令行工具，由 Round2AI 团队维护。覆盖商品上架、认证登录等核心业务域。
@@ -70,7 +70,7 @@ npm install -g @round2ai/r2-cli@latest
 | 上架 | `r2-cli goods up --stock-goods-id <> --shop-id <> --price <> --json` | 普通上架（选品商品） |
 | | `r2-cli goods down --id <id> [--json]` | 下架商品 |
 | | `r2-cli goods price --id <id> --price <amount> [--json]` | 修改价格 |
-| 修改 | `r2-cli goods edit --stock-goods-id <> --account <> --category-id <> --channel-cat-id <> ... --json` | 修改商品信息 |
+| 修改 | `r2-cli goods edit --id <> --category-id <> --channel-cat-id <> ... --json` | 修改商品信息（定位推荐 `--id`） |
 | 挂售 | `r2-cli goods hang-up categories [--json]` | 获取闲鱼类目 |
 | | `r2-cli goods hang-up props --channel-cat-id <id> [--json]` | 获取属性列表 |
 | | `r2-cli goods hang-up brands --channel-cat-id <> --prop-id <> --key <> [--json]` | 品牌搜索 |
@@ -100,6 +100,12 @@ npm install -g @round2ai/r2-cli@latest
 
 ```json
 { "success": false, "error": "错误信息" }
+```
+
+API 错误和参数校验失败时额外包含 `status` 字段：
+
+```json
+{ "success": false, "error": "错误信息", "status": 400 }
 ```
 
 常见错误：
