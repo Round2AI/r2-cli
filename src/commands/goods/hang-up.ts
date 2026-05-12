@@ -41,8 +41,8 @@ export function createHangUpCommand(): Command {
           if (!grouped.has(key)) grouped.set(key, { catName: cat.catName, children: [] });
           grouped.get(key)!.children.push({ channel: cat.channel, channelCatId: cat.channelCatId });
         }
-        for (const [, group] of grouped) {
-          console.log(chalk.bold(group.catName));
+        for (const [catId, group] of grouped) {
+          console.log(chalk.bold(`${group.catName} (catId: ${chalk.green(catId)})`));
           for (const child of group.children) {
             console.log(`  ${child.channel} (channelCatId: ${chalk.green(child.channelCatId)})`);
           }

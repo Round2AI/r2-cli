@@ -137,8 +137,10 @@ export interface ListingListParams {
 
 /** 上架列表返回 */
 export interface ListingListResult {
-  list: ListingInfo[];
+  items: ListingInfo[];
   total: number;
+  page?: number;
+  perPage?: number;
 }
 
 // ==================== 用户级接口 ====================
@@ -374,6 +376,42 @@ export interface AfterSales {
   supportGpaPolicy?: boolean | undefined;
   /** 极速发货-48小时，默认 false */
   supportFd48hsPolicy?: boolean | undefined;
+}
+
+/** 修改商品信息参数（goodsListingId 或 stockGoodsId+account 二选一定位商品） */
+export interface UpdateGoodsInfoParams {
+  /** 商品上架 ID（与 stockGoodsId+account 二选一） */
+  goodsListingId?: number;
+  /** 库存商品 ID */
+  stockGoodsId?: number;
+  /** 闲鱼用户名/店铺 ID */
+  account?: string;
+  /** 商品标题 */
+  title?: string;
+  /** 商品描述 */
+  desc?: string;
+  /** 商品类目 ID */
+  categoryId?: number;
+  /** 渠道类目 ID */
+  channelCatId?: string;
+  /** 图片 ID 列表 */
+  imageIdList?: string[];
+  /** 商品属性 */
+  itemAttrList?: XyItemAttr[];
+  /** 品牌名称 */
+  brandName?: string;
+  /** 成色等级：100=全新 -1=准新 99=99新 95=95新 90=9新 */
+  stuffStatus?: number;
+  /** 货号 */
+  goodsNo?: string;
+  /** 图片类型 ID */
+  imageType?: string;
+  /** 商品长图 */
+  longImageList?: ImageInfo[];
+  /** 原价（单位：元） */
+  originalPrice?: number;
+  /** 尺码 */
+  size?: string;
 }
 
 /** 挂售上架参数 */

@@ -9,8 +9,8 @@
 
 import { Command } from "commander";
 import { getLoginService } from "../../services/auth/index.js";
-import { openUrl } from "../../qr-server/index.js";
 import { handleCommandError, agentAction } from "../shared.js";
+import { runQRJsonFlow } from "./qr-flow.js";
 
 export function createLoginCommand(): Command {
   const command = new Command("login");
@@ -38,27 +38,30 @@ export function createLoginCommand(): Command {
   command.action(async (options: { json?: boolean }) => {
     try {
       if (options.json) {
-        const service = getLoginService();
-        const { qrData, qrUrl, setStatus, closeServer } = await service.generateQR();
-        const expireMs = Number.parseInt(qrData.expireTime, 10);
-        const intervalMs = Number.parseInt(qrData.pollInterval, 10);
-        console.log(JSON.stringify({
-          qrToken: qrData.qrToken,
-          expireTimeMs: expireMs,
-          pollIntervalMs: intervalMs,
-          url: `https://m.puresnake.com/r2/auth/login?qrToken=${qrData.qrContent}&from=wechat`,
-          qrUrl,
-        }, null, 2));
-        openUrl(qrUrl);
-        try {
-          const result = await service.waitForLogin(qrData.qrToken, expireMs, intervalMs, undefined, setStatus, true);
-          console.log(JSON.stringify({ success: true, userInfo: result.userInfo }));
-        } catch (error) {
-          const msg = error instanceof Error ? error.message : String(error);
-          console.log(JSON.stringify({ success: false, error: msg }));
-        } finally {
-          setTimeout(closeServer, 1000);
-        }
+        await runQRJsonFlow({
+          generate: async () => {
+            const service = getLoginService();
+            const { qrData, qrUrl, setStatus, closeServer } = await service.generateQR();
+            const expireMs = Number.parseInt(qrData.expireTime, 10);
+            const intervalMs = Number.parseInt(qrData.pollInterval, 10);
+            return {
+              qrInfo: {
+                qrToken: qrData.qrToken,
+                expireTimeMs: expireMs,
+                pollIntervalMs: intervalMs,
+                url: `https://m.puresnake.com/r2/auth/login?qrToken=${qrData.qrContent}&from=wechat`,
+                qrUrl,
+              },
+              qrUrl,
+              setStatus,
+              closeServer,
+              waitArgs: { qrToken: qrData.qrToken, expireMs, intervalMs },
+            };
+          },
+          waitResult: ({ qrToken, expireMs, intervalMs }, setStatus) =>
+            getLoginService().waitForLogin(qrToken, expireMs, intervalMs, undefined, setStatus, true),
+          formatSuccess: (result) => ({ success: true, userInfo: result.userInfo }),
+        });
       } else {
         await getLoginService().login();
       }

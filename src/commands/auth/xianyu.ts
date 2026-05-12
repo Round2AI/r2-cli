@@ -9,8 +9,8 @@
 
 import { Command } from "commander";
 import { generateAuthQR, waitForAuth, authorize } from "../../services/auth/xianyu-auth.js";
-import { openUrl } from "../../qr-server/index.js";
 import { handleCommandError, agentAction, agentError } from "../shared.js";
+import { runQRJsonFlow } from "./qr-flow.js";
 
 export function createXianyuAuthCommand(): Command {
   const command = new Command("xianyu");
@@ -42,31 +42,31 @@ export function createXianyuAuthCommand(): Command {
   command.action(async (options: { json?: boolean }) => {
     try {
       if (options.json) {
-        const { authData, qrUrl, setStatus, closeServer } = await generateAuthQR();
-        const expireMs = authData.expireTime ? Number.parseInt(authData.expireTime, 10) : 300000;
-        const intervalMs = authData.pollInterval ? Number.parseInt(authData.pollInterval, 10) : 1000;
-        console.log(JSON.stringify({
-          state: authData.state,
-          expireTimeMs: expireMs,
-          pollIntervalMs: intervalMs,
-          qrUrl,
-        }, null, 2));
-        openUrl(qrUrl);
-        try {
-          const result = await waitForAuth(authData.state, expireMs, intervalMs, undefined, setStatus);
-          if (result.status === "success") {
-            console.log(JSON.stringify({ success: true, shopId: result.shopId, shopName: result.shopName }));
-          } else {
-            console.log(JSON.stringify({ success: false, error: `授权状态: ${result.status}` }));
-            process.exit(1);
-          }
-        } catch (error) {
-          const msg = error instanceof Error ? error.message : String(error);
-          console.log(JSON.stringify({ success: false, error: msg }));
-          process.exit(1);
-        } finally {
-          setTimeout(closeServer, 1000);
-        }
+        await runQRJsonFlow({
+          generate: async () => {
+            const { authData, qrUrl, setStatus, closeServer } = await generateAuthQR();
+            const expireMs = authData.expireTime ? Number.parseInt(authData.expireTime, 10) : 300000;
+            const intervalMs = authData.pollInterval ? Number.parseInt(authData.pollInterval, 10) : 1000;
+            return {
+              qrInfo: {
+                state: authData.state,
+                expireTimeMs: expireMs,
+                pollIntervalMs: intervalMs,
+                qrUrl,
+              },
+              qrUrl,
+              setStatus,
+              closeServer,
+              waitArgs: { state: authData.state, expireMs, intervalMs },
+            };
+          },
+          waitResult: async ({ state, expireMs, intervalMs }, setStatus) => {
+            const result = await waitForAuth(state, expireMs, intervalMs, undefined, setStatus);
+            if (result.status !== "success") throw new Error(`授权状态: ${result.status}`);
+            return result;
+          },
+          formatSuccess: (result) => ({ success: true, shopId: result.shopId, shopName: result.shopName }),
+        });
       } else {
         await authorize();
       }

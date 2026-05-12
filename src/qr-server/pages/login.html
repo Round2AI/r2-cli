@@ -1,57 +1,219 @@
-<!DOCTYPE html>
-<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>第二回合 - 扫码登录</title>
-<style>
-*{box-sizing:border-box;margin:0;padding:0}
-:root{--primary:#06d290;--primary-light:#06d2901a;--primary-dark:#06d290cc;--text:#1a1a1a;--text-muted:#8c8c8c;--bg:#f7f8fa;--card:#fff;--border:#e8e8e8;--radius:16px;--shadow:0 2px 16px #06d2901a;--success:#52c41a;--error:#ff4d4f;--info:#1890ff}
-body{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text)}
-.card{background:var(--card);border-radius:var(--radius);padding:40px 32px 32px;box-shadow:var(--shadow);border:1px solid var(--border);text-align:center;max-width:360px;width:90%;transition:all .3s ease}
-.brand{margin-bottom:24px}
-.brand-name{font-size:22px;font-weight:700;color:var(--text);letter-spacing:2px}
-.brand-sub{font-size:10px;color:var(--text-muted);margin-top:4px;letter-spacing:3px;text-transform:uppercase;font-weight:500}
-img#qr{max-width:200px;border-radius:12px;transition:all .3s ease}
-img#qr.dimmed{opacity:.15;filter:blur(4px);transform:scale(.95)}
-.status-text{font-size:16px;font-weight:600;color:var(--text);margin-top:16px}
-.hint{color:var(--text-muted);font-size:13px;margin-top:6px}
-.scan-hint{color:var(--text-muted);font-size:12px;margin-top:16px}
-.status-icon{font-size:56px;margin-bottom:8px;animation:popIn .4s cubic-bezier(.175,.885,.32,1.275)}
-@keyframes popIn{0%{transform:scale(0);opacity:0}100%{transform:scale(1);opacity:1}}
-.success-bg .card{border-color:var(--success);box-shadow:0 2px 16px rgba(82,196,26,.12)}
-.success-bg .status-text{color:var(--success)}
-.expired-bg .card{border-color:var(--error);box-shadow:0 2px 16px rgba(255,77,79,.1)}
-.expired-bg .status-text{color:var(--error)}
-.scanning-bg .card{border-color:var(--info);box-shadow:0 2px 16px rgba(24,144,255,.1)}
-.scanning-bg .status-text{color:var(--info)}
-.pulse{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--info);animation:pulse 1.4s infinite;margin-right:6px;vertical-align:middle}
-@keyframes pulse{0%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.8)}100%{opacity:1;transform:scale(1)}}
-</style></head>
-<body>
-<div class="card" id="app">
-  <div class="brand"><div class="brand-name">第二回合</div><div class="brand-sub">Round2AI</div></div>
-  <img id="qr" src="./qr.png" alt="第二回合 - 扫码登录"/>
-  <p class="status-text" id="statusText">请扫码登录</p>
-  <p class="scan-hint">支持 第二回合 APP / 微信 / 支付宝 扫码</p>
-  <p class="hint" id="hint"></p>
-</div>
-<script>
-const qr=document.getElementById("qr"),st=document.getElementById("statusText"),ht=document.getElementById("hint"),app=document.getElementById("app"),bd=document.body;
-const states={
-  waiting:{icon:"",text:"请扫码登录",hint:"",bg:"",dim:false},
-  scanning:{icon:"",text:'<span class="pulse"></span>已扫码，请在手机上确认',hint:"等待确认中...",bg:"scanning-bg",dim:true},
-  success:{icon:"✅",text:"登录成功！",hint:"可关闭此页面",bg:"success-bg",dim:true},
-  expired:{icon:"⏰",text:"二维码已过期",hint:"请重新获取",bg:"expired-bg",dim:true}
-};
-function render(s){
-  const d=states[s]||states.waiting;
-  bd.className=d.bg;
-  if(d.icon){
-    qr.style.display="none";
-    app.innerHTML='<div class="brand"><div class="brand-name">第二回合</div><div class="brand-sub">Round2AI</div></div><div class="status-icon">'+d.icon+'</div><p class="status-text">'+d.text+'</p>'+(d.hint?'<p class="hint">'+d.hint+'</p>':'');
-  }else{
-    qr.style.display="";qr.classList.toggle("dimmed",d.dim);st.innerHTML=d.text;ht.textContent=d.hint;
-  }
-}
-const es=new EventSource("./events");
-es.onmessage=function(e){try{const d=JSON.parse(e.data);if(d.status)render(d.status)}catch(ex){}};
-es.onerror=function(){es.close()};
-</script></body></html>
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>第二回合 - 扫码登录</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      :root {
+        --primary: #06d290;
+        --primary-light: #06d2901a;
+        --primary-dark: #06d290cc;
+        --text: #1a1a1a;
+        --text-muted: #8c8c8c;
+        --bg: #f7f8fa;
+        --card: #fff;
+        --border: #e8e8e8;
+        --radius: 16px;
+        --shadow: 0 2px 16px #06d2901a;
+        --success: #52c41a;
+        --error: #ff4d4f;
+        --info: #1890ff;
+      }
+      body {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        font-family:
+          system-ui,
+          -apple-system,
+          "Segoe UI",
+          Roboto,
+          sans-serif;
+        background: var(--bg);
+        color: var(--text);
+      }
+      .card {
+        background: var(--card);
+        border-radius: var(--radius);
+        padding: 40px 32px 32px;
+        box-shadow: var(--shadow);
+        border: 1px solid var(--border);
+        text-align: center;
+        max-width: 360px;
+        width: 90%;
+        transition: all 0.3s ease;
+      }
+      .brand {
+        margin-bottom: 24px;
+      }
+      .brand-name {
+        font-size: 22px;
+        font-weight: 700;
+        color: var(--text);
+        letter-spacing: 2px;
+      }
+      .brand-sub {
+        font-size: 10px;
+        color: var(--text-muted);
+        margin-top: 4px;
+        letter-spacing: 3px;
+        text-transform: uppercase;
+        font-weight: 500;
+      }
+      img#qr {
+        max-width: 200px;
+        border-radius: 12px;
+        transition: all 0.3s ease;
+      }
+      img#qr.dimmed {
+        opacity: 0.15;
+        filter: blur(4px);
+        transform: scale(0.95);
+      }
+      .status-text {
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--text);
+        margin-top: 16px;
+      }
+      .hint {
+        color: var(--text-muted);
+        font-size: 13px;
+        margin-top: 6px;
+      }
+      .scan-hint {
+        color: var(--text-muted);
+        font-size: 12px;
+        margin-top: 16px;
+      }
+      .status-icon {
+        font-size: 56px;
+        margin-bottom: 8px;
+        animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      }
+      @keyframes popIn {
+        0% {
+          transform: scale(0);
+          opacity: 0;
+        }
+        100% {
+          transform: scale(1);
+          opacity: 1;
+        }
+      }
+      .success-bg .card {
+        border-color: var(--success);
+        box-shadow: 0 2px 16px rgba(82, 196, 26, 0.12);
+      }
+      .success-bg .status-text {
+        color: var(--success);
+      }
+      .expired-bg .card {
+        border-color: var(--error);
+        box-shadow: 0 2px 16px rgba(255, 77, 79, 0.1);
+      }
+      .expired-bg .status-text {
+        color: var(--error);
+      }
+      .scanning-bg .card {
+        border-color: var(--info);
+        box-shadow: 0 2px 16px rgba(24, 144, 255, 0.1);
+      }
+      .scanning-bg .status-text {
+        color: var(--info);
+      }
+      .pulse {
+        display: inline-block;
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--info);
+        animation: pulse 1.4s infinite;
+        margin-right: 6px;
+        vertical-align: middle;
+      }
+      @keyframes pulse {
+        0% {
+          opacity: 1;
+          transform: scale(1);
+        }
+        50% {
+          opacity: 0.4;
+          transform: scale(0.8);
+        }
+        100% {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card" id="app">
+      <div class="brand">
+        <div class="brand-name">第二回合</div>
+        <div class="brand-sub">Round2AI</div>
+      </div>
+      <img id="qr" src="./qr.png" alt="第二回合 - 扫码登录" />
+      <p class="status-text" id="statusText">请扫码登录</p>
+      <p class="scan-hint">支持 第二回合 APP / 微信 / 支付宝 扫码</p>
+      <p class="hint" id="hint"></p>
+    </div>
+    <script>
+      const qr = document.getElementById("qr"),
+        st = document.getElementById("statusText"),
+        ht = document.getElementById("hint"),
+        app = document.getElementById("app"),
+        bd = document.body;
+      const states = {
+        waiting: { icon: "", text: "请扫码登录", hint: "", bg: "", dim: false },
+        scanning: {
+          icon: "",
+          text: '<span class="pulse"></span>已扫码，请在手机上确认',
+          hint: "等待确认中...",
+          bg: "scanning-bg",
+          dim: true,
+        },
+        success: { icon: "✅", text: "登录成功！", hint: "可关闭此页面", bg: "success-bg", dim: true },
+        expired: { icon: "⏰", text: "二维码已过期", hint: "请重新获取", bg: "expired-bg", dim: true },
+      };
+      function render(s) {
+        const d = states[s] || states.waiting;
+        bd.className = d.bg;
+        if (d.icon) {
+          qr.style.display = "none";
+          app.innerHTML =
+            '<div class="brand"><div class="brand-name">第二回合</div><div class="brand-sub">Round2AI</div></div><div class="status-icon">' +
+            d.icon +
+            '</div><p class="status-text">' +
+            d.text +
+            "</p>" +
+            (d.hint ? '<p class="hint">' + d.hint + "</p>" : "");
+        } else {
+          qr.style.display = "";
+          qr.classList.toggle("dimmed", d.dim);
+          st.innerHTML = d.text;
+          ht.textContent = d.hint;
+        }
+      }
+      const es = new EventSource("./events");
+      es.onmessage = function (e) {
+        try {
+          const d = JSON.parse(e.data);
+          if (d.status) render(d.status);
+        } catch (ex) {}
+      };
+      es.onerror = function () {
+        es.close();
+      };
+    </script>
+  </body>
+</html>

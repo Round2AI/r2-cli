@@ -5,6 +5,7 @@
 import { authClient } from "../client.js";
 import { readFileSync } from "node:fs";
 import { basename } from "node:path";
+import { toParams } from "../../../utils/params.js";
 import type {
   ListingUpParams,
   ListingGetParams,
@@ -13,6 +14,7 @@ import type {
   ListingUpdatePriceParams,
   ListingListParams,
   ListingListResult,
+  UpdateGoodsInfoParams,
   UserShop,
   UserStock,
   SelectGoodsListParams,
@@ -25,17 +27,6 @@ import type {
 } from "../../../types/goods.js";
 
 const client = authClient;
-
-/** 将对象转为 URLSearchParams，过滤掉 undefined/null/空字符串（GET 请求专用） */
-function toParams(obj: Record<string, unknown>): URLSearchParams {
-  const params = new URLSearchParams();
-  for (const [key, value] of Object.entries(obj)) {
-    if (value !== undefined && value !== null && value !== "") {
-      params.append(key, String(value));
-    }
-  }
-  return params;
-}
 
 // ==================== 上架（Listing） ====================
 
@@ -57,6 +48,11 @@ export async function listingDownXianyu(params: ListingDownParams): Promise<Reco
 /** 修改闲鱼上架商品价格 */
 export async function listingUpdatePrice(params: ListingUpdatePriceParams): Promise<Record<string, unknown>> {
   return client.post<Record<string, unknown>>("mms/goods/listing/update/xyPrice", params);
+}
+
+/** 修改已上架商品信息（标题、描述、品牌、类目、图片、属性等） */
+export async function updateGoodsInfo(params: UpdateGoodsInfoParams): Promise<Record<string, unknown>> {
+  return client.post<Record<string, unknown>>("mms/goods/listing/update/goodsInfo", params);
 }
 
 /** 查询上架列表，支持按状态/店铺/商品/仓库等条件过滤 */

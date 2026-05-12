@@ -10,6 +10,7 @@ import { createListCommand } from "./list.js";
 import { createListingCommand } from "./listing.js";
 import { createDownCommand } from "./down.js";
 import { createPriceCommand } from "./price.js";
+import { createEditCommand } from "./edit.js";
 import { createHangUpCommand } from "./hang-up.js";
 
 export function createGoodsCommand(): Command {
@@ -22,6 +23,7 @@ export function createGoodsCommand(): Command {
   command.addCommand(createListingCommand());
   command.addCommand(createDownCommand());
   command.addCommand(createPriceCommand());
+  command.addCommand(createEditCommand());
   command.addCommand(createUpCommand());
   command.addCommand(createHangUpCommand());
 

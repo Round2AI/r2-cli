@@ -58,6 +58,6 @@ export async function checkForUpdate(currentVersion: string): Promise<void> {
 function showUpdateNotification(current: string, latest: string): void {
   console.error(
     chalk.yellow(`\nUpdate available: ${current} → ${latest}`) +
-      chalk.gray(`\nRun: npm update -g ${PKG_NAME}\n`),
+      chalk.gray(`\nRun: r2-cli update\n`),
   );
 }

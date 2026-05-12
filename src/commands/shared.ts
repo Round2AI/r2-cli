@@ -57,7 +57,7 @@ export function jsonAction<T extends { json?: boolean }>(fn: (options: T) => Pro
   };
 }
 
-/** @deprecated 使用 jsonAction 代替 */
+/** Agent 纯 JSON 子命令包装器（始终输出 JSON 错误，不区分双模） */
 export function agentAction<T extends unknown[]>(fn: (...args: T) => Promise<void>): (...args: T) => Promise<void> {
   return async (...args: T) => {
     try {

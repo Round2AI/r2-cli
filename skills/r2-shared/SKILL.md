@@ -70,11 +70,19 @@ npm install -g @round2ai/r2-cli@latest
 | 上架 | `r2-cli goods up --stock-goods-id <> --shop-id <> --price <> --json` | 普通上架（选品商品） |
 | | `r2-cli goods down --id <id> [--json]` | 下架商品 |
 | | `r2-cli goods price --id <id> --price <amount> [--json]` | 修改价格 |
+| 修改 | `r2-cli goods edit --stock-goods-id <> --account <> --category-id <> --channel-cat-id <> ... --json` | 修改商品信息 |
 | 挂售 | `r2-cli goods hang-up categories [--json]` | 获取闲鱼类目 |
 | | `r2-cli goods hang-up props --channel-cat-id <id> [--json]` | 获取属性列表 |
 | | `r2-cli goods hang-up brands --channel-cat-id <> --prop-id <> --key <> [--json]` | 品牌搜索 |
 | | `r2-cli goods hang-up upload-images --shop-id <> --files <> --json` | 上传图片 |
 | | `r2-cli goods hang-up submit --shop-id <> --title <> ... --json` | 提交挂售上架 |
+
+## 其他命令
+
+| 命令 | 说明 |
+|------|------|
+| `r2-cli update` | 一键更新 CLI 和技能 |
+| `r2-cli uninstall` | 卸载并清除配置 |
 
 ## Agent 上架路由（概要）
 

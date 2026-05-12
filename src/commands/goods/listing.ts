@@ -6,6 +6,8 @@ import { Command } from "commander";
 import chalk from "chalk";
 import * as xianyuApi from "../../services/api/modules/goods.js";
 import { jsonAction } from "../shared.js";
+import { renderComponent } from "../../utils/render.js";
+import { ListingTable } from "../../components/ListingTable.js";
 
 const STATUS_MAP: Record<string, string> = {
   init: "待上架",
@@ -46,10 +48,10 @@ export function createListingCommand(): Command {
         platform: options.platform,
       });
 
-      const data = result ?? { list: [], total: 0 };
+      const data = result ?? { items: [], total: 0 };
 
       if (options.json) {
-        if (!data.list?.length) {
+        if (!data.items?.length) {
           console.log(JSON.stringify({ ...data, hint: "暂无上架记录" }, null, 2));
         } else {
           console.log(JSON.stringify(data, null, 2));
@@ -57,16 +59,12 @@ export function createListingCommand(): Command {
         return;
       }
 
-      if (!data.list?.length) {
+      if (!data.items?.length) {
         console.log(chalk.yellow("暂无上架记录"));
         return;
       }
 
-      console.log(chalk.green(`✅ 共 ${data.total} 条记录\n`));
-      for (const item of data.list) {
-        const statusText = STATUS_MAP[item.status] ?? item.status;
-        console.log(`  ID: ${item.id} | 状态: ${statusText} | 价格: ${item.price} | stockGoodsId: ${item.stockGoodsId}`);
-      }
+      renderComponent(ListingTable, { items: data.items, total: data.total });
     }),
   );
 

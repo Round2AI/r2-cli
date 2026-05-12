@@ -1,7 +1,7 @@
 ---
 name: r2-goods
-version: 1.0.0
-description: "R2-CLI 商品管理专家。用于商品上架/下架/改价/挂售、查看店铺/仓库/选品商品/上架列表。Agent 获取数据后展示给用户选择，完成 4 步上架流程。触发词：上架、下架、改价、挂售、商品列表、goods、up、down、price、hang-up、shops、stocks、listing、list。"
+version: 1.1.0
+description: "R2-CLI 商品管理专家。用于商品上架/下架/改价/修改信息/挂售、查看店铺/仓库/选品商品/上架列表。Agent 获取数据后展示给用户选择，完成 4 步上架流程。触发词：上架、下架、改价、修改商品、挂售、商品列表、goods、up、down、price、edit、hang-up、shops、stocks、listing、list。"
 metadata:
   requires:
     bins: ["r2-cli"]
@@ -48,13 +48,56 @@ metadata:
 | `r2-cli goods list [--stock-id <id>] [--json]` | 查看选品商品 | [r2-goods-query](references/r2-goods-query.md) |
 | `r2-cli goods listing [--json]` | 查询上架列表 | [r2-goods-query](references/r2-goods-query.md) |
 
-### 上架/下架/改价
+### 上架/下架/改价/修改
 
 | 命令 | 说明 | 详细文档 |
 |------|------|----------|
 | `r2-cli goods up --stock-goods-id <> --shop-id <> --price <> --json` | 普通上架（选品商品） | [r2-goods-listing](references/r2-goods-listing.md) |
 | `r2-cli goods down --id <id> [--json]` | 下架商品 | [r2-goods-listing](references/r2-goods-listing.md) |
 | `r2-cli goods price --id <id> --price <amount> [--json]` | 修改价格 | [r2-goods-listing](references/r2-goods-listing.md) |
+| `r2-cli goods edit --id <id> [--title ...] --json` | 修改商品信息 | [r2-goods-listing](references/r2-goods-listing.md) |
+
+### 选品上架 4 步流程
+
+1. `r2-cli goods shops --json` → 展示店铺 → 用户选择 `shopId`
+2. `r2-cli goods stocks --json` → 展示仓库 → 用户选择 `stockId`
+3. `r2-cli goods list --stock-id <id> --json` → 展示商品 → 用户选择 `stockGoodsId`
+4. `r2-cli goods up --stock-goods-id <id> --shop-id <id> --price <amount> --json` → 提交
+
+必填参数：`--stock-goods-id`、`--shop-id`（取 `shopId` 不是 `id`）、`--price`
+
+### 修改商品信息（edit）
+
+修改已上架商品的标题、描述、品牌、类目、图片、属性等。
+
+**路由决策**：
+
+| 用户意图 | 流程 |
+|----------|------|
+| 提供了图片文件 | 全自动：读图识别 → 上传图片 → 匹配类目/属性/品牌 → 展示变更 → 用户确认 → 提交 |
+| 指定了具体字段（如"改标题为X"） | 直接修改指定字段，不动图片 |
+| 说"修改/更新商品信息"但没给细节 | 提示：可以提供图片自动识别商品信息，也可以指定要修改的具体字段 |
+
+**定位商品**：使用 `--stock-goods-id <id> --account <shopId>`（从上架列表获取 `stockGoodsId` 和 `shopId`）。**不要用 `--id`**，列表返回的 `id` 字段不是 edit API 的 `goodsListingId`。
+
+**关键约束**：
+- `--category-id` 和 `--channel-cat-id` 是**必填的**（后端复用挂售 DTO），即使不改类目也要传当前类目
+- Agent 应自动查询类目并匹配，不需要用户手动提供
+- AI 读图识别后填充的字段需展示给用户确认，不能静默覆盖已有信息
+- `--image-ids` 接受已上传的图片 ID，用户给图片文件时需先调 `hang-up upload-images` 上传
+
+**带图片的全自动流程**（Agent 自动完成，用户只需提供图片并确认）：
+
+1. **展示列表**：`goods listing --json` → 用户选择要修改的商品
+2. **上传图片**：`hang-up upload-images --shop-id <shopId> --files <paths> --json`
+3. **AI 读图识别**：Agent 用 Read 工具查看图片，识别品牌/类目/成色/描述等
+4. **自动匹配类目**：`hang-up categories --json` → 根据识别结果匹配 catId + channelCatId
+5. **自动查询属性**：`hang-up props --channel-cat-id <id> --json` → 根据识别结果匹配成色/尺码/季节等
+6. **自动搜索品牌**：`hang-up brands --channel-cat-id <> --prop-id <> --key <品牌名> --json` → 获取品牌 valueId
+7. **汇总展示**：当前值 vs 变更值，让用户确认
+8. **提交**：`goods edit --stock-goods-id <> --account <> --category-id <> --channel-cat-id <> --image-ids <> --item-attrs <> --brand-name <> --json`
+
+**核心原则**：用户只需提供图片 + 确认。类目匹配、属性填充、品牌搜索全部由 Agent 自动完成。
 
 ### 挂售（hang-up）
 
@@ -65,6 +108,17 @@ metadata:
 | `r2-cli goods hang-up brands --channel-cat-id <> --prop-id <> --key <> [--json]` | 品牌搜索 | [r2-goods-hangup](references/r2-goods-hangup.md) |
 | `r2-cli goods hang-up upload-images --shop-id <> --files <> --json` | 上传图片 | [r2-goods-hangup](references/r2-goods-hangup.md) |
 | `r2-cli goods hang-up submit --shop-id <> --title <> ... --json` | 提交挂售上架 | [r2-goods-hangup](references/r2-goods-hangup.md) |
+
+### 挂售上架流程
+
+1. **上传图片**：`hang-up upload-images --shop-id <> --files <paths> --json`
+2. **识别商品**：Agent 用 Read 工具查看图片，自动识别品牌/成色/类目/描述。不支持读图的 Agent 走询问路径
+3. **匹配类目**：`hang-up categories --json` → 自动匹配
+4. **匹配属性**：`hang-up props --channel-cat-id <id> --json` → 自动填充。品牌需调 `hang-up brands` 搜索
+5. **汇总展示**：自动填充的字段标 ✅，缺失字段标 ❓ 让用户补充
+6. **提交**：`hang-up submit` — 必填：`shop-id`、`title`、`price`、`category-id`、`channel-cat-id`、`image-ids`、`stuff-status`、`desc`、`out-item-no`
+
+**核心原则**：只问用户价格和商家编码，其他尽量自动填充。售后默认全关闭。
 
 > Agent 执行具体操作时，用 Read 工具读取对应的 reference 文件获取完整参数和流程说明。
 
@@ -79,6 +133,8 @@ metadata:
 | `请指定下架条件：--id 或 --stock-goods-id + --shop-id` | 下架缺少定位参数 | 补充参数 |
 | `--price <amount> 为必填参数` | 改价未提供价格 | 询问用户新价格 |
 | `请提供至少一张图片` | 挂售缺少图片 | 提供本地图片路径 |
+| `商品不存在` | edit 用了 `--id`（列表 id 不是 goodsListingId） | 改用 `--stock-goods-id <> --account <>` |
+| `getCategoryId() is null` | edit 缺少 `--category-id` | 必须传 `--category-id` 和 `--channel-cat-id` |
 | `商家编码重复` | out-item-no 同店铺已存在 | 更换唯一编码 |
 | `ITEM_CONDITION_NOT_SUPPORT_SIGN` | 售后服务未开通或品类不支持 | 默认关闭售后 |
 | `轮询超时` | 上架结果查询超时 | 稍后用 `goods listing` 查看 |

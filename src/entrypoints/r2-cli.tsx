@@ -6,11 +6,10 @@
  */
 
 import { Command } from "commander";
-import { readFileSync } from "node:fs";
-import path from "node:path";
 import chalk from "chalk";
 import { setupCommands } from "../commands/setup.js";
 import { checkForUpdate } from "../services/update-check/index.js";
+import { getVersion } from "../utils/version.js";
 
 async function displayWelcomeMessage(): Promise<void> {
   const { default: figlet } = await import("figlet");
@@ -30,14 +29,7 @@ function setupCliApp(): { program: Command; updateCheckPromise: Promise<void> } 
 
   program.name("r2-cli").description("R2-CLI，向 AI 开放二手潮奢交易全链路能力");
 
-  let version = "0.0.0";
-  // npm 安装后：dist/ → ../package.json；开发模式：src/entrypoints/ → ../../package.json
-  for (const rel of ["../package.json", "../../package.json"]) {
-    try {
-      version = JSON.parse(readFileSync(path.join(import.meta.dirname, rel), "utf-8")).version;
-      break;
-    } catch { /* next */ }
-  }
+  let version = getVersion();
   if (version === "0.0.0") {
     console.error(chalk.yellow("Warning: unable to read version from package.json"));
   }
