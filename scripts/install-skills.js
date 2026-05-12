@@ -1,63 +1,20 @@
 /**
- * postinstall: 将 skills/ 复制到 ~/.agents/skills/
+ * postinstall: 通过 skills CLI 将本地 skills 安装到所有 Agent 目录
+ * 自动适配 Claude Code / Codex / Gemini CLI 等所有 Agent
  */
 
-import fs from "node:fs";
+import { execSync } from "node:child_process";
 import path from "node:path";
-import os from "node:os";
 import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const pkgSkillsDir = path.join(__dirname, "..", "skills");
-const agentsDir = path.join(os.homedir(), ".agents", "skills");
+const skillsDir = path.join(__dirname, "..", "skills");
 
-if (!fs.existsSync(pkgSkillsDir)) process.exit(0);
-
-fs.mkdirSync(agentsDir, { recursive: true });
-
-for (const name of fs.readdirSync(pkgSkillsDir)) {
-  const rawSrc = path.join(pkgSkillsDir, name);
-  let src;
-  try { src = fs.realpathSync(rawSrc); } catch { continue; }
-  if (!fs.statSync(src).isDirectory()) continue;
-
-  const dest = path.join(agentsDir, name);
-  if (fs.existsSync(dest)) {
-    for (const old of fs.readdirSync(dest)) {
-      const oldPath = path.join(dest, old);
-      fs.statSync(oldPath).isDirectory()
-        ? fs.rmSync(oldPath, { recursive: true })
-        : fs.unlinkSync(oldPath);
-    }
-  }
-  fs.mkdirSync(dest, { recursive: true });
-
-  for (const file of fs.readdirSync(src)) {
-    const fileSrc = path.join(src, file);
-    const fileDest = path.join(dest, file);
-    if (fs.statSync(fileSrc).isDirectory()) {
-      copyDir(fileSrc, fileDest);
-    } else {
-      fs.copyFileSync(fileSrc, fileDest);
-    }
-  }
-}
-
-function copyDir(src, dest) {
-  if (fs.existsSync(dest)) {
-    for (const old of fs.readdirSync(dest)) {
-      const oldPath = path.join(dest, old);
-      fs.statSync(oldPath).isDirectory()
-        ? fs.rmSync(oldPath, { recursive: true })
-        : fs.unlinkSync(oldPath);
-    }
-  }
-  fs.mkdirSync(dest, { recursive: true });
-  for (const file of fs.readdirSync(src)) {
-    const fileSrc = path.join(src, file);
-    const fileDest = path.join(dest, file);
-    fs.statSync(fileSrc).isDirectory()
-      ? copyDir(fileSrc, fileDest)
-      : fs.copyFileSync(fileSrc, fileDest);
-  }
+try {
+  execSync(`npx skills add "${skillsDir}" --all -g`, {
+    stdio: "inherit",
+    timeout: 60_000,
+  });
+} catch {
+  // 网络不可用或 skills CLI 失败时静默跳过
 }

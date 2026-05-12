@@ -118,7 +118,7 @@ metadata:
 5. **汇总展示**：自动填充的字段标 ✅，缺失字段标 ❓ 让用户补充
 6. **提交**：`hang-up submit` — 必填：`shop-id`、`title`、`price`、`category-id`、`channel-cat-id`、`image-ids`、`stuff-status`、`desc`、`out-item-no`
 
-**核心原则**：**图片里能看到的，就别问用户**。只问价格和商家编码，其他全部从图片自动提取。
+**核心原则**：**图片里能看到的，就别问用户**。只问价格和商家编码（优先用户自定义，不填则推荐自动生成），其他全部从图片自动提取。
 
 **关键注意事项**：
 - **品牌必须双传**：`--brand-name` + itemAttrs 中的一项（含 propId/valueId/valueName），缺一不可

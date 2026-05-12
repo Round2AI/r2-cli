@@ -1,11 +1,11 @@
 {
   "name": "@round2ai/r2-cli",
-  "version": "1.0.12",
+  "version": "1.0.12-beta.2",
   "description": "R2-CLI，向 AI 开放二手潮奢交易全链路能力",
   "main": "dist/r2-cli.js",
   "type": "module",
   "bin": {
-    "r2-cli": "./dist/r2-cli.js"
+    "r2-cli": "dist/r2-cli.js"
   },
   "scripts": {
     "postinstall": "node scripts/install-skills.js",
@@ -39,7 +39,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/Round2AI/r2-cli"
+    "url": "git+https://github.com/Round2AI/r2-cli.git"
   },
   "dependencies": {
     "@inquirer/prompts": "^8.4.2",
