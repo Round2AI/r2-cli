@@ -196,9 +196,9 @@ export function createHangUpCommand(): Command {
           divisionId: Number(options.divisionId) || 330100,
           apiAfterSalesDo: {
             supportFd10msPolicy: false,
-            supportFd24hsPolicy: true,
-            supportNfrPolicy: true,
-            supportSdrPolicy: true,
+            supportFd24hsPolicy: false,
+            supportNfrPolicy: false,
+            supportSdrPolicy: false,
             supportVnrPolicy: false,
             supportGpaPolicy: false,
             supportFd48hsPolicy: false,

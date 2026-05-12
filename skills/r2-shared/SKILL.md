@@ -1,14 +1,18 @@
 ---
 name: r2-shared
 version: 1.0.0
-description: "R2-CLI 共享基础技能。安装、统一错误格式、命令概览。r2-auth 和 r2-goods 的前置依赖。触发词：r2-cli、安装、install、错误格式。"
+description: "R2-CLI 共享基础技能。安装、版本检查、统一错误格式、命令概览。r2-auth 和 r2-goods 的前置依赖。触发词：r2-cli、安装、install、错误格式。"
 metadata:
   requires:
     bins: ["r2-cli"]
   cliHelp: "r2-cli --help"
+  minVersion: "1.0.12"
   related:
     - "r2-auth"
     - "r2-goods"
+  supersededSkills:
+    - name: "r2-cli"
+      action: "已更名为 r2-shared，请删除旧 skill：rm -rf ~/.agents/skills/r2-cli"
 ---
 
 # R2-Shared (v1)
@@ -19,6 +23,19 @@ metadata:
 二手潮奢交易命令行工具，由 Round2AI 团队维护。覆盖商品上架、认证登录等核心业务域。
 
 ## CRITICAL
+
+**执行规则**（所有 r2-* skills 通用）：
+- 所有命令**必须**通过已安装的 `r2-cli` 二进制执行（`r2-cli goods ...`、`r2-cli auth ...`）
+- **禁止**读取项目源码或用 `tsx`/`node` 直接运行源文件
+- 如果 `r2-cli` 命令不可用，提示用户先安装：`npm install -g @round2ai/r2-cli@latest`
+
+**版本检查**：
+- 首次使用时，Agent 应运行 `r2-cli --version` 检查当前版本
+- 最低要求版本：`1.0.12`，低于此版本提示用户更新：`npm install -g @round2ai/r2-cli@latest`
+
+**旧 Skill 清理**：
+- 如果发现 `~/.agents/skills/r2-cli/`（已废弃的旧名称），提示用户删除：`rm -rf ~/.agents/skills/r2-cli`
+- 当前正确的 skill 名称：`r2-shared`、`r2-auth`、`r2-goods`
 
 本 skill 是 r2-auth 和 r2-goods 的共享基础。认证登录详情见 **r2-auth** skill，商品管理详情见 **r2-goods** skill。
 
@@ -61,21 +78,13 @@ npm install -g @round2ai/r2-cli@latest
 
 ## Agent 上架路由（概要）
 
-用户说"上架商品"时需要选择正确的方式：
-- **商品在选品库** → `goods up`（店铺 → 仓库 → 选品商品 → 提交价格）
-- **用户提供了图片** → `goods hang-up`（上传图片 → AI 读图识别 → 类目/属性 → 提交）
-- **不确定** → 问用户
+用户说"上架"时需要选择正确的方式：
+- **用户明确指定方式或提供了图片** → 直接走对应流程
+- **未指定方式** → **必须询问用户**："选品上架还是挂售上架？"
+  - 选品上架 → `goods up`（店铺 → 仓库 → 选品商品 → 提交价格）
+  - 挂售上架 → `goods hang-up`（上传图片 → AI 读图识别 → 类目/属性 → 提交）
 
-> 详细决策规则见 **r2-goods** skill「上架路由决策」章节。
-
-## Agent 上架 4 步流程（概要）
-
-1. `r2-cli goods shops --json` → 展示店铺 → 用户选择
-2. `r2-cli goods stocks --json` → 展示仓库 → 用户选择
-3. `r2-cli goods list --stock-id <id> --json` → 展示商品 → 用户选择
-4. `r2-cli goods up --stock-goods-id <id> --shop-id <id> --price <amount> --json` → 提交上架
-
-> 完整参数说明、挂售流程、错误处理见 **r2-goods** skill。
+> 详细决策规则和完整操作流程见 **r2-goods** skill。
 
 ## 统一错误格式
 

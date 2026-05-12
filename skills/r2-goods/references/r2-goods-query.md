@@ -1,0 +1,63 @@
+# R2-Goods 查询命令
+
+> **Prerequisite:** 读取 [`../SKILL.md`](../SKILL.md) 了解路由决策和命令概览。
+
+## 店铺（shops）
+
+```bash
+r2-cli goods shops --json
+```
+
+返回字段：
+
+| 字段 | 说明 |
+|------|------|
+| `shopId` | 第三方店铺 ID（**上架参数取这个，不是 `id`**） |
+| `shopName` | 店铺名称 |
+| `platform` | 平台（xianyu / douyin 等） |
+
+> `--json` 输出会自动过滤敏感字段（`accessToken`、`refreshExpireIn`），Agent 可直接展示。
+
+## 仓库（stocks）
+
+```bash
+r2-cli goods stocks --json
+```
+
+返回字段：`stockId`（仓库 ID）、`stockName`（仓库名称）
+
+## 选品商品（list）
+
+```bash
+# 按仓库过滤（推荐）
+r2-cli goods list --stock-id <stockId> --json
+
+# 按商品 ID 精确查询
+r2-cli goods list --stock-goods-id <id> --json
+
+# 翻页
+r2-cli goods list --stock-id <stockId> --page 2 --size 20 --json
+```
+
+返回字段：
+
+| 字段 | 说明 |
+|------|------|
+| `stockGoodsId` | 库存商品 ID（**上架参数取这个**） |
+| `goodsName` | 商品名称 |
+| `brand` | 品牌 |
+| `size` | 尺码 |
+| `salePrice` | 建议售价 |
+| `cate1Name` / `cate2Name` / `cate3Name` | 分类 |
+
+## 上架列表（listing）
+
+```bash
+r2-cli goods listing --json
+r2-cli goods listing --status up --json           # 只看已上架
+r2-cli goods listing --shop-id <id> --json         # 按店铺过滤
+r2-cli goods listing --stock-goods-id <id> --json  # 按商品过滤
+r2-cli goods listing --id <id> --json              # 精确查询
+```
+
+过滤参数：`--id`、`--stock-goods-id`、`--shop-id`、`--stock-id`、`--status`（init/up/down/fail）、`--platform`

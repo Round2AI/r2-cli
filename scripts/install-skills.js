@@ -24,12 +24,40 @@ for (const name of fs.readdirSync(pkgSkillsDir)) {
   const dest = path.join(agentsDir, name);
   if (fs.existsSync(dest)) {
     for (const old of fs.readdirSync(dest)) {
-      fs.unlinkSync(path.join(dest, old));
+      const oldPath = path.join(dest, old);
+      fs.statSync(oldPath).isDirectory()
+        ? fs.rmSync(oldPath, { recursive: true })
+        : fs.unlinkSync(oldPath);
     }
   }
   fs.mkdirSync(dest, { recursive: true });
 
   for (const file of fs.readdirSync(src)) {
-    fs.copyFileSync(path.join(src, file), path.join(dest, file));
+    const fileSrc = path.join(src, file);
+    const fileDest = path.join(dest, file);
+    if (fs.statSync(fileSrc).isDirectory()) {
+      copyDir(fileSrc, fileDest);
+    } else {
+      fs.copyFileSync(fileSrc, fileDest);
+    }
+  }
+}
+
+function copyDir(src, dest) {
+  if (fs.existsSync(dest)) {
+    for (const old of fs.readdirSync(dest)) {
+      const oldPath = path.join(dest, old);
+      fs.statSync(oldPath).isDirectory()
+        ? fs.rmSync(oldPath, { recursive: true })
+        : fs.unlinkSync(oldPath);
+    }
+  }
+  fs.mkdirSync(dest, { recursive: true });
+  for (const file of fs.readdirSync(src)) {
+    const fileSrc = path.join(src, file);
+    const fileDest = path.join(dest, file);
+    fs.statSync(fileSrc).isDirectory()
+      ? copyDir(fileSrc, fileDest)
+      : fs.copyFileSync(fileSrc, fileDest);
   }
 }

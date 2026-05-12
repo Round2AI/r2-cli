@@ -19,7 +19,7 @@ metadata:
 
 ## CRITICAL
 
-安装、统一错误格式见 **r2-shared** skill。
+命令执行规则见 **r2-shared** skill 的「执行规则」。安装、统一错误格式见 **r2-shared** skill。
 
 ---
 
