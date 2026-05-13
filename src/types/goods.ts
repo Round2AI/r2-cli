@@ -133,6 +133,10 @@ export interface ListingListParams {
   stockId?: string | undefined;
   /** 订单状态：init=待上架 fail=上架失败 down=已下架 up=已上架 sold=已售出 */
   status?: string | undefined;
+  /** 页码 */
+  page?: number | undefined;
+  /** 每页数量 */
+  size?: number | undefined;
 }
 
 /** 上架列表返回 */

@@ -11,6 +11,7 @@ const STATUS_MAP: Record<string, { label: string; color: string }> = {
   up: { label: "已上架", color: "green" },
   down: { label: "已下架", color: "gray" },
   fail: { label: "失败", color: "red" },
+  sold: { label: "已售出", color: "blue" },
 };
 
 const COL_ID = 4;

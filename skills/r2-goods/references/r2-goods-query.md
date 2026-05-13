@@ -36,7 +36,7 @@ r2-cli goods list --stock-id <stockId> --json
 r2-cli goods list --stock-goods-id <id> --json
 
 # 翻页
-r2-cli goods list --stock-id <stockId> --page 2 --size 20 --json
+r2-cli goods list --stock-id <stockId> --page 2 --size 50 --json
 ```
 
 返回字段：
@@ -54,10 +54,12 @@ r2-cli goods list --stock-id <stockId> --page 2 --size 20 --json
 
 ```bash
 r2-cli goods listing --json
-r2-cli goods listing --status up --json           # 只看已上架
+r2-cli goods listing --status up --json            # 只看已上架
+r2-cli goods listing --status sold --json          # 只看已售出
 r2-cli goods listing --shop-id <id> --json         # 按店铺过滤
 r2-cli goods listing --stock-goods-id <id> --json  # 按商品过滤
 r2-cli goods listing --id <id> --json              # 精确查询
+r2-cli goods listing --page 2 --size 50 --json     # 翻页
 ```
 
-过滤参数：`--id`、`--stock-goods-id`、`--shop-id`、`--stock-id`、`--status`（init/up/down/fail）、`--platform`
+过滤参数：`--id`、`--stock-goods-id`、`--shop-id`、`--stock-id`、`--status`（init/up/down/fail/sold）、`--platform`、`--page`（默认 1）、`--size`（默认 20，最大 50）

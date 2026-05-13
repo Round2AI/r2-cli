@@ -23,7 +23,24 @@
 }
 ```
 
-状态值：`init`（处理中）、`up`（已上架）、`down`（已下架）、`fail`（失败，查看 `errorMsg`）
+状态值：`init`（处理中）、`up`（已上架）、`down`（已下架）、`fail`（失败，查看 `errorMsg`）、`sold`（已售出）
+
+## 上架列表返回字段
+
+| 字段 | 说明 |
+|------|------|
+| `id` | 上架记录 ID（edit/down/price 的 `--id` 取这个值） |
+| `stockGoodsId` | 库存商品 ID（挂售商品可能为 0） |
+| `shopId` | 店铺 ID |
+| `goodsName` | 商品名称 |
+| `brandName` | 品牌 |
+| `price` | 上架价格 |
+| `status` | 状态：`init`/`up`/`down`/`fail`/`sold` |
+| `thirdItemNo` | 平台商品 ID |
+| `outItemNo` | 商家编码 |
+| `spec` | 规格（尺码） |
+| `platform` | 平台（xianyu） |
+| `gmtCreate` / `gmtModified` | 创建/修改时间戳 |
 
 ## 上架参数
 
@@ -70,6 +87,12 @@ r2-cli goods price --stock-goods-id <id> --shop-id <id> --price <新价格> --js
 |------|------|--------|
 | 上架记录 ID | `--id <goodsListingId>` | 推荐，从 listing 的 id 字段取 |
 | 库存商品 + 店铺 | `--stock-goods-id <id> --account <shopId>` | 备选，挂售商品 stockGoodsId 可能为 0 |
+
+### Agent 注意事项
+
+- **`--image-ids` 保持字符串**：图片 ID 是 19 位数字，`Number()` 会精度丢失
+- **`--item-attrs` 传 JSON 字符串**：必须是 `JSON.stringify()` 后的结果，不能直接传对象
+- **即使不改类目也要传 `--category-id` 和 `--channel-cat-id`**：后端必填，缺少会报 `getCategoryId() is null`
 
 ### 必填参数
 
@@ -126,7 +149,7 @@ r2-cli goods edit \
 
 ```bash
 # 改标题
-r2-cli goods goods edit --id 5 \
+r2-cli goods edit --id 5 \
   --category-id 50106003 --channel-cat-id "f4718bbb04d7ed1facde29f76907b07f" \
   --title "新标题" --json
 

@@ -35,7 +35,7 @@ export async function listingUpXianyu(params: ListingUpParams): Promise<ListingI
   return client.post<ListingInfo>("mms/goods/listing/up/xianyu", params);
 }
 
-/** 查询上架进度，用于轮询上架状态（init/up/down/fail） */
+/** 查询上架进度，用于轮询上架状态（init/up/down/fail/sold） */
 export async function getListingInfo(params: ListingGetParams): Promise<ListingInfo> {
   return client.get<ListingInfo>("mms/goods/listing/get", toParams({ ...params }));
 }

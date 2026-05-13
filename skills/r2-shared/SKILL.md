@@ -28,6 +28,7 @@ metadata:
 - 所有命令**必须**通过已安装的 `r2-cli` 二进制执行（`r2-cli goods ...`、`r2-cli auth ...`）
 - **禁止**读取项目源码或用 `tsx`/`node` 直接运行源文件
 - 如果 `r2-cli` 命令不可用，提示用户先安装：`npm install -g @round2ai/r2-cli@latest`
+- **不要在命令末尾加 `&`**：如果用 Bash 工具的 `run_in_background: true`，不要额外加 `&`，否则 shell 立即返回导致输出丢失
 
 **版本检查**：
 - 首次使用时，Agent 应运行 `r2-cli --version` 检查当前版本
@@ -66,7 +67,7 @@ npm install -g @round2ai/r2-cli@latest
 | 查询 | `r2-cli goods shops [--json]` | 查看已授权店铺 |
 | | `r2-cli goods stocks [--json]` | 查看仓库 |
 | | `r2-cli goods list [--stock-id <id>] [--json]` | 查看选品商品 |
-| | `r2-cli goods listing [--json]` | 查询上架列表 |
+| | `r2-cli goods listing [--status <up/down/sold>] [--json]` | 查询上架列表 |
 | 上架 | `r2-cli goods up --stock-goods-id <> --shop-id <> --price <> --json` | 普通上架（选品商品） |
 | | `r2-cli goods down --id <id> [--json]` | 下架商品 |
 | | `r2-cli goods price --id <id> --price <amount> [--json]` | 修改价格 |

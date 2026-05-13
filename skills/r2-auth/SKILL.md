@@ -60,6 +60,8 @@ r2-cli auth login --json
 
 ### Agent 操作步骤
 
+> **注意**：不要在命令末尾加 `&`。`run_in_background: true` 已处理后台运行，加 `&` 会导致 shell 立即返回，无法捕获后续输出。
+
 1. 用 Bash 工具 `run_in_background: true` 启动命令
 2. 用 `TaskOutput(block=true, timeout=5000)` 获取第 1 段 JSON
 3. **必须先**将 `qrUrl` 以醒目格式单独一行展示给用户：

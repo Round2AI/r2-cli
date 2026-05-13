@@ -46,7 +46,7 @@ metadata:
 | `r2-cli goods shops [--json]` | 查看已授权店铺 | [r2-goods-query](references/r2-goods-query.md) |
 | `r2-cli goods stocks [--json]` | 查看仓库 | [r2-goods-query](references/r2-goods-query.md) |
 | `r2-cli goods list [--stock-id <id>] [--json]` | 查看选品商品 | [r2-goods-query](references/r2-goods-query.md) |
-| `r2-cli goods listing [--json]` | 查询上架列表 | [r2-goods-query](references/r2-goods-query.md) |
+| `r2-cli goods listing [--status <up/down/sold>] [--json]` | 查询上架列表 | [r2-goods-query](references/r2-goods-query.md) |
 
 ### 上架/下架/改价/修改
 

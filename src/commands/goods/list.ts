@@ -15,7 +15,7 @@ export function createListCommand(): Command {
     .option("--stock-id <id>", "仓库 ID（从 goods stocks 获取）")
     .option("--stock-goods-id <id>", "库存商品 ID")
     .option("--page <n>", "页码", "1")
-    .option("--size <n>", "每页数量", "20")
+    .option("--size <n>", "每页数量（最大 50）", "20")
     .option("--json", "输出 JSON（供 AI Agent 使用）");
 
   command.action(
@@ -24,7 +24,7 @@ export function createListCommand(): Command {
         stockId: options.stockId || undefined,
         stockGoodsId: options.stockGoodsId || undefined,
         page: Number(options.page) || 1,
-        size: Number(options.size) || 20,
+        size: Math.min(Number(options.size) || 20, 50),
       });
 
       const data = result ?? { items: [], total: 0 };
