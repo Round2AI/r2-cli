@@ -115,7 +115,7 @@ metadata:
 2. **识别商品**：Agent 用 Read 工具查看图片，自动识别品牌/成色/类目/描述。不支持读图的 Agent 走询问路径
 3. **匹配类目**：`hang-up categories --json` → 自动匹配
 4. **匹配属性**：`hang-up props --channel-cat-id <id> --json` → 自动填充。品牌需调 `hang-up brands` 搜索
-5. **汇总展示**：自动填充的字段标 ✅，缺失字段标 ❓ 让用户补充
+5. **汇总展示**：自动填充的字段标 ✅，缺失字段标 ❓ 让用户补充。**运费默认包邮（`--transport-fee` 默认 0），需告知用户可修改**
 6. **提交**：`hang-up submit` — 必填：`shop-id`、`title`、`price`、`category-id`、`channel-cat-id`、`image-ids`、`stuff-status`、`desc`、`out-item-no`
 
 **核心原则**：**图片里能看到的，就别问用户**。只问价格和商家编码（优先用户自定义，不填则推荐自动生成），其他全部从图片自动提取。
