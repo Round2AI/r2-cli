@@ -9,7 +9,7 @@
 
 import { Command } from "commander";
 import { generateAuthQR, waitForAuth, authorize } from "../../services/auth/xianyu-auth.js";
-import { handleCommandError, agentAction, agentError } from "../shared.js";
+import { jsonAction, agentAction, agentError } from "../shared.js";
 import { runQRJsonFlow } from "./qr-flow.js";
 
 export function createXianyuAuthCommand(): Command {
@@ -39,8 +39,7 @@ export function createXianyuAuthCommand(): Command {
 
   command.addCommand(pollCmd);
 
-  command.action(async (options: { json?: boolean }) => {
-    try {
+  command.action(jsonAction(async (options: { json?: boolean }) => {
       if (options.json) {
         await runQRJsonFlow({
           generate: async () => {
@@ -70,15 +69,7 @@ export function createXianyuAuthCommand(): Command {
       } else {
         await authorize();
       }
-    } catch (error) {
-      if (options.json) {
-        const msg = error instanceof Error ? error.message : String(error);
-        console.log(JSON.stringify({ success: false, error: msg }));
-        process.exit(1);
-      }
-      handleCommandError(error);
-    }
-  });
+    }));
 
   return command;
 }

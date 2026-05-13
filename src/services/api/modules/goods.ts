@@ -21,6 +21,7 @@ import type {
   SelectGoodsListResult,
   HangUpParams,
   ImageUploadResult,
+  UploadImagesResult,
   XyCatItem,
   XyPropItem,
   XyPropValue,
@@ -81,14 +82,6 @@ export async function getSelectGoodsList(params?: SelectGoodsListParams): Promis
 }
 
 // ==================== 挂售上架（Hang Up） ====================
-
-/** 上传图片结果 */
-export interface UploadImagesResult {
-  /** 成功上传的图片 */
-  images: ImageUploadResult[];
-  /** 上传失败的图片 */
-  failed: { file: string; error: string }[];
-}
 
 /** 批量上传图片到闲鱼，返回图片 ID 列表（必须在挂售前调用） */
 export async function uploadXyImages(shopId: string, filePaths: string[]): Promise<UploadImagesResult> {

@@ -71,13 +71,3 @@ export class PollingError extends R2Error {
     this.name = "PollingError";
   }
 }
-
-/**
- * 命令行错误类
- */
-export class CliError extends R2Error {
-  constructor(message: string, public readonly command?: string) {
-    super(message, "CLI_ERROR", { command });
-    this.name = "CliError";
-  }
-}

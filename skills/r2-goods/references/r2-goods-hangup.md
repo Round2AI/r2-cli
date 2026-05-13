@@ -186,7 +186,7 @@ Agent 将所有自动填充和识别结果汇总展示给用户，**一次确认
 2. 让用户补充缺失字段（价格、商家编码、无法识别的属性）
 3. 用户确认后直接提交
 
-**所有参数就绪后提交**（`--item-attrs` 会自动通过 edit 接口补上，不需要单独调 edit）：
+**所有参数就绪后提交**：
 
 ```bash
 r2-cli goods hang-up submit \
@@ -311,7 +311,6 @@ r2-cli goods hang-up submit \
 | `商家编码重复` | out-item-no 同店铺已存在 | 更换唯一编码 |
 | `该商品已上架` | 挂售已下架商品重新提交使用了相同的 out-item-no | 更换新的 out-item-no，或检查 listing 确认该商品是否已在闲鱼端恢复上架 |
 | `ITEM_CONDITION_NOT_SUPPORT_SIGN` | 售后服务未开通或品类不支持 | 默认关闭售后，或在闲鱼 APP 开通对应服务 |
-| 返回 `warning` 字段 | submit 成功但属性补全失败 | submit 已创建商品，但属性可能未写入。可稍后用 `goods edit` 手动补全 |
 
 ## References
 

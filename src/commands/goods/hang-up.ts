@@ -8,8 +8,8 @@
 import { Command } from "commander";
 import chalk from "chalk";
 import * as goodsApi from "../../services/api/modules/goods.js";
-import { jsonAction } from "../shared.js";
-import type { HangUpParams, XyItemAttr, UpdateGoodsInfoParams } from "../../types/goods.js";
+import { jsonAction, jsonSuccess, validationError } from "../shared.js";
+import type { HangUpParams, XyItemAttr } from "../../types/goods.js";
 
 const STUFF_STATUS_MAP: Record<number, string> = {
   100: "全新",
@@ -109,11 +109,7 @@ export function createHangUpCommand(): Command {
       .action(jsonAction(async (options: { shopId: string; files: string; json?: boolean }) => {
         const filePaths = options.files.split(",").map((p) => p.trim()).filter(Boolean);
         if (filePaths.length === 0) {
-          if (options.json) {
-            console.log(JSON.stringify({ success: false, error: "请提供至少一张图片" }));
-            process.exit(1);
-          }
-          console.log(chalk.yellow("请提供至少一张图片"));
+          validationError(options, "请提供至少一张图片");
           return;
         }
         if (!options.json) console.log(chalk.cyan(`正在上传 ${filePaths.length} 张图片...`));
@@ -155,7 +151,7 @@ export function createHangUpCommand(): Command {
       .requiredOption("--stuff-status <n>", "成色：100 全新 / -1 准新 / 99 99新 / 95 95新 / 90 9新")
       .option("--item-attrs <json>", "商品属性列表 JSON，格式: [{\"valueName\":\"x\",\"valueId\":\"y\",\"propId\":\"z\"}]")
       .option("--brand-name <name>", "品牌名称")
-      .option("--desc <desc>", "商品描述")
+      .requiredOption("--desc <desc>", "商品描述")
       .option("--size <size>", "尺码")
       .option("--goods-no <no>", "货号")
       .option("--original-price <amount>", "原价")
@@ -175,7 +171,7 @@ export function createHangUpCommand(): Command {
         stuffStatus: string;
         itemAttrs?: string;
         brandName?: string;
-        desc?: string;
+        desc: string;
         size?: string;
         goodsNo?: string;
         originalPrice?: string;
@@ -202,7 +198,7 @@ export function createHangUpCommand(): Command {
           transportFee: Number(options.transportFee) || 0,
           yhb: options.yhb ?? false,
           ...(options.brandName && { brandName: options.brandName }),
-          ...(options.desc && { desc: options.desc }),
+          desc: options.desc,
           ...(options.size && { size: options.size }),
           ...(options.goodsNo && { goodsNo: options.goodsNo }),
           ...(options.originalPrice && { originalPrice: Number(options.originalPrice) }),
@@ -233,45 +229,7 @@ export function createHangUpCommand(): Command {
 
         const result = await goodsApi.listingHangUpXianyu(params);
 
-        // 挂售接口不处理 itemAttrList，需要用 edit 接口补上属性
-        let warning: string | undefined;
-        if (parsedAttrs?.length) {
-          // 轮询等待上架记录生成（最多 5 次 ≈ 10 秒）
-          let listing = null;
-          for (let i = 0; i < 5; i++) {
-            const listingResult = await goodsApi.getListingList({ shopId: options.shopId, outItemNo: options.outItemNo });
-            listing = listingResult.items?.find((i: { outItemNo?: string }) => i.outItemNo === options.outItemNo);
-            if (listing) break;
-            await new Promise((r) => setTimeout(r, 2000));
-          }
-
-          if (listing) {
-            try {
-              const editParams: UpdateGoodsInfoParams = {
-                goodsListingId: Number(listing.id),
-                categoryId: Number(options.categoryId),
-                channelCatId: options.channelCatId,
-                itemAttrList: parsedAttrs,
-              };
-              if (options.brandName) editParams.brandName = options.brandName;
-              await goodsApi.updateGoodsInfo(editParams);
-            } catch (e) {
-              warning = `商品已创建但属性补全失败: ${e instanceof Error ? e.message : e}`;
-            }
-          } else {
-            warning = "商品已创建但属性可能未补全（查询不到上架记录）";
-          }
-        }
-
-        if (options.json) {
-          const output: Record<string, unknown> = { success: true, data: result };
-          if (warning) output.warning = warning;
-          console.log(JSON.stringify(output, null, 2));
-        } else {
-          console.log(chalk.green("挂售提交成功"));
-          if (warning) console.log(chalk.yellow(warning));
-          console.log(JSON.stringify(result, null, 2));
-        }
+        jsonSuccess(options, result, "挂售提交成功");
       })),
   );
 

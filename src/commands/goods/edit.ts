@@ -5,7 +5,7 @@
 import { Command } from "commander";
 import chalk from "chalk";
 import * as goodsApi from "../../services/api/modules/goods.js";
-import { jsonAction } from "../shared.js";
+import { jsonAction, jsonSuccess, validationError } from "../shared.js";
 import type { UpdateGoodsInfoParams, XyItemAttr } from "../../types/goods.js";
 
 export function createEditCommand(): Command {
@@ -18,8 +18,8 @@ export function createEditCommand(): Command {
     .option("--account <shopId>", "闲鱼用户名/店铺 ID（与 --stock-goods-id 配合）")
     .option("--title <title>", "商品标题")
     .option("--desc <desc>", "商品描述")
-    .option("--category-id <id>", "商品类目 ID（大分类，后端必填）")
-    .option("--channel-cat-id <id>", "渠道类目 ID（小分类，后端必填）")
+    .requiredOption("--category-id <id>", "商品类目 ID（大分类，后端必填）")
+    .requiredOption("--channel-cat-id <id>", "渠道类目 ID（小分类，后端必填）")
     .option("--image-ids <ids>", "图片 ID 列表（逗号分隔）")
     .option("--item-attrs <json>", "商品属性列表（JSON 字符串）")
     .option("--brand-name <name>", "品牌名称")
@@ -36,8 +36,8 @@ export function createEditCommand(): Command {
       account?: string;
       title?: string;
       desc?: string;
-      categoryId?: string;
-      channelCatId?: string;
+      categoryId: string;
+      channelCatId: string;
       imageIds?: string;
       itemAttrs?: string;
       brandName?: string;
@@ -49,23 +49,20 @@ export function createEditCommand(): Command {
     }) => {
       // 验证定位参数
       if (!options.id && !(options.stockGoodsId && options.account)) {
-        if (options.json) {
-          console.log(JSON.stringify({ success: false, status: 400, error: "请指定商品：--id <goodsListingId> 或 --stock-goods-id <id> --account <shopId>" }));
-          process.exit(1);
-        }
-        console.log(chalk.yellow("请指定商品：--id <goodsListingId> 或 --stock-goods-id <id> --account <shopId>"));
+        validationError(options, "请指定商品：--id <goodsListingId> 或 --stock-goods-id <id> --account <shopId>");
         return;
       }
 
-      // 构建参数（只发送有值的字段）
-      const params: UpdateGoodsInfoParams = {};
+      // 构建参数
+      const params: UpdateGoodsInfoParams = {
+        categoryId: Number(options.categoryId),
+        channelCatId: options.channelCatId,
+      };
       if (options.id) params.goodsListingId = Number(options.id);
       if (options.stockGoodsId) params.stockGoodsId = Number(options.stockGoodsId);
       if (options.account) params.account = options.account;
       if (options.title) params.title = options.title;
       if (options.desc) params.desc = options.desc;
-      if (options.categoryId) params.categoryId = Number(options.categoryId);
-      if (options.channelCatId) params.channelCatId = options.channelCatId;
       if (options.imageIds) params.imageIdList = options.imageIds.split(",").map((s) => s.trim());
       if (options.brandName) params.brandName = options.brandName;
       if (options.stuffStatus) params.stuffStatus = Number(options.stuffStatus);
@@ -77,11 +74,7 @@ export function createEditCommand(): Command {
         try {
           params.itemAttrList = JSON.parse(options.itemAttrs) as XyItemAttr[];
         } catch {
-          if (options.json) {
-            console.log(JSON.stringify({ success: false, status: 400, error: "--item-attrs JSON 解析失败" }));
-            process.exit(1);
-          }
-          console.log(chalk.yellow("--item-attrs JSON 解析失败"));
+          validationError(options, "--item-attrs JSON 解析失败");
           return;
         }
       }
@@ -91,23 +84,14 @@ export function createEditCommand(): Command {
         (k) => !["goodsListingId", "stockGoodsId", "account"].includes(k),
       );
       if (!hasUpdate) {
-        if (options.json) {
-          console.log(JSON.stringify({ success: false, status: 400, error: "未指定需要修改的字段" }));
-          process.exit(1);
-        }
-        console.log(chalk.yellow("未指定需要修改的字段"));
+        validationError(options, "未指定需要修改的字段");
         return;
       }
 
       if (!options.json) console.log(chalk.cyan("正在修改商品信息..."));
       const result = await goodsApi.updateGoodsInfo(params);
 
-      if (options.json) {
-        console.log(JSON.stringify({ success: true, data: result }, null, 2));
-      } else {
-        console.log(chalk.green("✅ 商品信息修改成功"));
-        console.log(JSON.stringify(result, null, 2));
-      }
+      jsonSuccess(options, result, "✅ 商品信息修改成功");
     }),
   );
 

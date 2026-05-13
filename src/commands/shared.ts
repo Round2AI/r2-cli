@@ -58,6 +58,41 @@ export function jsonAction<T extends { json?: boolean }>(fn: (options: T) => Pro
   };
 }
 
+/**
+ * 双模验证错误：JSON 模式输出 `{ success: false, error: msg }` + exit(1)，
+ * 人类模式输出 chalk.yellow(msg)。调用方需在之后 return。
+ *
+ * 用法：
+ * ```
+ * if (!condition) { validationError(options, "信息"); return; }
+ * ```
+ */
+export function validationError(options: { json?: boolean }, msg: string): void {
+  if (options.json) {
+    console.log(JSON.stringify({ success: false, error: msg }));
+    process.exit(1);
+  }
+  console.log(chalk.yellow(msg));
+}
+
+/**
+ * 双模成功输出：JSON 模式输出 `{ success: true, data }`，
+ * 人类模式输出 chalk.green(successMsg) + JSON.stringify(data)。
+ *
+ * 用法：
+ * ```
+ * jsonSuccess(options, result, "✅ 操作成功");
+ * ```
+ */
+export function jsonSuccess<T>(options: { json?: boolean }, data: T, successMsg?: string): void {
+  if (options.json) {
+    console.log(JSON.stringify({ success: true, data }, null, 2));
+  } else {
+    if (successMsg) console.log(chalk.green(successMsg));
+    console.log(JSON.stringify(data, null, 2));
+  }
+}
+
 /** Agent 纯 JSON 子命令包装器（始终输出 JSON 错误，不区分双模） */
 export function agentAction<T extends unknown[]>(fn: (...args: T) => Promise<void>): (...args: T) => Promise<void> {
   return async (...args: T) => {

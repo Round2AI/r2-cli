@@ -326,7 +326,7 @@ export interface XyPropValue {
   /** 属性值名称 */
   valueName: string;
   /** 属性 ID */
-  propId?: string;
+  propId: string;
 }
 
 /** 图片上传响应 */
@@ -336,14 +336,22 @@ export interface ImageUploadResult {
   [key: string]: unknown;
 }
 
-/** 商品属性（用于挂售上架 itemAttrList，只需 valueName/valueId/propId 三字段） */
+/** 批量上传图片结果 */
+export interface UploadImagesResult {
+  /** 成功上传的图片 */
+  images: ImageUploadResult[];
+  /** 上传失败的图片 */
+  failed: { file: string; error: string }[];
+}
+
+/** 商品属性（用于挂售上架 itemAttrList，三字段必填） */
 export interface XyItemAttr {
   /** 属性值 */
-  valueName?: string | undefined;
+  valueName: string;
   /** 属性值 ID（从 props 的 propsValues 中获取 valueId） */
-  valueId?: string | undefined;
+  valueId: string;
   /** 属性 ID （从 props 的 propsValues 中获取 propId）*/
-  propId?: string | undefined;
+  propId: string;
 }
 
 /** 商品图片信息（长图） */
@@ -378,7 +386,7 @@ export interface AfterSales {
   supportFd48hsPolicy?: boolean | undefined;
 }
 
-/** 修改商品信息参数（goodsListingId 或 stockGoodsId+account 二选一定位商品） */
+/** 修改商品信息参数（goodsListingId 或 stockGoodsId+account 二选一定位商品，categoryId+channelCatId 后端必填） */
 export interface UpdateGoodsInfoParams {
   /** 商品上架 ID（与 stockGoodsId+account 二选一） */
   goodsListingId?: number;
@@ -390,10 +398,10 @@ export interface UpdateGoodsInfoParams {
   title?: string;
   /** 商品描述 */
   desc?: string;
-  /** 商品类目 ID */
-  categoryId?: number;
-  /** 渠道类目 ID */
-  channelCatId?: string;
+  /** 商品类目 ID（大分类，后端必填） */
+  categoryId: number;
+  /** 渠道类目 ID（小分类，后端必填） */
+  channelCatId: string;
   /** 图片 ID 列表 */
   imageIdList?: string[];
   /** 商品属性 */
@@ -435,7 +443,7 @@ export interface HangUpParams {
   /** 货号 */
   goodsNo?: string | undefined;
   /** 商品描述，紧随 title 展示 */
-  desc?: string | undefined;
+  desc: string;
   /** 行政区划 ID，参与距离显示，市级 ID（默认 330100 杭州） */
   divisionId?: number | undefined;
   /** 商品长图，最大 15 张 */
@@ -463,7 +471,7 @@ export interface HangUpParams {
   /** 浅库存尺码 */
   size?: string | undefined;
   /** 商家编码，用于保证商品唯一性，同一个店铺编码唯一 */
-  outItemNo?: string | undefined;
+  outItemNo: string;
   /** 商品原名称 */
   oriGoodsName?: string | undefined;
 }

@@ -9,7 +9,7 @@
 
 import { Command } from "commander";
 import { getLoginService } from "../../services/auth/index.js";
-import { handleCommandError, agentAction } from "../shared.js";
+import { jsonAction, agentAction } from "../shared.js";
 import { runQRJsonFlow } from "./qr-flow.js";
 
 export function createLoginCommand(): Command {
@@ -35,8 +35,7 @@ export function createLoginCommand(): Command {
 
   command.addCommand(pollCmd);
 
-  command.action(async (options: { json?: boolean }) => {
-    try {
+  command.action(jsonAction(async (options: { json?: boolean }) => {
       if (options.json) {
         await runQRJsonFlow({
           generate: async () => {
@@ -64,15 +63,7 @@ export function createLoginCommand(): Command {
       } else {
         await getLoginService().login();
       }
-    } catch (error) {
-      if (options.json) {
-        const msg = error instanceof Error ? error.message : String(error);
-        console.log(JSON.stringify({ success: false, error: msg }));
-        process.exit(1);
-      }
-      handleCommandError(error);
-    }
-  });
+    }));
 
   return command;
 }

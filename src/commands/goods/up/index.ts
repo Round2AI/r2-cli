@@ -10,7 +10,7 @@ import { Command } from "commander";
 import chalk from "chalk";
 import { select, input, confirm } from "@inquirer/prompts";
 import * as xianyuApi from "../../../services/api/modules/goods.js";
-import { jsonAction } from "../../shared.js";
+import { jsonAction, validationError } from "../../shared.js";
 import { poll } from "../../../utils/polling.js";
 import type { ListingInfo } from "../../../types/goods.js";
 
@@ -62,10 +62,10 @@ export function createUpCommand(): Command {
     .option("-p, --platform <platform>", "平台", "xianyu")
     .option("--json", "输出 JSON（Agent 用）")
     .action(jsonAction(async (options: { stockGoodsId?: string; shopId?: string; price?: string; platform: string; json?: boolean }) => {
-      // Agent 模式：缺少必要参数时直接返回 JSON 错误，不落入交互模式
+      // Agent 模式：缺少必要参数时直接返回错误，不落入交互模式
       if (options.json && !(options.stockGoodsId && options.shopId && options.price)) {
-        console.log(JSON.stringify({ success: false, error: "Agent 模式需要 --stock-goods-id, --shop-id, --price" }));
-        process.exit(1);
+        validationError(options, "Agent 模式需要 --stock-goods-id, --shop-id, --price");
+        return;
       }
 
       // Agent 模式：所有参数齐全则直接提交
