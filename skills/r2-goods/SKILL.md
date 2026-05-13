@@ -34,7 +34,7 @@ metadata:
 
 **判断方法**：
 1. 用户**明确指定**了上架方式 → 直接走对应流程
-2. 用户提供了图片文件 → 直接走 `goods hang-up`，Agent 用 Read 工具查看图片自动识别商品信息
+2. 用户提供了图片文件 → 直接走 `goods hang-up`，Agent 用 Read 工具查看图片自动识别商品信息（如果 Read 工具返回 `[Unsupported Image]`，视为不能识别，走询问路径）
 3. 用户只说"上架"未指定方式 → **必须询问用户**："选品上架还是挂售上架？"
 
 ## 命令概览
@@ -69,6 +69,8 @@ metadata:
 ### 修改商品信息（edit）
 
 修改已上架商品的标题、描述、品牌、类目、图片、属性等。
+
+> **注意**：`goods edit` 不支持修改价格。改价需单独使用 `r2-cli goods price --id <id> --price <amount>`。
 
 **路由决策**：
 
@@ -122,10 +124,22 @@ metadata:
 
 **关键注意事项**：
 - **品牌必须双传**：`--brand-name` + itemAttrs 中的一项（含 propId/valueId/valueName），缺一不可
+- **item-attrs 不要加 channelCatId**：只需 `{ propId, valueId, valueName }` 三个字段
 - **描述自动生成**：品牌+款式+颜色+材质+货号自动组合，不要标记为"需要补充"
 - **季节自动推断**：夹克→春秋季，羽绒服→秋冬季，T恤→夏季等，不需要问用户
 - **尺码/货号从标签读取**：图片中有标签时自动提取，读不到才问用户
 - **标题自动组合**：品牌+款式+颜色+尺码+成色
+- **stuff-status 与 itemAttrs 成色映射**：
+
+| stuff-status | itemAttrs 成色 valueName |
+|---|---|
+| `100`（全新） | 全新 |
+| `-1`（准新） | 几乎全新 |
+| `99`（99新） | 几乎全新 |
+| `95`（95新） | 轻微穿着痕迹 |
+| `90`（9新） | 明显穿着痕迹 |
+
+> 挂售提交时 `--item-attrs` 中的成色值需要从 props 中取对应 valueId，上面的映射告诉你取哪个 valueName。`--stuff-status` 参数单独传数字值。
 
 > Agent 执行具体操作时，用 Read 工具读取对应的 reference 文件获取完整参数和流程说明。
 
@@ -143,5 +157,6 @@ metadata:
 | `商品不存在` | edit 用了无效的 `--id` 或商品已被删除 | 确认 listing 列表中的 id 值 |
 | `getCategoryId() is null` | edit 缺少 `--category-id` | 必须传 `--category-id` 和 `--channel-cat-id` |
 | `商家编码重复` | out-item-no 同店铺已存在 | 更换唯一编码 |
+| `该商品已上架` | 挂售已下架商品重新提交时 out-item-no 被占用 | 更换新的 out-item-no |
 | `ITEM_CONDITION_NOT_SUPPORT_SIGN` | 售后服务未开通或品类不支持 | 默认关闭售后 |
 | `轮询超时` | 上架结果查询超时 | 稍后用 `goods listing` 查看 |

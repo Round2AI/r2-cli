@@ -50,7 +50,22 @@ r2-cli goods hang-up upload-images --shop-id <shopId> --files /path/img1.jpg,/pa
 }
 ```
 
-> 图片路径是用户本地文件路径。`--image-ids` 保持字符串，不要转数字（19 位 ID 会精度丢失）。
+> 图片路径是用户本地文件路径。`--image-ids` 保持字符串，不要转数字（19 位 ID 会精度丢失）。**CLI 自动压缩超过 2MB 的图片**（使用 sharp 渐进式降低 JPEG quality 直到 < 2MB，PNG 自动转 JPEG），原文件不会被修改。多张图片**并行上传**，单张失败自动重试 1 次。
+
+返回（部分成功时带 `warning` 和 `failed` 字段）：
+
+```json
+{
+  "success": true,
+  "images": [
+    { "value": "1086608743767730915" }
+  ],
+  "warning": "1 张图片上传失败",
+  "failed": [
+    { "file": "d:/path/bad.jpg", "error": "413 Request Entity Too Large" }
+  ]
+}
+```
 
 **同时尝试识别图片**：如果 Agent 支持多模态（如 Claude Code、Gemini），用 Read 工具查看用户图片文件，识别以下信息。不支持则跳过，全部改为向用户询问。
 
@@ -123,21 +138,27 @@ Agent 遍历所有属性，尽量自动匹配：
 
 **品牌精确匹配规则**：brands 搜索结果中必须选**完全匹配**的官方名称（如搜 Nike → 只选 `Nike/耐克`，忽略 BACHNIKE、NIKE 7 等）
 
+**品牌搜索注意事项**：
+- **支持大小写模糊搜索**：如搜索 `nike` 也能匹配到 `Nike/耐克`，搜索 `louis` 也能匹配到 `Louis Vuitton/路易威登`
+- **搜索结果中选择精确匹配**：如搜 nike 返回多个结果，选官方名称 `Nike/耐克`，忽略 BACHNIKE、NIKE 7 等
+
 ```bash
 r2-cli goods hang-up brands --channel-cat-id <id> --prop-id <品牌propId> --key "Nike" --json
 ```
 
-最终构建 `--item-attrs`（**注意 propId 和 valueId 是不同字段**）：
+最终构建 `--item-attrs`（**只有 3 个字段：valueName、valueId、propId**）：
 
-**⚠️ 品牌必须同时出现在 itemAttrs 和 --brand-name 中**。只传 `--brand-name` 不会把品牌写入商品属性，品牌必须作为 itemAttrs 的一项传入（含 channelCatId、propId、valueId、valueName）。
+**⚠️ 品牌必须同时出现在 itemAttrs 和 --brand-name 中**。只传 `--brand-name` 不会把品牌写入商品属性，品牌必须作为 itemAttrs 的一项传入（含 propId、valueId、valueName）。
 
 ```json
 [
-  { "channelCatId": "xxx", "propId": "83b8f62c...", "valueId": "68af4e8f...", "valueName": "Nike/耐克" },
-  { "channelCatId": "xxx", "propId": "1d6d7611...", "valueId": "af8266ea...", "valueName": "吊带" },
-  { "channelCatId": "xxx", "propId": "3b9f06b2...", "valueId": "d114e6ab...", "valueName": "全新" }
+  { "valueName": "Nike/耐克", "valueId": "68af4e8f...", "propId": "83b8f62c..." },
+  { "valueName": "吊带", "valueId": "af8266ea...", "propId": "1d6d7611..." },
+  { "valueName": "全新", "valueId": "d114e6ab...", "propId": "3b9f06b2..." }
 ]
 ```
+
+> **注意**：每个属性项只包含 `valueName`、`valueId`、`propId` 三个字段，**不要加 `channelCatId`**。valueId 和 propId 都从 `props` 返回的 `propsValues` 中获取。
 
 ---
 
@@ -165,7 +186,7 @@ Agent 将所有自动填充和识别结果汇总展示给用户，**一次确认
 2. 让用户补充缺失字段（价格、商家编码、无法识别的属性）
 3. 用户确认后直接提交
 
-**所有参数就绪后提交**：
+**所有参数就绪后提交**（`--item-attrs` 会自动通过 edit 接口补上，不需要单独调 edit）：
 
 ```bash
 r2-cli goods hang-up submit \
@@ -180,7 +201,7 @@ r2-cli goods hang-up submit \
   --out-item-no "商家编码" \
   --brand-name "Nike/耐克" \
   --size "42" \
-  --item-attrs '[{"channelCatId":"xxx","propId":"83b8f62c...","valueId":"品牌valueId","valueName":"Nike/耐克"},{"channelCatId":"xxx","propId":"3b9f06b2...","valueId":"d114e6ab...","valueName":"全新"},{"channelCatId":"xxx","propId":"6562df9f...","valueId":"尺码valueId","valueName":"42"}]' \
+  --item-attrs '[{"valueName":"Nike/耐克","valueId":"品牌valueId","propId":"83b8f62c..."},{"valueName":"全新","valueId":"d114e6ab...","propId":"3b9f06b2..."},{"valueName":"42","valueId":"尺码valueId","propId":"6562df9f..."}]' \
   --json
 ```
 
@@ -223,6 +244,7 @@ r2-cli goods hang-up submit \
 - **`--stuff-status` 准新是数字 `-1`**：不是字符串 `"-1"`，直接传 `--stuff-status -1`
 - **`--item-attrs` 传 JSON 字符串**：值必须是 `JSON.stringify()` 后的字符串，不能直接传对象。命令行示例：`--item-attrs '[{"propId":"x","valueId":"y"}]'`
 - **`--files` 和 `--image-ids` 都是逗号分隔**：不要多次传 `--files`，用逗号拼成单个值：`--files a.jpg,b.jpg`
+- **`--category-id` 取 `catId` 不是 `id`**：categories 返回的数据中 `catId`（如 50106003）是真正的类目 ID，`id`（如 865）是自增 ID，不要用错
 
 ## 必填参数
 
@@ -283,10 +305,13 @@ r2-cli goods hang-up submit \
 | 错误信息 | 原因 | 解决方法 |
 |----------|------|----------|
 | `请提供至少一张图片` | upload-images 无图片 | 提供本地图片路径 |
+| 413 / `图片太大` | 图片超过服务端大小限制 | CLI 自动压缩 > 2MB 的图片，如仍失败请手动压缩 |
 | `请填写有效的商品叶子类目` | category-id 或 channel-cat-id 错误 | 重新查询 categories |
 | `找不到传入的某些图片` | 图片 ID 无效或过期 | 重新上传图片 |
 | `商家编码重复` | out-item-no 同店铺已存在 | 更换唯一编码 |
+| `该商品已上架` | 挂售已下架商品重新提交使用了相同的 out-item-no | 更换新的 out-item-no，或检查 listing 确认该商品是否已在闲鱼端恢复上架 |
 | `ITEM_CONDITION_NOT_SUPPORT_SIGN` | 售后服务未开通或品类不支持 | 默认关闭售后，或在闲鱼 APP 开通对应服务 |
+| 返回 `warning` 字段 | submit 成功但属性补全失败 | submit 已创建商品，但属性可能未写入。可稍后用 `goods edit` 手动补全 |
 
 ## References
 

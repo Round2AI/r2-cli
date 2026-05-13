@@ -9,7 +9,7 @@ import { Command } from "commander";
 import chalk from "chalk";
 import * as goodsApi from "../../services/api/modules/goods.js";
 import { jsonAction } from "../shared.js";
-import type { HangUpParams, XyItemAttr } from "../../types/goods.js";
+import type { HangUpParams, XyItemAttr, UpdateGoodsInfoParams } from "../../types/goods.js";
 
 const STUFF_STATUS_MAP: Record<number, string> = {
   100: "全新",
@@ -117,13 +117,26 @@ export function createHangUpCommand(): Command {
           return;
         }
         if (!options.json) console.log(chalk.cyan(`正在上传 ${filePaths.length} 张图片...`));
-        const images = await goodsApi.uploadXyImages(options.shopId, filePaths);
+        const { images, failed } = await goodsApi.uploadXyImages(options.shopId, filePaths);
         if (options.json) {
-          console.log(JSON.stringify({ success: true, images }, null, 2));
+          const output: Record<string, unknown> = { success: true, images };
+          if (failed.length) {
+            output.warning = `${failed.length} 张图片上传失败`;
+            output.failed = failed;
+          }
+          console.log(JSON.stringify(output, null, 2));
         } else {
-          console.log(chalk.green(`上传成功，共 ${images.length} 张`));
-          for (const img of images) {
-            console.log(`  图片ID: ${img.value}`);
+          if (images.length) {
+            console.log(chalk.green(`上传成功，共 ${images.length} 张`));
+            for (const img of images) {
+              console.log(`  图片ID: ${img.value}`);
+            }
+          }
+          if (failed.length) {
+            console.log(chalk.yellow(`\n${failed.length} 张上传失败:`));
+            for (const f of failed) {
+              console.log(`  ${f.file}: ${f.error}`);
+            }
           }
         }
       })),
@@ -140,7 +153,7 @@ export function createHangUpCommand(): Command {
       .requiredOption("--channel-cat-id <id>", "小分类 ID（从 categories 获取）")
       .requiredOption("--image-ids <ids>", "图片 ID 列表，逗号分隔（先通过 upload-images 获取）")
       .requiredOption("--stuff-status <n>", "成色：100 全新 / -1 准新 / 99 99新 / 95 95新 / 90 9新")
-      .option("--item-attrs <json>", "商品属性列表 JSON，格式: [{\"propId\":\"x\",\"valueId\":\"y\",\"valueName\":\"z\"}]")
+      .option("--item-attrs <json>", "商品属性列表 JSON，格式: [{\"valueName\":\"x\",\"valueId\":\"y\",\"propId\":\"z\"}]")
       .option("--brand-name <name>", "品牌名称")
       .option("--desc <desc>", "商品描述")
       .option("--size <size>", "尺码")
@@ -174,6 +187,7 @@ export function createHangUpCommand(): Command {
         json?: boolean;
       }) => {
         const imageIdList = options.imageIds.split(",").map((id) => id.trim());
+        const parsedAttrs = options.itemAttrs ? JSON.parse(options.itemAttrs) as XyItemAttr[] : undefined;
         const params: HangUpParams = {
           account: options.shopId,
           title: options.title,
@@ -192,6 +206,7 @@ export function createHangUpCommand(): Command {
           ...(options.size && { size: options.size }),
           ...(options.goodsNo && { goodsNo: options.goodsNo }),
           ...(options.originalPrice && { originalPrice: Number(options.originalPrice) }),
+          ...(parsedAttrs?.length && { itemAttrList: parsedAttrs }),
           outItemNo: options.outItemNo,
           divisionId: Number(options.divisionId) || 330100,
           apiAfterSalesDo: {
@@ -203,7 +218,6 @@ export function createHangUpCommand(): Command {
             supportGpaPolicy: false,
             supportFd48hsPolicy: false,
           },
-          ...(options.itemAttrs && { itemAttrList: JSON.parse(options.itemAttrs) as XyItemAttr[] }),
         };
 
         if (!options.json) {
@@ -212,17 +226,50 @@ export function createHangUpCommand(): Command {
           console.log(chalk.gray(`  售价: ¥${params.reservePrice}`));
           console.log(chalk.gray(`  成色: ${STUFF_STATUS_MAP[params.stuffStatus] ?? params.stuffStatus}`));
           console.log(chalk.gray(`  图片: ${imageIdList.length} 张`));
-          if (params.itemAttrList?.length) {
-            console.log(chalk.gray(`  属性: ${params.itemAttrList.length} 项`));
+          if (parsedAttrs?.length) {
+            console.log(chalk.gray(`  属性: ${parsedAttrs.length} 项`));
           }
         }
 
         const result = await goodsApi.listingHangUpXianyu(params);
 
+        // 挂售接口不处理 itemAttrList，需要用 edit 接口补上属性
+        let warning: string | undefined;
+        if (parsedAttrs?.length) {
+          // 轮询等待上架记录生成（最多 5 次 ≈ 10 秒）
+          let listing = null;
+          for (let i = 0; i < 5; i++) {
+            const listingResult = await goodsApi.getListingList({ shopId: options.shopId, outItemNo: options.outItemNo });
+            listing = listingResult.items?.find((i: { outItemNo?: string }) => i.outItemNo === options.outItemNo);
+            if (listing) break;
+            await new Promise((r) => setTimeout(r, 2000));
+          }
+
+          if (listing) {
+            try {
+              const editParams: UpdateGoodsInfoParams = {
+                goodsListingId: Number(listing.id),
+                categoryId: Number(options.categoryId),
+                channelCatId: options.channelCatId,
+                itemAttrList: parsedAttrs,
+              };
+              if (options.brandName) editParams.brandName = options.brandName;
+              await goodsApi.updateGoodsInfo(editParams);
+            } catch (e) {
+              warning = `商品已创建但属性补全失败: ${e instanceof Error ? e.message : e}`;
+            }
+          } else {
+            warning = "商品已创建但属性可能未补全（查询不到上架记录）";
+          }
+        }
+
         if (options.json) {
-          console.log(JSON.stringify({ success: true, data: result }, null, 2));
+          const output: Record<string, unknown> = { success: true, data: result };
+          if (warning) output.warning = warning;
+          console.log(JSON.stringify(output, null, 2));
         } else {
           console.log(chalk.green("挂售提交成功"));
+          if (warning) console.log(chalk.yellow(warning));
           console.log(JSON.stringify(result, null, 2));
         }
       })),

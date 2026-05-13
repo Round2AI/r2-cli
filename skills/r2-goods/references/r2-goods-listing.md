@@ -81,6 +81,8 @@ r2-cli goods price --stock-goods-id <id> --shop-id <id> --price <新价格> --js
 
 修改已上架商品的标题、描述、品牌、类目、图片、属性等。
 
+> **注意**：`goods edit` 不支持修改价格。改价需单独使用 `r2-cli goods price --id <id> --price <amount>`。
+
 ### 定位商品（二选一）
 
 | 方式 | 参数 | 推荐度 |

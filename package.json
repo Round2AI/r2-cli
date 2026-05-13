@@ -49,7 +49,8 @@
     "ink": "^7.0.0",
     "ora": "^9.3.0",
     "qrcode": "^1.5.4",
-    "react": "^19.2.5"
+    "react": "^19.2.5",
+    "sharp": "^0.34.5"
   },
   "devDependencies": {
     "@types/node": "^25.5.2",

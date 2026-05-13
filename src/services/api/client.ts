@@ -164,6 +164,9 @@ export class ApiClientService {
           }
           throw new AuthError("登录已过期，请运行 r2-cli auth login 重新登录");
         }
+        if (response.status === 413) {
+          throw new ApiError("图片太大，上传失败（服务端限制约 2MB）", 413);
+        }
         const errorText = await response.text();
         throw new ApiError(errorText || `${response.status} ${response.statusText}`, response.status);
       }

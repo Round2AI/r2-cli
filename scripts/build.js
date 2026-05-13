@@ -48,6 +48,7 @@ const esbuildConfig = {
     "ink",
     "react-dom",
     "react-devtools-core",
+    "sharp",
   ],
   banner: {
     js: '"use strict";',

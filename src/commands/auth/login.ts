@@ -49,7 +49,6 @@ export function createLoginCommand(): Command {
                 qrToken: qrData.qrToken,
                 expireTimeMs: expireMs,
                 pollIntervalMs: intervalMs,
-                url: `https://m.puresnake.com/r2/auth/login?qrToken=${qrData.qrContent}&from=wechat`,
                 qrUrl,
               },
               qrUrl,

@@ -336,18 +336,14 @@ export interface ImageUploadResult {
   [key: string]: unknown;
 }
 
-/** 商品属性（用于挂售上架 itemAttrList） */
+/** 商品属性（用于挂售上架 itemAttrList，只需 valueName/valueId/propId 三字段） */
 export interface XyItemAttr {
-  /** 小分类 ID */
-  channelCatId?: string | undefined;
-  /** 属性 ID */
-  propId?: string | undefined;
-  /** 属性名称 */
-  propName?: string | undefined;
-  /** 属性值 ID */
-  valueId?: string | undefined;
   /** 属性值 */
   valueName?: string | undefined;
+  /** 属性值 ID（从 props 的 propsValues 中获取 valueId） */
+  valueId?: string | undefined;
+  /** 属性 ID （从 props 的 propsValues 中获取 propId）*/
+  propId?: string | undefined;
 }
 
 /** 商品图片信息（长图） */
