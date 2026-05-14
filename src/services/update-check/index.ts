@@ -46,12 +46,34 @@ function isNewer(latest: string, current: string): boolean {
   return false;
 }
 
+// ——— 缓存最新的版本检查结果，供 --json 输出注入 _notice ———
+
+let _latestCheckedVersion: string | null = null;
+let _currentCheckedVersion: string | null = null;
+
+/** 获取缓存的更新通知对象，无更新时返回 null */
+export function getUpdateNotice(): Record<string, unknown> | null {
+  if (!_latestCheckedVersion || !_currentCheckedVersion) return null;
+  return {
+    _notice: {
+      update: {
+        message: `Update available: ${_currentCheckedVersion} → ${_latestCheckedVersion}`,
+        command: "npm update -g @round2ai/r2-cli && npx skills add Round2AI/r2-cli --all -y",
+      },
+    },
+  };
+}
+
 export async function checkForUpdate(currentVersion: string): Promise<void> {
   const latest = await fetchLatestVersion();
   if (!latest) return;
 
   if (isNewer(latest, currentVersion)) {
+    _latestCheckedVersion = latest;
+    _currentCheckedVersion = currentVersion;
     showUpdateNotification(currentVersion, latest);
+  } else {
+    _currentCheckedVersion = currentVersion;
   }
 }
 

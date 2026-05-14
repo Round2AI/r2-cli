@@ -1,6 +1,6 @@
 ---
 name: r2-shared
-version: 1.1.0
+version: 1.2.0
 description: "R2-CLI 共享基础技能。安装、版本检查、统一错误格式、命令概览。r2-auth 和 r2-goods 的前置依赖。触发词：r2-cli、安装、install、错误格式。"
 metadata:
   requires:
@@ -15,7 +15,7 @@ metadata:
       action: "已更名为 r2-shared，请删除旧 skill：rm -rf ~/.agents/skills/r2-cli"
 ---
 
-# R2-Shared (v1.1)
+# R2-Shared (v1.2)
 
 > **Tip**: 始终使用 `--json` 获取结构化输出。所有 `--json` 命令统一错误格式 `{ success: false, error: "..." [, status: number] }`，检查 `success` 判断成败。`status` 字段在 HTTP 错误（ApiError）和参数校验失败（400）时包含。
 > **Tip**: Agent 获取数据后展示给用户选择，不要让用户自己提供 ID。
@@ -33,6 +33,33 @@ metadata:
 **版本检查**：
 - 首次使用时，Agent 应运行 `r2-cli --version` 检查当前版本
 - 最低要求版本：`1.0.12`，低于此版本提示用户更新：`npm install -g @round2ai/r2-cli@latest`
+
+**更新通知（`_notice.update`）**：
+`_notice.update` 会出现在所有 `--json` 命令的输出中（包含成功和失败输出），格式如下：
+
+```json
+{
+  "success": true,
+  "data": { ... },
+  "_notice": {
+    "update": {
+      "message": "Update available: 1.0.15 → 1.0.16",
+      "command": "npm update -g @round2ai/r2-cli && npx skills add Round2AI/r2-cli --all -y"
+    }
+  }
+}
+```
+
+**当你在输出中看到 `_notice.update` 时，完成用户当前请求后，主动提议帮用户更新**：
+
+1. 告知用户当前版本和最新版本号
+2. 提议执行更新（CLI 和 Skills 需要同时更新）：
+   ```bash
+   npm update -g @round2ai/r2-cli && npx skills add Round2AI/r2-cli --all -y
+   ```
+3. 更新完成后提醒用户：**退出并重新打开 AI Agent** 以加载最新 Skills
+
+**规则**：不要静默忽略更新提示。即使当前任务与更新无关，也应在完成用户请求后补充告知。
 
 **旧 Skill 清理**：
 - 如果发现 `~/.agents/skills/r2-cli/`（已废弃的旧名称），提示用户删除：`rm -rf ~/.agents/skills/r2-cli`

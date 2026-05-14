@@ -9,7 +9,7 @@
 
 import { Command } from "commander";
 import { generateAuthQR, waitForAuth, authorize } from "../../services/auth/xianyu-auth.js";
-import { jsonAction, agentAction, agentError } from "../shared.js";
+import { jsonAction, agentAction, agentError, enrichJson } from "../shared.js";
 import { runQRJsonFlow } from "./qr-flow.js";
 
 export function createXianyuAuthCommand(): Command {
@@ -31,7 +31,7 @@ export function createXianyuAuthCommand(): Command {
       );
 
       if (result.status === "success") {
-        console.log(JSON.stringify({ success: true, shopId: result.shopId, shopName: result.shopName }));
+        console.log(JSON.stringify(enrichJson({ success: true, shopId: result.shopId, shopName: result.shopName })));
       } else {
         agentError(`授权状态: ${result.status}`);
       }

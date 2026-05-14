@@ -7,6 +7,7 @@
 
 import type { QrPageStatus } from "../../qr-server/types.js";
 import { openUrl } from "../../qr-server/index.js";
+import { enrichJson } from "../shared.js";
 
 interface QRFlowConfig<TWaitArgs, TResult> {
   /** 生成 QR，返回扫码信息 + 传给 waitResult 的参数 */
@@ -25,14 +26,14 @@ interface QRFlowConfig<TWaitArgs, TResult> {
 
 export async function runQRJsonFlow<TWaitArgs, TResult>(config: QRFlowConfig<TWaitArgs, TResult>): Promise<void> {
   const { qrInfo, qrUrl, setStatus, closeServer, waitArgs } = await config.generate();
-  console.log(JSON.stringify(qrInfo, null, 2));
+  console.log(JSON.stringify(enrichJson(qrInfo as Record<string, unknown>), null, 2));
   openUrl(qrUrl);
   try {
     const result = await config.waitResult(waitArgs, setStatus);
-    console.log(JSON.stringify(config.formatSuccess(result)));
+    console.log(JSON.stringify(enrichJson(config.formatSuccess(result))));
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
-    console.log(JSON.stringify({ success: false, error: msg }));
+    console.log(JSON.stringify(enrichJson({ success: false, error: msg })));
     process.exit(1);
   } finally {
     setTimeout(closeServer, 1000);

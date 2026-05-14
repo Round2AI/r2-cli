@@ -3,7 +3,8 @@
  */
 
 import chalk from "chalk";
-import { AuthError, ApiError, StorageError } from "../errors/index.js";
+import { AuthError, ApiError, StorageError, getErrorType, type ErrorType } from "../errors/index.js";
+import { getUpdateNotice } from "../services/update-check/index.js";
 
 export function handleCommandError(error: unknown): never {
   if (error instanceof AuthError) {
@@ -30,9 +31,19 @@ export function notImplemented(name: string): void {
   console.log(chalk.yellow(`▲ "${name}" 功能开发中，暂不可用`));
 }
 
+/** 在 JSON 输出中注入 _notice 更新通知（如果有） */
+export function enrichJson(obj: Record<string, unknown>): Record<string, unknown> {
+  const notice = getUpdateNotice();
+  if (notice) Object.assign(obj, notice);
+  return obj;
+}
+
 /** Agent 子命令统一错误输出 */
-export function agentError(msg: string): never {
-  console.log(JSON.stringify({ success: false, error: msg }));
+export function agentError(msg: string, errorType?: ErrorType): never {
+  const out: Record<string, string | boolean> = { success: false, error: msg };
+  if (errorType) out.errorType = errorType;
+  enrichJson(out as Record<string, unknown>);
+  console.log(JSON.stringify(out));
   process.exit(1);
 }
 
@@ -49,8 +60,12 @@ export function jsonAction<T extends { json?: boolean }>(fn: (options: T) => Pro
     } catch (error) {
       if (options.json) {
         const msg = error instanceof Error ? error.message : String(error);
+        const errorType = getErrorType(error);
         const status = error instanceof ApiError ? error.status : undefined;
-        console.log(JSON.stringify({ success: false, error: msg, ...(status != null && { status }) }));
+        const out: Record<string, string | number | boolean> = { success: false, error: msg, errorType };
+        if (status != null) out.status = status;
+        enrichJson(out as Record<string, unknown>);
+        console.log(JSON.stringify(out));
         process.exit(1);
       }
       handleCommandError(error);
@@ -69,7 +84,7 @@ export function jsonAction<T extends { json?: boolean }>(fn: (options: T) => Pro
  */
 export function validationError(options: { json?: boolean }, msg: string): void {
   if (options.json) {
-    console.log(JSON.stringify({ success: false, error: msg }));
+    console.log(JSON.stringify({ success: false, error: msg, errorType: "validation" }));
     process.exit(1);
   }
   console.log(chalk.yellow(msg));
@@ -86,7 +101,9 @@ export function validationError(options: { json?: boolean }, msg: string): void 
  */
 export function jsonSuccess<T>(options: { json?: boolean }, data: T, successMsg?: string): void {
   if (options.json) {
-    console.log(JSON.stringify({ success: true, data }, null, 2));
+    const out: Record<string, unknown> = { success: true, data };
+    enrichJson(out);
+    console.log(JSON.stringify(out, null, 2));
   } else {
     if (successMsg) console.log(chalk.green(successMsg));
     console.log(JSON.stringify(data, null, 2));
@@ -100,7 +117,8 @@ export function agentAction<T extends unknown[]>(fn: (...args: T) => Promise<voi
       await fn(...args);
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
-      agentError(msg);
+      const errorType = getErrorType(error);
+      agentError(msg, errorType);
     }
   };
 }

@@ -103,7 +103,11 @@ export class ApiClientService {
       return result;
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") {
-        throw new ApiError(`请求超时 (${timeout}ms)`, 408);
+        throw new ApiError(`请求超时 (${timeout}ms)`, 408, undefined, "timeout");
+      }
+      // 网络层面错误（DNS 失败、连接拒绝、fetch 自身异常等）
+      if (error instanceof TypeError) {
+        throw new ApiError(`网络错误: ${error.message}`, 0, undefined, "network");
       }
       throw error;
     } finally {
@@ -184,7 +188,10 @@ export class ApiClientService {
       return result.data;
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") {
-        throw new ApiError("上传超时 (60000ms)", 408);
+        throw new ApiError("上传超时 (60000ms)", 408, undefined, "timeout");
+      }
+      if (error instanceof TypeError) {
+        throw new ApiError(`网络错误: ${error.message}`, 0, undefined, "network");
       }
       throw error;
     } finally {

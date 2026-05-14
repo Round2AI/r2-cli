@@ -9,7 +9,7 @@
 
 import { Command } from "commander";
 import { getLoginService } from "../../services/auth/index.js";
-import { jsonAction, agentAction } from "../shared.js";
+import { jsonAction, agentAction, enrichJson } from "../shared.js";
 import { runQRJsonFlow } from "./qr-flow.js";
 
 export function createLoginCommand(): Command {
@@ -30,7 +30,7 @@ export function createLoginCommand(): Command {
         Number.parseInt(options.expire, 10),
         Number.parseInt(options.interval, 10),
       );
-      console.log(JSON.stringify({ success: true, ...result }));
+      console.log(JSON.stringify(enrichJson({ success: true, ...result })));
     }));
 
   command.addCommand(pollCmd);

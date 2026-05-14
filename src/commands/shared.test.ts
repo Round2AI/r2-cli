@@ -21,7 +21,7 @@ describe("jsonAction", () => {
 
     await expect(wrapped({ json: true })).rejects.toThrow("exit");
     expect(logSpy).toHaveBeenCalledWith(
-      JSON.stringify({ success: false, error: "test error" }),
+      JSON.stringify({ success: false, error: "test error", errorType: "unknown" }),
     );
 
     logSpy.mockRestore();

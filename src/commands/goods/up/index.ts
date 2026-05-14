@@ -10,8 +10,9 @@ import { Command } from "commander";
 import chalk from "chalk";
 import { select, input, confirm } from "@inquirer/prompts";
 import * as xianyuApi from "../../../services/api/modules/goods.js";
-import { jsonAction, validationError } from "../../shared.js";
+import { jsonAction, validationError, enrichJson } from "../../shared.js";
 import { poll } from "../../../utils/polling.js";
+import { getErrorType } from "../../../errors/index.js";
 import type { ListingInfo } from "../../../types/goods.js";
 
 /** 上架提交后的轮询：每 2 秒查询一次，最多 10 秒 */
@@ -75,18 +76,37 @@ export function createUpCommand(): Command {
         const price = Number(options.price);
         const platform = options.platform;
 
-        const result = await xianyuApi.listingUpXianyu({ stockGoodsId, shopId, price, platform });
-
-        // 提交成功后轮询上架进度
-        const listingInfo = await pollListingStatus(stockGoodsId, shopId, platform, options.json);
-
-        if (options.json) {
-          console.log(JSON.stringify({ success: true, data: { submit: result, listing: listingInfo } }, null, 2));
-        } else {
-          const statusOk = listingInfo.status?.toLowerCase() !== "failed";
-          console.log(statusOk ? chalk.green("✓ 上架成功") : chalk.red("✗ 上架失败"));
-          console.log(JSON.stringify(listingInfo, null, 2));
+        // 提交上架
+        let submitResult: Record<string, unknown>;
+        try {
+          submitResult = await xianyuApi.listingUpXianyu({ stockGoodsId, shopId, price, platform });
+        } catch (error) {
+          const msg = error instanceof Error ? error.message : String(error);
+          const errorType = getErrorType(error);
+          console.log(JSON.stringify(enrichJson({ success: false, error: msg, errorType })));
+          process.exit(1);
         }
+
+        // 提交成功后轮询上架进度 — 独立 try/catch，不因轮询失败而误报提交失败
+        let listingInfo: ListingInfo | undefined;
+        let verifyError: string | undefined;
+        let verifyErrorType: string | undefined;
+        try {
+          listingInfo = await pollListingStatus(stockGoodsId, shopId, platform, options.json);
+        } catch (error) {
+          verifyError = error instanceof Error ? error.message : String(error);
+          verifyErrorType = getErrorType(error);
+        }
+
+        const data: Record<string, unknown> = { submit: submitResult };
+        if (listingInfo) {
+          data.listing = listingInfo;
+        } else {
+          data.listing = null;
+          data.warning = `提交成功但回查失败：${verifyError}`;
+          data.verifyStatus = verifyErrorType;
+        }
+        console.log(JSON.stringify(enrichJson({ success: true, data }), null, 2));
         return;
       }
 
@@ -157,11 +177,17 @@ export function createUpCommand(): Command {
 
       console.log(chalk.green("✓ 上架已提交，正在查询进度..."));
 
-      // 轮询上架结果
-      const listingInfo = await pollListingStatus(stockGoodsId, selectedShop, "xianyu");
-      const statusOk = listingInfo.status?.toLowerCase() !== "failed";
-      console.log(statusOk ? chalk.green("✓ 上架成功") : chalk.red("✗ 上架失败"));
-      console.log(JSON.stringify(listingInfo, null, 2));
+      // 轮询上架结果（独立捕获，提交成功不因轮询失败而误报）
+      try {
+        const listingInfo = await pollListingStatus(stockGoodsId, selectedShop, "xianyu");
+        const statusOk = listingInfo.status?.toLowerCase() !== "failed";
+        console.log(statusOk ? chalk.green("✓ 上架成功") : chalk.red("✗ 上架失败"));
+        console.log(JSON.stringify(listingInfo, null, 2));
+      } catch (error) {
+        const msg = error instanceof Error ? error.message : String(error);
+        console.log(chalk.yellow("⚠ 已提交，但回查失败：" + msg));
+        console.log(chalk.gray("→ 请用 r2-cli goods listing 确认上架结果"));
+      }
     }));
 
   return command;
