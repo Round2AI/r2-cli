@@ -34,6 +34,9 @@
   ],
   "author": "Round2AI - PURESNAKE Team",
   "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
   "engines": {
     "node": ">=18.0.0"
   },
