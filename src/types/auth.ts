@@ -60,15 +60,14 @@ export interface XianyuAuthUrlData {
   url: string;
   /** 轮询 token */
   state: string;
-  /** 过期时间（毫秒，可能为空，默认 300000） */
-  expireTime?: string;
-  /** 轮询间隔（毫秒，可能为空，默认 1000） */
-  pollInterval?: string;
 }
 
 /** 闲鱼授权状态响应 */
 export interface XianyuAuthStatusData {
+  /** 授权状态 */
   status: XianyuAuthStatus;
+  /** 授权店铺ID（授权成功后有值） */
   shopId: string | null;
+  /** 授权店铺名称（授权成功后有值） */
   shopName: string | null;
 }

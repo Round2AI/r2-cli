@@ -1,5 +1,7 @@
+/** 店铺列表表格组件 — 支持多平台（闲鱼/抖音）统一展示 */
 import { Box, Text } from "ink";
 import type { XyShop, UserShop } from "../types/goods.js";
+import { BaseTable, useTableLayout } from "./BaseTable.js";
 
 interface ShopDisplay {
   id: string;
@@ -90,25 +92,14 @@ export function ShopsTable({ shops, platform }: ShopsTableProps) {
   const hasPlatform = platform === "all";
   const title = platform === "all" ? "所有授权店铺" : `${PLATFORM_LABELS[platform] ?? platform}授权店铺`;
 
-  const termWidth = process.stdout.columns || 80;
-  const borderPadding = 4;
   const fixedCols = COL_ID + COL_STATUS + (hasPlatform ? COL_PLATFORM : 0);
-  const fillWidth = Math.max(termWidth - borderPadding - fixedCols, 20);
-  const totalWidth = fixedCols + fillWidth;
+  const { fillWidth, totalWidth } = useTableLayout(fixedCols);
 
   return (
-    <Box flexDirection="column" marginTop={1} borderStyle="round" borderColor="gray" paddingX={1}>
-      <Box flexDirection="row">
-        <Text bold color="cyan">{title}</Text>
-        <Text color="gray">{" · "}{items.length} 家</Text>
-      </Box>
-      <Box flexDirection="column" marginTop={1}>
-        <Header hasPlatform={hasPlatform} fillWidth={fillWidth} />
-        <Text color="gray">{"─".repeat(totalWidth)}</Text>
-        {items.map((shop) => (
-          <Row key={shop.id} shop={shop} hasPlatform={hasPlatform} fillWidth={fillWidth} />
-        ))}
-      </Box>
-    </Box>
+    <BaseTable title={title} count={items.length} countLabel="家" fillWidth={fillWidth} totalWidth={totalWidth} header={<Header hasPlatform={hasPlatform} fillWidth={fillWidth} />}>
+      {items.map((shop) => (
+        <Row key={shop.id} shop={shop} hasPlatform={hasPlatform} fillWidth={fillWidth} />
+      ))}
+    </BaseTable>
   );
 }

@@ -1,5 +1,7 @@
+/** 仓库列表表格组件 */
 import { Box, Text } from "ink";
 import type { UserStock } from "../types/goods.js";
+import { BaseTable, useTableLayout } from "./BaseTable.js";
 
 interface StocksTableProps {
   stocks: UserStock[];
@@ -56,25 +58,14 @@ function Row({ stock, fillWidth }: { stock: UserStock; fillWidth: number }) {
 }
 
 export function StocksTable({ stocks }: StocksTableProps) {
-  const termWidth = process.stdout.columns || 80;
-  const borderPadding = 4;
   const fixedCols = COL_ID + COL_USER_ID + COL_STOCK_ID + COL_TIME;
-  const fillWidth = Math.max(termWidth - borderPadding - fixedCols, 20);
-  const totalWidth = fixedCols + fillWidth;
+  const { fillWidth, totalWidth } = useTableLayout(fixedCols);
 
   return (
-    <Box flexDirection="column" marginTop={1} borderStyle="round" borderColor="gray" paddingX={1}>
-      <Box flexDirection="row">
-        <Text bold color="cyan">仓库列表</Text>
-        <Text color="gray">{" · "}{stocks.length} 个</Text>
-      </Box>
-      <Box flexDirection="column" marginTop={1}>
-        <Header fillWidth={fillWidth} />
-        <Text color="gray">{"─".repeat(totalWidth)}</Text>
-        {stocks.map((stock) => (
-          <Row key={stock.id} stock={stock} fillWidth={fillWidth} />
-        ))}
-      </Box>
-    </Box>
+    <BaseTable title="仓库列表" count={stocks.length} countLabel="个" fillWidth={fillWidth} totalWidth={totalWidth} header={<Header fillWidth={fillWidth} />}>
+      {stocks.map((stock) => (
+        <Row key={stock.id} stock={stock} fillWidth={fillWidth} />
+      ))}
+    </BaseTable>
   );
 }

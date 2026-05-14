@@ -7,6 +7,7 @@ import path from "node:path";
 import os from "node:os";
 import type { LocalConfig } from "./types.js";
 import { StorageError } from "../../errors/index.js";
+import { createSingleton } from "../../utils/singleton.js";
 
 const CONFIG_FILE_NAME = ".r2-cli";
 
@@ -23,10 +24,12 @@ export class ConfigStore {
     this.config = { credentials: null };
   }
 
+  /** 获取配置文件路径 */
   getConfigPath(): string {
     return this.configPath;
   }
 
+  /** 加载配置（内存缓存，仅首次读磁盘） */
   async loadConfig(): Promise<LocalConfig> {
     if (this.configLoaded) return this.config;
 
@@ -58,6 +61,9 @@ export class ConfigStore {
     this.dirEnsured = true;
   }
 
+  /**
+   * 保存配置（原子写入：先写 .tmp 再 rename，避免写入中断破坏文件）
+   */
   async saveConfig(config: LocalConfig): Promise<void> {
     this.config = config;
     await this.ensureDir();
@@ -77,9 +83,4 @@ export class ConfigStore {
   }
 }
 
-let instance: ConfigStore | null = null;
-
-export function getConfigStore(): ConfigStore {
-  if (!instance) instance = new ConfigStore();
-  return instance;
-}
+export const getConfigStore = createSingleton(() => new ConfigStore());

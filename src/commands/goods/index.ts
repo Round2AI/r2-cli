@@ -11,7 +11,7 @@ import { createListingCommand } from "./listing.js";
 import { createDownCommand } from "./down.js";
 import { createPriceCommand } from "./price.js";
 import { createEditCommand } from "./edit.js";
-import { createHangUpCommand } from "./hang-up.js";
+import { createHangUpCommand } from "./hang-up/index.js";
 
 export function createGoodsCommand(): Command {
   const command = new Command("goods");

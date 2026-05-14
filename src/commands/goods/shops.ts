@@ -4,7 +4,7 @@
 
 import { Command } from "commander";
 import chalk from "chalk";
-import * as xianyuApi from "../../services/api/modules/goods.js";
+import * as xianyuApi from "../../services/http/modules/goods.js";
 import { jsonAction, sanitizeShops } from "../shared.js";
 
 export function createShopsCommand(): Command {

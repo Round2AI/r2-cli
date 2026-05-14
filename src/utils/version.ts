@@ -3,13 +3,16 @@
  */
 
 import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 /** 从 package.json 读取版本号（支持 npm 安装和开发两种路径） */
 export function getVersion(): string {
   for (const rel of ["../package.json", "../../package.json"]) {
     try {
-      return JSON.parse(readFileSync(join(import.meta.dirname, rel), "utf-8")).version;
+      return JSON.parse(readFileSync(join(__dirname, rel), "utf-8")).version;
     } catch { /* next */ }
   }
   return "0.0.0";

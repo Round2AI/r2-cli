@@ -9,7 +9,7 @@
 
 import { Command } from "commander";
 import { generateAuthQR, waitForAuth, authorize } from "../../services/auth/xianyu-auth.js";
-import { jsonAction, agentAction, agentError, enrichJson } from "../shared.js";
+import { jsonAction, agentAction, agentError, enrichJson, addPollingOptions, parsePollingMs } from "../shared.js";
 import { runQRJsonFlow } from "./qr-flow.js";
 
 export function createXianyuAuthCommand(): Command {
@@ -20,15 +20,11 @@ export function createXianyuAuthCommand(): Command {
 
   const pollCmd = new Command("poll")
     .description("轮询闲鱼授权状态（供 AI Agent 使用）")
-    .requiredOption("--state <state>", "授权轮询 token")
-    .option("--expire <ms>", "过期时间（毫秒）", "300000")
-    .option("--interval <ms>", "轮询间隔（毫秒）", "1000")
-    .action(agentAction(async (options: { state: string; expire: string; interval: string }) => {
-      const result = await waitForAuth(
-        options.state,
-        Number.parseInt(options.expire, 10),
-        Number.parseInt(options.interval, 10),
-      );
+    .requiredOption("--state <state>", "授权轮询 token");
+  addPollingOptions(pollCmd);
+  pollCmd.action(agentAction(async (options: { state: string; expire: string; interval: string }) => {
+      const { expireMs, intervalMs } = parsePollingMs(options);
+      const result = await waitForAuth(options.state, expireMs, intervalMs);
 
       if (result.status === "success") {
         console.log(JSON.stringify(enrichJson({ success: true, shopId: result.shopId, shopName: result.shopName })));

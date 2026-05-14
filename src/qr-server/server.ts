@@ -1,6 +1,21 @@
+/**
+ * 本地 HTTP 服务器 — 展示二维码页面 + SSE 推送扫码状态
+ *
+ * 每个注册的页面提供 4 个端点：
+ *   GET  /login/         → 静态 HTML 页面（含二维码图片和 SSE 客户端）
+ *   GET  /login/qr.png   → 二维码 PNG
+ *   GET  /login/events   → SSE 流，推送 status 变化
+ *   GET  /login/config   → 页面配置 JSON（如 authUrl）
+ *
+ * 生命周期：registerPage → 浏览器访问 → 用户扫码 → setStatus 推 SSE → unregisterPage
+ * idel 超时（10 秒无 SSE 连接）自动关闭服务器释放端口。
+ */
+
 import http from "node:http";
 import type { QrPageStatus } from "./types.js";
+import { createSingleton } from "../utils/singleton.js";
 
+/** 单个页面的服务端状态 */
 interface PageState {
   html: string;
   qrBuffer: Buffer;
@@ -16,6 +31,7 @@ export class QrServer {
   private idleTimer: ReturnType<typeof setTimeout> | null = null;
   private static readonly IDLE_TIMEOUT_MS = 10_000;
 
+  /** 启动 HTTP 服务（端口 0 = 系统自动分配），返回实际端口号 */
   async start(): Promise<number> {
     if (this.server) return this.port;
 
@@ -34,6 +50,11 @@ export class QrServer {
     });
   }
 
+  /**
+   * 注册一个页面路由
+   * - 如果路由已存在（如扫码超时后重新生成），只更新 QR 和状态，已连接的 SSE 客户端自动收到 waiting 状态
+   * - 每次调用重置 idle 超时
+   */
   registerPage(route: string, html: string, qrBuffer: Buffer, config?: Record<string, string>): void {
     const existing = this.pages.get(route);
     if (existing) {
@@ -48,6 +69,7 @@ export class QrServer {
     this.resetIdleTimer();
   }
 
+  /** 移除页面，关闭 SSE 连接；所有页面都移除后自动关闭服务器 */
   unregisterPage(route: string): void {
     const page = this.pages.get(route);
     if (!page) return;
@@ -57,6 +79,7 @@ export class QrServer {
     if (this.pages.size === 0) this.close();
   }
 
+  /** 更新页面状态并通过 SSE 推送给所有连接的浏览器客户端 */
   setStatus(route: string, status: QrPageStatus): void {
     const page = this.pages.get(route);
     if (!page) return;
@@ -65,6 +88,7 @@ export class QrServer {
     for (const client of page.sseClients) client.write(payload);
   }
 
+  /** 销毁服务器：断开全部 SSE 客户端，清空页面，释放端口 */
   close(): void {
     if (!this.server) return;
     if (this.idleTimer) { clearTimeout(this.idleTimer); this.idleTimer = null; }
@@ -76,9 +100,13 @@ export class QrServer {
     this.server.close();
     this.server = null;
     this.port = 0;
-    instance = null;
   }
 
+  /**
+   * 重置 idle 超时
+   * 每次注册页面时调用。10 秒内无 SSE 连接时自动关闭服务器，
+   * 避免用户打开了二维码页面但不扫码导致进程挂起。
+   */
   private resetIdleTimer(): void {
     if (this.idleTimer) clearTimeout(this.idleTimer);
     this.idleTimer = setTimeout(() => {
@@ -87,6 +115,14 @@ export class QrServer {
     }, QrServer.IDLE_TIMEOUT_MS);
   }
 
+  /**
+   * 路由请求到对应页面的端点：
+   *   /route/       → HTML 页面
+   *   /route/qr.png → 二维码图片
+   *   /route/events → SSE 流
+   *   /route/config → 配置 JSON
+   *   /route        → 302 跳转到 /route/
+   */
   private handleRequest(req: http.IncomingMessage, res: http.ServerResponse): void {
     const url = req.url ?? "/";
 
@@ -132,30 +168,34 @@ export class QrServer {
   }
 }
 
-let instance: QrServer | null = null;
+// ─── 进程级清理 ──────────────────────────────────────────
+
 let listenersRegistered = false;
 
-function cleanup() {
-  if (instance) instance.close();
+function cleanup(instance: QrServer) {
+  instance.close();
 }
 
-function ensureProcessListeners() {
+/** 注册退出信号监听，确保进程退出时服务器释放端口 */
+function ensureProcessListeners(instance: QrServer) {
   if (listenersRegistered) return;
   listenersRegistered = true;
-  process.on("exit", cleanup);
-  process.on("SIGINT", cleanup);
-  process.on("SIGTERM", cleanup);
-  // Windows: stdin 断开（父进程被杀）或 idle 超时都无法可靠清理时，
-  // 用 setInterval 轮询检测进程是否应该退出
+  process.on("exit", () => cleanup(instance));
+  process.on("SIGINT", () => cleanup(instance));
+  process.on("SIGTERM", () => cleanup(instance));
+  /**
+   * stdin 轮询检测父进程断开
+   * Windows 下 SIGINT/SIGTERM 可能不可靠（如 Git Bash 中 Ctrl+C），
+   * 但 stdin 的 destroyed 状态可以反映父进程是否已终止。
+   * 每 3 秒检测一次，unref 不阻塞进程退出。
+   */
   setInterval(() => {
-    if (process.stdin?.destroyed) cleanup();
+    if (process.stdin?.destroyed) cleanup(instance);
   }, 3_000).unref();
 }
 
-export function getQrServer(): QrServer {
-  if (!instance) {
-    instance = new QrServer();
-    ensureProcessListeners();
-  }
-  return instance;
-}
+/** 共享单例 — 整个进程共用一个 HTTP 服务器 */
+export const getQrServer = createSingleton(
+  () => new QrServer(),
+  ensureProcessListeners,
+);

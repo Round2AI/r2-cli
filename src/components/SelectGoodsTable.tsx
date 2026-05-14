@@ -1,5 +1,7 @@
+/** 选品商品表格组件 — 品牌/名称/尺码/起拍价/等级 */
 import { Box, Text } from "ink";
 import type { SelectGoodsItem } from "../types/goods.js";
+import { BaseTable, useTableLayout, truncate } from "./BaseTable.js";
 
 interface SelectGoodsTableProps {
   items: SelectGoodsItem[];
@@ -11,10 +13,6 @@ const COL_BRAND = 10;
 const COL_SIZE = 6;
 const COL_PRICE = 8;
 const COL_LEVEL = 6;
-
-function truncate(str: string, maxLen: number): string {
-  return str.length > maxLen ? str.slice(0, maxLen - 1) + "…" : str;
-}
 
 function Header({ fillWidth }: { fillWidth: number }) {
   return (
@@ -67,25 +65,14 @@ function Row({ item, fillWidth }: { item: SelectGoodsItem; fillWidth: number }) 
 }
 
 export function SelectGoodsTable({ items, total }: SelectGoodsTableProps) {
-  const termWidth = process.stdout.columns || 80;
-  const borderPadding = 4;
   const fixedCols = COL_ID + COL_BRAND + COL_SIZE + COL_PRICE + COL_LEVEL;
-  const fillWidth = Math.max(termWidth - borderPadding - fixedCols, 20);
-  const totalWidth = fixedCols + fillWidth;
+  const { fillWidth, totalWidth } = useTableLayout(fixedCols);
 
   return (
-    <Box flexDirection="column" marginTop={1} borderStyle="round" borderColor="gray" paddingX={1}>
-      <Box flexDirection="row">
-        <Text bold color="cyan">选品商品</Text>
-        <Text color="gray">{" · 共 "}{total}{" 件"}</Text>
-      </Box>
-      <Box flexDirection="column" marginTop={1}>
-        <Header fillWidth={fillWidth} />
-        <Text color="gray">{"─".repeat(totalWidth)}</Text>
-        {items.map((item) => (
-          <Row key={item.id} item={item} fillWidth={fillWidth} />
-        ))}
-      </Box>
-    </Box>
+    <BaseTable title="选品商品" count={total} countLabel="件" fillWidth={fillWidth} totalWidth={totalWidth} header={<Header fillWidth={fillWidth} />}>
+      {items.map((item) => (
+        <Row key={item.id} item={item} fillWidth={fillWidth} />
+      ))}
+    </BaseTable>
   );
 }

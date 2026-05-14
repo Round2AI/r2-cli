@@ -20,6 +20,18 @@ export interface XyShop {
 
 // ==================== 上架（Listing） ====================
 
+// ==================== 商品定位 ====================
+
+/** 商品定位标识（id 或 stockGoodsId+shopId 二选一） */
+export interface ListingIdentifier {
+  /** 上架记录 ID */
+  id?: string | undefined;
+  /** 仓库商品 ID */
+  stockGoodsId?: number | undefined;
+  /** 平台店铺 ID */
+  shopId?: string | undefined;
+}
+
 /** 上架参数 */
 export interface ListingUpParams {
   /** 库存商品 ID */
@@ -98,23 +110,10 @@ export interface ListingInfo {
 }
 
 /** 下架参数（id 或 stockGoodsId+shopId 二选一） */
-export interface ListingDownParams {
-  /** 上架记录 ID */
-  id?: string | undefined;
-  /** 仓库商品 ID */
-  stockGoodsId?: number | undefined;
-  /** 平台店铺 ID */
-  shopId?: string | undefined;
-}
+export interface ListingDownParams extends ListingIdentifier {}
 
 /** 改价参数（id 或 stockGoodsId+shopId 二选一，price 必填） */
-export interface ListingUpdatePriceParams {
-  /** 上架记录 ID */
-  id?: string | undefined;
-  /** 仓库商品 ID */
-  stockGoodsId?: number | undefined;
-  /** 平台店铺 ID */
-  shopId?: string | undefined;
+export interface ListingUpdatePriceParams extends ListingIdentifier {
   /** 新价格（单位：元，必填） */
   price: number;
 }
@@ -139,13 +138,7 @@ export interface ListingListParams {
   size?: number | undefined;
 }
 
-/** 上架列表返回 */
-export interface ListingListResult {
-  items: ListingInfo[];
-  total: string;
-  page?: number;
-  perPage?: number;
-}
+
 
 // ==================== 用户级接口 ====================
 
@@ -281,16 +274,6 @@ export interface SelectGoodsListParams {
   stockGoodsId?: string | undefined;
 }
 
-/** 选品商品列表返回 */
-export interface SelectGoodsListResult {
-  /** 商品列表 */
-  items: SelectGoodsItem[];
-  /** 总数 */
-  total: string;
-  /** 当前页码 */
-  page: number;
-  /** 每页数量 */
-  perPage: number;
 }
 
 // ==================== 挂售上架（Hang Up） ====================

@@ -4,7 +4,7 @@
 
 import { Command } from "commander";
 import chalk from "chalk";
-import * as goodsApi from "../../services/api/modules/goods.js";
+import * as goodsApi from "../../services/http/modules/goods.js";
 import { jsonAction, jsonSuccess, validationError } from "../shared.js";
 import type { UpdateGoodsInfoParams, XyItemAttr } from "../../types/goods.js";
 

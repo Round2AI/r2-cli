@@ -17,7 +17,7 @@ npm run build:prod     # 生产环境：读取 .env.production，minified
 node dist/r2-cli.js --help
 ```
 
-测试使用 Vitest（`src/utils/polling.test.ts`）：
+测试文件放在 `tests/` 目录，使用 Vitest：
 ```bash
 npm test              # 全量
 npm run test:watch    # 监听模式

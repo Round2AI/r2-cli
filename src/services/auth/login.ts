@@ -1,17 +1,19 @@
 /**
- * 登录服务
+ * 登录服务 — 扫码登录全流程：生成二维码 → 自动打开浏览器 → 轮询扫码/确认状态 → 保存凭证
  */
 
 import chalk from "chalk";
 import type { UserInfo, GenerateQRCodeData } from "../../types/auth.js";
 import { poll } from "../../utils/polling.js";
 import { renderLoginQR, openUrl, type QRCodeOutput, type QrPageStatus } from "../../qr-server/index.js";
-import * as qrcodeAuth from "../api/modules/qrcode-auth.js";
+import * as qrcodeAuth from "../http/modules/qrcode-auth.js";
 import { getAuthStorage, AuthStorage } from "../storage/index.js";
 import { AuthError } from "../../errors/index.js";
 
+/** 二维码 + 原始 QR 数据的组合结果 */
 export type QRCodeResult = QRCodeOutput & { qrData: GenerateQRCodeData };
 
+/** 登录成功结果 */
 export interface LoginResult {
   userInfo: UserInfo;
   token: string;
@@ -31,6 +33,7 @@ export class LoginService {
     this.storage = storage ?? getAuthStorage();
   }
 
+  /** 生成扫码登录二维码，返回二维码页面 URL 和原始 QR 数据 */
   async generateQR(): Promise<QRCodeResult> {
     const qrData = await qrcodeAuth.generateQRCode();
     const qrContent = `https://m.puresnake.com/r2/auth/login?qrToken=${qrData.qrContent}&from=wechat`;
@@ -38,6 +41,10 @@ export class LoginService {
     return { qrData, ...rendered };
   }
 
+  /**
+   * 轮询等待扫码登录结果
+   * @param silent - true 时不打印中间状态日志（Agent 模式使用）
+   */
   async waitForLogin(qrToken: string, expireTimeMs: number, pollIntervalMs: number, signal?: AbortSignal, setStatus?: (status: QrPageStatus) => void, silent?: boolean): Promise<LoginResult> {
     const result = await poll(
       () => qrcodeAuth.getQRCodeStatus(qrToken),
@@ -83,6 +90,7 @@ export class LoginService {
     throw new AuthError("登录失败: 未获取到凭证");
   }
 
+  /** 完整登录流程：生成二维码 → 打开浏览器 → 等待扫码确认 → 保存凭证 */
   async login(signal?: AbortSignal): Promise<LoginResult> {
     console.log(chalk.cyan("\n🔐 正在启动扫码登录..."));
 
@@ -108,12 +116,14 @@ export class LoginService {
     }
   }
 
+  /** 清除本地凭证，退出登录 */
   async logout(): Promise<void> {
     console.log(chalk.cyan("\n🚪 正在退出登录..."));
     await this.storage.clearCredentials();
     console.log(chalk.green("✅ 已退出登录\n"));
   }
 
+  /** 检查登录状态，已登录时展示用户信息卡片 */
   async status(): Promise<void> {
     const isLoggedIn = await this.storage.isLoggedIn();
 
@@ -134,6 +144,7 @@ export class LoginService {
 
 let loginInstance: LoginService | null = null;
 
+/** 获取 LoginService 单例 */
 export function getLoginService(): LoginService {
   if (!loginInstance) loginInstance = new LoginService();
   return loginInstance;

@@ -1,5 +1,5 @@
 /**
- * API 客户端接口定义
+ * HTTP 客户端接口定义
  */
 
 /**
@@ -9,7 +9,6 @@ export interface ApiConfig {
   baseUrl: string;
   version: string;
   debug: boolean;
-  auth?: boolean;
 }
 
 /**
@@ -36,4 +35,18 @@ export interface ApiResponse<T = unknown> {
   msg?: string;
   /** 登录成功token */
   token?: string;
+}
+
+/**
+ * 通用分页结果
+ */
+export interface PagedResponse<T> {
+  /** 数据列表 */
+  items: T[];
+  /** 总数（后端返回 string 类型） */
+  total: string;
+  /** 当前页码 */
+  page?: number;
+  /** 每页数量 */
+  perPage?: number;
 }

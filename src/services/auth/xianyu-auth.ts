@@ -3,7 +3,7 @@
  */
 
 import chalk from "chalk";
-import * as xianyuAuthApi from "../api/modules/xianyu-auth.js";
+import * as xianyuAuthApi from "../http/modules/xianyu-auth.js";
 import { poll } from "../../utils/polling.js";
 import { renderXianyuAuthQR, openUrl, type QRCodeOutput, type QrPageStatus } from "../../qr-server/index.js";
 import { AuthError } from "../../errors/index.js";
@@ -66,6 +66,7 @@ export async function waitForAuth(
   );
 }
 
+/** 完整授权流程：获取授权链接 → 打开浏览器 → 等待扫码授权 → 返回授权结果 */
 export async function authorize(signal?: AbortSignal): Promise<XianyuAuthStatusData> {
   console.log(chalk.cyan("\n🔗 正在获取闲鱼授权地址..."));
 
@@ -77,8 +78,8 @@ export async function authorize(signal?: AbortSignal): Promise<XianyuAuthStatusD
   openUrl(qrUrl);
   console.log(chalk.yellow("\n⏳ 等待授权...\n"));
 
-  const expireMs = authData.expireTime ? Number.parseInt(authData.expireTime, 10) : 300000;
-  const intervalMs = authData.pollInterval ? Number.parseInt(authData.pollInterval, 10) : 1000;
+  const expireMs = 300000;
+  const intervalMs = 1000;
 
   try {
     const result = await waitForAuth(authData.state, expireMs, intervalMs, signal, setStatus);

@@ -9,7 +9,7 @@
 
 import { Command } from "commander";
 import { getLoginService } from "../../services/auth/index.js";
-import { jsonAction, agentAction, enrichJson } from "../shared.js";
+import { jsonAction, agentAction, enrichJson, addPollingOptions, parsePollingMs } from "../shared.js";
 import { runQRJsonFlow } from "./qr-flow.js";
 
 export function createLoginCommand(): Command {
@@ -21,17 +21,13 @@ export function createLoginCommand(): Command {
   const pollCmd = new Command("poll")
     .description("轮询登录状态（供 AI Agent 使用）")
     .requiredOption("--token <qrToken>", "二维码 token")
-    .option("--expire <ms>", "过期时间（毫秒）", "300000")
-    .option("--interval <ms>", "轮询间隔（毫秒）", "1000")
     .action(agentAction(async (options: { token: string; expire: string; interval: string }) => {
       const service = getLoginService();
-      const result = await service.waitForLogin(
-        options.token,
-        Number.parseInt(options.expire, 10),
-        Number.parseInt(options.interval, 10),
-      );
+      const { expireMs, intervalMs } = parsePollingMs(options);
+      const result = await service.waitForLogin(options.token, expireMs, intervalMs);
       console.log(JSON.stringify(enrichJson({ success: true, ...result })));
     }));
+  addPollingOptions(pollCmd);
 
   command.addCommand(pollCmd);
 

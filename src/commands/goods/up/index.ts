@@ -9,7 +9,7 @@
 import { Command } from "commander";
 import chalk from "chalk";
 import { select, input, confirm } from "@inquirer/prompts";
-import * as xianyuApi from "../../../services/api/modules/goods.js";
+import * as xianyuApi from "../../../services/http/modules/goods.js";
 import { jsonAction, validationError, enrichJson } from "../../shared.js";
 import { poll } from "../../../utils/polling.js";
 import { getErrorType } from "../../../errors/index.js";

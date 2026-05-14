@@ -1,5 +1,6 @@
+/** 共享命令工具单元测试 */
 import { describe, it, expect, vi } from "vitest";
-import { jsonAction } from "./shared.js";
+import { jsonAction } from "../src/commands/shared.js";
 
 describe("jsonAction", () => {
   it("should call fn and pass through options", async () => {

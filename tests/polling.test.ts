@@ -1,5 +1,6 @@
+/** 轮询工具单元测试 */
 import { describe, it, expect } from "vitest";
-import { poll, sleep } from "./polling.js";
+import { poll, sleep } from "../src/utils/polling.js";
 
 describe("poll", () => {
   it("should return immediately when condition is met on first call", async () => {

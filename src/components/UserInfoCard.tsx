@@ -1,3 +1,4 @@
+/** 用户信息卡片组件 — 昵称/手机号/最后登录 */
 import { Box, Text } from "ink";
 import type { UserInfo } from "../types/auth.js";
 
@@ -13,7 +14,7 @@ export function UserInfoCard({ userInfo, lastLogin, daysSinceLogin }: UserInfoCa
     : "-";
 
   return (
-    <Box flexDirection="column" marginTop={1} borderStyle="round" borderColor="gray" paddingX={1}>
+    <Box flexDirection="column" marginTop={1} borderStyle="round" borderColor="gray" paddingX={1} alignSelf="flex-start">
       <Text bold color="cyan">用户信息</Text>
       <Box flexDirection="row" marginTop={1}>
         <Box width={10}>

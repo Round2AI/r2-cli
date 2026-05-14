@@ -4,7 +4,7 @@
 
 import { Command } from "commander";
 import chalk from "chalk";
-import * as xianyuApi from "../../services/api/modules/goods.js";
+import * as xianyuApi from "../../services/http/modules/goods.js";
 import { jsonAction } from "../shared.js";
 import { renderComponent } from "../../utils/render.js";
 import { ListingTable } from "../../components/ListingTable.js";

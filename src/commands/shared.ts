@@ -5,6 +5,7 @@
 import chalk from "chalk";
 import { AuthError, ApiError, StorageError, getErrorType, type ErrorType } from "../errors/index.js";
 import { getUpdateNotice } from "../services/update-check/index.js";
+import type { Command } from "commander";
 
 export function handleCommandError(error: unknown): never {
   if (error instanceof AuthError) {
@@ -135,4 +136,19 @@ export function sanitizeShops(shops: readonly object[]): Record<string, unknown>
     }
     return safe;
   });
+}
+
+/** 为命令添加公共轮询选项（--expire / --interval），供 poll 子命令使用 */
+export function addPollingOptions(cmd: Command): void {
+  cmd
+    .option("--expire <ms>", "过期时间（毫秒）", "300000")
+    .option("--interval <ms>", "轮询间隔（毫秒）", "1000");
+}
+
+/** 从 option 中解析 expire/interval 为数字 */
+export function parsePollingMs(options: { expire?: string; interval?: string }, defaults?: { expireMs?: number; intervalMs?: number }) {
+  return {
+    expireMs: Number.parseInt(options.expire ?? String(defaults?.expireMs ?? 300000), 10),
+    intervalMs: Number.parseInt(options.interval ?? String(defaults?.intervalMs ?? 1000), 10),
+  };
 }

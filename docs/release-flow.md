@@ -9,14 +9,6 @@
 
 ## 方式一：自动化发布（推荐）
 
-### 前置条件
-
-```bash
-git remote -v
-# 确保能看到 origin-github
-# origin-github  https://github.com/Round2AI/r2-cli.git (push)
-```
-
 ### 发布步骤
 
 ```bash
@@ -33,11 +25,11 @@ git add package.json CHANGELOG.md
 git commit -m "release: v1.0.16"
 
 # ④ 推送代码到 GitHub
-git push origin-github main
+git push origin main
 
 # ⑤ 打 tag 并推送（触发自动发布）
 git tag v1.0.16
-git push origin-github v1.0.16
+git push origin v1.0.16
 ```
 
 推送 tag 后，GitHub Actions 自动执行：
@@ -65,7 +57,7 @@ cd dist && tar -czf ../r2-cli-dist.tar.gz . && cd ..
 git tag v1.0.16
 
 # ④ 推送 tag
-git push origin-github v1.0.16
+git push origin v1.0.16
 
 # ⑤ 在 GitHub 创建 Release
 #    https://github.com/Round2AI/r2-cli/releases/new
@@ -107,5 +99,5 @@ r2-cli -v
 # 删除 GitHub Release（在网页上操作）
 # 删除 git tag（本地 + 远程）
 git tag -d v1.0.16
-git push origin-github :refs/tags/v1.0.16
+git push origin :refs/tags/v1.0.16
 ```
