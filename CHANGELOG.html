@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Changelog - R2-CLI</title>
+<style>
+  :root {
+    --brand: #06d290;
+    --brand-dim: #05b87e;
+    --bg: #ffffff;
+    --bg-muted: #f8fafb;
+    --bg-card: #ffffff;
+    --border: #e6edf0;
+    --text: #1a232e;
+    --text-secondary: #5e6f7e;
+    --text-tertiary: #8a9aa8;
+    --radius: 12px;
+    --radius-sm: 8px;
+    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+    --font-mono: "SF Mono", "Fira Code", "Fira Mono", "Roboto Mono", "Consolas", monospace;
+    --ease: cubic-bezier(0.25, 0.1, 0.25, 1);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: var(--font-sans);
+    background: var(--bg-muted);
+    color: var(--text);
+    line-height: 1.6;
+    padding: 40px 24px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .container {
+    max-width: 820px;
+    margin: 0 auto;
+  }
+
+  /* Header */
+  .header {
+    margin-bottom: 48px;
+  }
+
+  .header-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(6, 210, 144, 0.1);
+    color: var(--brand-dim);
+    font-size: 13px;
+    font-weight: 600;
+    padding: 4px 12px;
+    border-radius: 20px;
+    letter-spacing: 0.3px;
+    margin-bottom: 16px;
+  }
+
+  .header h1 {
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -0.5px;
+    margin-bottom: 8px;
+  }
+
+  .header p {
+    color: var(--text-secondary);
+    font-size: 16px;
+  }
+
+  /* Version entry */
+  .version {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 32px;
+    margin-bottom: 20px;
+    transition: box-shadow 0.2s var(--ease);
+  }
+
+  .version:hover {
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  }
+
+  .version-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .version-tag {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .version-tag h2 {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -0.3px;
+  }
+
+  .version-tag .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--brand);
+    flex-shrink: 0;
+  }
+
+  .version-date {
+    font-size: 13px;
+    color: var(--text-tertiary);
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  /* Section */
+  .section {
+    margin-bottom: 20px;
+  }
+
+  .section:last-child {
+    margin-bottom: 0;
+  }
+
+  .section-title {
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--text-tertiary);
+    margin-bottom: 10px;
+  }
+
+  .section-title .highlight {
+    color: var(--brand-dim);
+  }
+
+  .section ul {
+    list-style: none;
+    padding: 0;
+  }
+
+  .section li {
+    position: relative;
+    padding: 4px 0 4px 18px;
+    font-size: 14px;
+    color: var(--text);
+    line-height: 1.7;
+  }
+
+  .section li::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 13px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--border);
+    border: 1.5px solid var(--text-tertiary);
+  }
+
+  .section li code {
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    background: rgba(6, 210, 144, 0.08);
+    color: var(--brand-dim);
+    padding: 1px 6px;
+    border-radius: 4px;
+    word-break: break-all;
+  }
+
+  .section li strong {
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  /* Separator line between major versions */
+  .separator {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 32px 0;
+    color: var(--text-tertiary);
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  .separator::before,
+  .separator::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* Pre-release badge */
+  .prerelease {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    background: #fff3cd;
+    color: #856404;
+    padding: 1px 8px;
+    border-radius: 4px;
+    margin-left: 8px;
+    vertical-align: middle;
+  }
+
+  .prerelease-beta {
+    background: rgba(210, 105, 6, 0.1);
+    color: #b8690a;
+  }
+
+  /* Footer */
+  .footer {
+    text-align: center;
+    padding: 40px 0 12px;
+    font-size: 13px;
+    color: var(--text-tertiary);
+  }
+
+  .footer a {
+    color: var(--brand-dim);
+    text-decoration: none;
+    font-weight: 500;
+  }
+
+  .footer a:hover {
+    text-decoration: underline;
+  }
+
+  /* Tag pills */
+  .pill {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 1px 8px;
+    border-radius: 4px;
+    margin-right: 4px;
+    vertical-align: middle;
+  }
+
+  .pill-new { background: rgba(6, 210, 144, 0.12); color: #048a63; }
+  .pill-fix { background: rgba(220, 80, 80, 0.1); color: #b33; }
+  .pill-opt { background: rgba(50, 120, 220, 0.1); color: #2a6cb8; }
+
+  /* Responsive */
+  @media (max-width: 600px) {
+    body { padding: 24px 16px; }
+    .header h1 { font-size: 26px; }
+    .version { padding: 20px; }
+    .version-header { flex-direction: column; align-items: flex-start; }
+    .version-tag h2 { font-size: 16px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-badge">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>
+      发布历史
+    </div>
+    <h1>Changelog</h1>
+    <p>R2-CLI 版本发布记录与变更说明</p>
+  </div>
+
+  <!-- v1.0.15 -->
+  <div class="version">
+    <div class="version-header">
+      <div class="version-tag">
+        <span class="dot"></span>
+        <h2>v1.0.15</h2>
+      </div>
+      <span class="version-date">2026-05-14</span>
+    </div>
+
+    <div class="section">
+      <div class="section-title"><span class="highlight">+</span> 新增功能</div>
+      <ul>
+        <li>图片自动压缩 + 并行上传（&gt;2MB 自动压缩，PNG 转 JPEG，失败自动重试）</li>
+        <li>挂售两阶段提交 — 先提交基础信息，再补全属性减少失败</li>
+        <li>listing 分页查询 + <code>--status sold</code> 已售出过滤</li>
+        <li>挂售汇总时提示运费默认包邮可修改</li>
+        <li>商家编码优先让用户自定义，不填则自动生成</li>
+      </ul>
+    </div>
+
+    <div class="section">
+      <div class="section-title"><span class="highlight">!</span> 问题修复</div>
+      <ul>
+        <li><code>postinstall</code> 改用 <code>npx skills add</code> 全局安装技能</li>
+        <li>挂售提交补全遗漏的属性字段</li>
+      </ul>
+    </div>
+
+    <div class="section">
+      <div class="section-title"><span class="highlight">~</span> 优化</div>
+      <ul>
+        <li>提取通用辅助函数（<code>validationError</code> / <code>jsonSuccess</code>），消除重复代码</li>
+        <li><code>UploadImagesResult</code> 类型移到 <code>types/goods.ts</code></li>
+        <li>移除未使用的 <code>CliError</code> 类</li>
+        <li>Skills / README 文档同步更新</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- v1.0.14 -->
+  <div class="version">
+    <div class="version-header">
+      <div class="version-tag">
+        <span class="dot"></span>
+        <h2>v1.0.14</h2>
+      </div>
+      <span class="version-date">2026-05-12</span>
+    </div>
+
+    <div class="section">
+      <div class="section-title"><span class="highlight">+</span> 新增功能</div>
+      <ul>
+        <li>商品信息修改命令 <code>goods edit</code> — 支持修改已上架商品的标题、描述、品牌、类目、图片、属性、成色</li>
+        <li><code>ListingTable</code> 组件 — 格式化展示上架列表</li>
+      </ul>
+    </div>
+
+    <div class="section">
+      <div class="section-title"><span class="highlight">~</span> 优化</div>
+      <ul>
+        <li>Skills 拆分 references/ 模式 — 独立文件管理各操作流程</li>
+        <li>路由决策修正 — 明确选品上架 vs 挂售上架的判断规则</li>
+        <li>售后默认值全关闭 — 避免 <code>ITEM_CONDITION_NOT_SUPPORT_SIGN</code> 错误</li>
+        <li>代码复用提取 — <code>agentError</code> / <code>jsonAction</code> 等共享函数标准化</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- v1.0.13 -->
+  <div class="version">
+    <div class="version-header">
+      <div class="version-tag">
+        <span class="dot"></span>
+        <h2>v1.0.13</h2>
+      </div>
+      <span class="version-date">2026-05-11</span>
+    </div>
+
+    <div class="section">
+      <div class="section-title"><span class="highlight">+</span> 新增功能</div>
+      <ul>
+        <li>挂售流程重构 — 图片优先，AI 读图自动识别商品信息</li>
+        <li>类目/属性/品牌查询命令 — <code>hang-up categories</code> / <code>props</code> / <code>brands</code></li>
+        <li>新增 <code>itemAttrs</code> 支持 — 挂售时传递结构化属性</li>
+        <li>新增下架 <code>goods down</code> 和改价 <code>goods price</code> 命令</li>
+        <li>店铺/仓库/选品商品查询 — <code>goods shops</code> / <code>stocks</code> / <code>list</code></li>
+      </ul>
+    </div>
+
+    <div class="section">
+      <div class="section-title"><span class="highlight">~</span> 优化</div>
+      <ul>
+        <li>jsonAction 统一错误处理，消除内联 try/catch</li>
+        <li>API Client 共享实例，消除重复创建</li>
+        <li>QR 服务器重构 — <code>openUrl</code> 移到 command 层，服务清理增强</li>
+        <li>技能精简，统一错误格式</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Separator -->
+  <div class="separator">Pre-release</div>
+
+  <!-- v1.0.12-beta.0 -->
+  <div class="version">
+    <div class="version-header">
+      <div class="version-tag">
+        <span class="dot"></span>
+        <h2>v1.0.12-beta.0 <span class="prerelease prerelease-beta">beta</span></h2>
+      </div>
+      <span class="version-date">2026-05-11</span>
+    </div>
+
+    <ul style="list-style:none;padding:0;">
+      <li style="padding:4px 0 4px 18px;position:relative;font-size:14px;line-height:1.7;color:var(--text);">Skills 拆分 references/ 模式</li>
+      <li style="padding:4px 0 4px 18px;position:relative;font-size:14px;line-height:1.7;color:var(--text);">售后默认值全关闭</li>
+      <li style="padding:4px 0 4px 18px;position:relative;font-size:14px;line-height:1.7;color:var(--text);">路由决策修正</li>
+    </ul>
+  </div>
+
+  <!-- v1.0.9-beta.0 -->
+  <div class="version">
+    <div class="version-header">
+      <div class="version-tag">
+        <span class="dot"></span>
+        <h2>v1.0.9-beta.0 <span class="prerelease prerelease-beta">beta</span></h2>
+      </div>
+      <span class="version-date">2026-05-09</span>
+    </div>
+
+    <div class="section">
+      <div class="section-title"><span class="highlight">+</span> 新增功能</div>
+      <ul>
+        <li>扫码登录 — 支持第二回合 APP / 微信 / 支付宝扫码</li>
+        <li>闲鱼店铺授权</li>
+        <li>商品上架 <code>goods up</code> — 交互式 + Agent 模式，自动轮询上架结果</li>
+        <li>AI Agent Skills 体系（r2-auth / r2-goods / r2-shared）</li>
+      </ul>
+    </div>
+
+    <div class="section">
+      <div class="section-title"><span class="highlight">~</span> 优化</div>
+      <ul>
+        <li>QR 页面品牌化重构 + 认证服务优化</li>
+        <li>架构全面重构 — Storage 层拆分、API 层简化、错误处理标准化</li>
+        <li>Node.js 最佳实践审查修复</li>
+        <li>Skills/README/CLAUDE.md 中文文档同步更新</li>
+      </ul>
+    </div>
+
+    <div class="section">
+      <div class="section-title"><span class="highlight">#</span> 技术基础</div>
+      <ul>
+        <li>Node.js + TypeScript + Commander CLI 框架</li>
+        <li>双模架构 — 交互式 + <code>--json</code> 参数（Agent 友好）</li>
+        <li>QR 服务器 — 本地 HTTP + SSE 推送</li>
+        <li>Ink（React for CLI）表格组件</li>
+        <li>esbuild 构建系统，sharp 图片处理</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Separator -->
+  <div class="separator">Earlier Releases</div>
+
+  <!-- v1.0.8 -->
+  <div class="version">
+    <div class="version-header">
+      <div class="version-tag">
+        <span class="dot"></span>
+        <h2>v1.0.8</h2>
+      </div>
+      <span class="version-date">2026-05-09</span>
+    </div>
+
+    <div class="section">
+      <div class="section-title"><span class="highlight">+</span> 新增功能</div>
+      <ul>
+        <li>店铺/仓库/选品商品查询 — <code>goods shops</code> / <code>stocks</code> / <code>list</code> / <code>listing</code></li>
+        <li>下架 <code>goods down</code> 和改价 <code>goods price</code> 命令</li>
+        <li>QR 服务器重构 — 启动逻辑简化，服务清理增强</li>
+      </ul>
+    </div>
+
+    <div class="section">
+      <div class="section-title"><span class="highlight">~</span> 优化</div>
+      <ul>
+        <li>上架流程简化，命令逻辑收敛</li>
+        <li>技能精简，统一错误格式</li>
+        <li><code>agentAction</code> --json 模式修复</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- v1.0.7 -->
+  <div class="version">
+    <div class="version-header">
+      <div class="version-tag">
+        <span class="dot"></span>
+        <h2>v1.0.7</h2>
+      </div>
+      <span class="version-date">2026-05-08</span>
+    </div>
+
+    <div class="section">
+      <div class="section-title"><span class="highlight">+</span> 新增功能</div>
+      <ul>
+        <li>闲鱼店铺授权 — 扫码授权，支持 <code>--json</code> 模式</li>
+        <li>QR 页面品牌化重构 — 品牌色 <code>#06d290</code>，实时状态更新</li>
+      </ul>
+    </div>
+
+    <div class="section">
+      <div class="section-title"><span class="highlight">~</span> 优化</div>
+      <ul>
+        <li>API 层简化 — 消除 <code>auth-client.ts</code>，认证逻辑内联到 <code>client.ts</code></li>
+        <li>Storage 层拆分 — <code>config-store.ts</code> + <code>auth-storage.ts</code> 独立职责</li>
+        <li>API 模块重构，消除重复逻辑</li>
+        <li>Skills / README 文档同步更新</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- v1.0.6 -->
+  <div class="version">
+    <div class="version-header">
+      <div class="version-tag">
+        <span class="dot"></span>
+        <h2>v1.0.6</h2>
+      </div>
+      <span class="version-date">2026-04-28</span>
+    </div>
+
+    <div class="section">
+      <div class="section-title"><span class="highlight">~</span> 优化</div>
+      <ul>
+        <li>全方位优化 — 目录重命名、终端 UI 美化（Ink 组件）、文档更新</li>
+        <li>Node.js 最佳实践审查修复</li>
+        <li>代码审查整改 — 修复 17 个问题（P0-P3）</li>
+      </ul>
+    </div>
+
+    <div class="section">
+      <div class="section-title"><span class="highlight">!</span> 问题修复</div>
+      <ul>
+        <li>修复 #17 #19 #22 #28 #29 共 5 个 issue</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- v1.0.5 -->
+  <div class="version">
+    <div class="version-header">
+      <div class="version-tag">
+        <span class="dot"></span>
+        <h2>v1.0.5</h2>
+      </div>
+      <span class="version-date">2026-04-27</span>
+    </div>
+
+    <div class="section">
+      <div class="section-title"><span class="highlight">+</span> 新增功能</div>
+      <ul>
+        <li>一键卸载 <code>r2-cli uninstall</code> — 清除 <code>~/.r2-cli/</code> + 全局包</li>
+        <li>版本检查 — 启动时异步检测更新</li>
+      </ul>
+    </div>
+
+    <div class="section">
+      <div class="section-title"><span class="highlight">~</span> 优化</div>
+      <ul>
+        <li>架构拆分 — 命令统一命名为 <code>r2-cli</code></li>
+        <li>README 重写（飞书风格），新增 AI Agent 指南</li>
+        <li>移除 <code>fs-extra</code> 依赖，提取共享工具函数</li>
+        <li>Ink 组件美化终端输出（圆角边框 + 表格）</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- v1.0.4 -->
+  <div class="version">
+    <div class="version-header">
+      <div class="version-tag">
+        <span class="dot"></span>
+        <h2>v1.0.4</h2>
+      </div>
+      <span class="version-date">2026-04-23</span>
+    </div>
+
+    <ul style="list-style:none;padding:0;">
+      <li style="padding:4px 0 4px 18px;position:relative;font-size:14px;line-height:1.7;color:var(--text);">系统架构文档重写，新增 <code>r2-auth</code> Skill 说明</li>
+      <li style="padding:4px 0 4px 18px;position:relative;font-size:14px;line-height:1.7;color:var(--text);">CLAUDE.md 改为中文，修正多处过时描述</li>
+      <li style="padding:4px 0 4px 18px;position:relative;font-size:14px;line-height:1.7;color:var(--text);"><code>itemBizType</code> 强制为 <code>"2"</code>（普通商品），移除商品类型选择器</li>
+      <li style="padding:4px 0 4px 18px;position:relative;font-size:14px;line-height:1.7;color:var(--text);">SKILL.md 同步更新匹配当前代码</li>
+    </ul>
+  </div>
+
+  <!-- v1.0.3 -->
+  <div class="version">
+    <div class="version-header">
+      <div class="version-tag">
+        <span class="dot"></span>
+        <h2>v1.0.3</h2>
+      </div>
+      <span class="version-date">2026-04-22</span>
+    </div>
+
+    <ul style="list-style:none;padding:0;">
+      <li style="padding:4px 0 4px 18px;position:relative;font-size:14px;line-height:1.7;color:var(--text);">Skills 拆分 — <code>r2-cli</code>（认证/概览）+ <code>r2-goods</code>（商品管理/AI Agent 上架流程）</li>
+      <li style="padding:4px 0 4px 18px;position:relative;font-size:14px;line-height:1.7;color:var(--text);"><code>goods up</code> 分步执行子命令（AI Agent 模式）</li>
+      <li style="padding:4px 0 4px 18px;position:relative;font-size:14px;line-height:1.7;color:var(--text);">AI Agent 上架流程完善 — 交互式重构、店铺缓存、Agent 子命令增强</li>
+      <li style="padding:4px 0 4px 18px;position:relative;font-size:14px;line-height:1.7;color:var(--text);">优化上架传参 — 改用 <code>--data</code> 传参、全量透传 <code>goodsDetail</code></li>
+    </ul>
+  </div>
+
+  <!-- v1.0.2 -->
+  <div class="version">
+    <div class="version-header">
+      <div class="version-tag">
+        <span class="dot"></span>
+        <h2>v1.0.2</h2>
+      </div>
+      <span class="version-date">2026-04-22</span>
+    </div>
+
+    <div class="section">
+      <div class="section-title"><span class="highlight">+</span> 新增功能</div>
+      <ul>
+        <li>平台选择 — 交互式选择上架平台</li>
+        <li>二维码 PNG 生成 + Token 自动刷新</li>
+        <li>Skills 体系支持 — 通过 <code>npx skills add</code> 安装</li>
+      </ul>
+    </div>
+
+    <div class="section">
+      <div class="section-title"><span class="highlight">~</span> 优化</div>
+      <ul>
+        <li>命令 <code>xy</code> 更名为 <code>goods</code></li>
+        <li>构建配置优化、目录结构调整</li>
+        <li>dotenv 替换手写 <code>loadEnvFile</code></li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- v1.0.1 -->
+  <div class="version">
+    <div class="version-header">
+      <div class="version-tag">
+        <span class="dot"></span>
+        <h2>v1.0.1</h2>
+      </div>
+      <span class="version-date">2026-04-21</span>
+    </div>
+
+    <div class="section">
+      <div class="section-title"><span class="highlight">+</span> 新增功能</div>
+      <ul>
+        <li>闲鱼商品上架流程 — 交互式命令（选择店铺 → 选择商品 → 输入价格 → 确认上架）</li>
+      </ul>
+    </div>
+
+    <div class="section">
+      <div class="section-title"><span class="highlight">~</span> 优化</div>
+      <ul>
+        <li>CLI 架构重构，引入 React/Ink 渲染引擎和 AI 服务层</li>
+        <li>API 客户端重构，构建时环境变量替换</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- v1.0.0 -->
+  <div class="version">
+    <div class="version-header">
+      <div class="version-tag">
+        <span class="dot"></span>
+        <h2>v1.0.0</h2>
+      </div>
+      <span class="version-date">2026-04-07</span>
+    </div>
+
+    <ul style="list-style:none;padding:0;">
+      <li style="padding:4px 0 4px 18px;position:relative;font-size:14px;line-height:1.7;color:var(--text);">项目初始化，CLI 命令框架搭建</li>
+      <li style="padding:4px 0 4px 18px;position:relative;font-size:14px;line-height:1.7;color:var(--text);">扫码登录 — 支持第二回合 APP 扫码，Token 本地持久化存储（<code>~/.r2-cli/config.json</code>）</li>
+      <li style="padding:4px 0 4px 18px;position:relative;font-size:14px;line-height:1.7;color:var(--text);">基础欢迎信息和帮助文档</li>
+    </ul>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <a href="https://github.com/puresnake/r2-cli" target="_blank" rel="noopener">R2-CLI</a> &middot; 第二回合
+  </div>
+
+</div>
+</body>
+</html>
