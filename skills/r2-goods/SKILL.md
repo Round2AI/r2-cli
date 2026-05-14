@@ -84,6 +84,7 @@ metadata:
 
 **关键约束**：
 - `--category-id` 和 `--channel-cat-id` 是**必填的**（后端复用挂售 DTO），即使不改类目也要传当前类目
+- **`--item-attrs` 必须包含 props 中所有属性，不只是修改的那一个**：后端替换整个属性列表，漏传的属性会被清除。调 `goods hang-up props --channel-cat-id <id> --json` 获取全部属性后，改目标值，其他保持原样一并传入
 - Agent 应自动查询类目并匹配，不需要用户手动提供
 - AI 读图识别后填充的字段需展示给用户确认，不能静默覆盖已有信息
 - `--image-ids` 接受已上传的图片 ID，用户给图片文件时需先调 `hang-up upload-images` 上传
@@ -123,8 +124,7 @@ metadata:
 **核心原则**：**图片里能看到的，就别问用户**。只问价格和商家编码（优先用户自定义，不填则推荐自动生成），其他全部从图片自动提取。
 
 **关键注意事项**：
-- **品牌必须双传**：`--brand-name` + itemAttrs 中的一项（含 propId/valueId/valueName），缺一不可
-- **item-attrs 不要加 channelCatId**：只需 `{ propId, valueId, valueName }` 三个字段
+- **品牌必须双传**：`--brand-name` + itemAttrs 中的一项（含 propId/valueId/valueName/propName/channelCatId），缺一不可。**只要涉及品牌修改，必须同时传 `--item-attrs`，`--item-attrs` 中必须包含 propName 和 channelCatId**
 - **描述自动生成**：品牌+款式+颜色+材质+货号自动组合，不要标记为"需要补充"
 - **季节自动推断**：夹克→春秋季，羽绒服→秋冬季，T恤→夏季等，不需要问用户
 - **尺码/货号从标签读取**：图片中有标签时自动提取，读不到才问用户

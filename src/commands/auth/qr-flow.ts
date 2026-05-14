@@ -5,6 +5,7 @@
  * 生成 QR → 输出 JSON → 打开浏览器 → 等待结果 → 输出结果 → 关闭 server
  */
 
+import type { QrPageStatus } from "../../qr-server/types.js";
 import { openUrl } from "../../qr-server/index.js";
 
 interface QRFlowConfig<TWaitArgs, TResult> {
@@ -12,12 +13,12 @@ interface QRFlowConfig<TWaitArgs, TResult> {
   generate: () => Promise<{
     qrInfo: unknown;
     qrUrl: string;
-    setStatus: (s: string) => void;
+    setStatus: (status: QrPageStatus) => void;
     closeServer: () => void;
     waitArgs: TWaitArgs;
   }>;
   /** 等待扫码结果，非成功时应抛出异常 */
-  waitResult: (args: TWaitArgs, setStatus?: (s: string) => void) => Promise<TResult>;
+  waitResult: (args: TWaitArgs, setStatus?: (status: QrPageStatus) => void) => Promise<TResult>;
   /** 格式化成功结果为 JSON 输出 */
   formatSuccess: (result: TResult) => Record<string, unknown>;
 }

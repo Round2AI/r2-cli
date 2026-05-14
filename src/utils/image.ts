@@ -27,7 +27,7 @@ export async function compressImageIfNeeded(
 
   // 2. 超限 → 用 sharp 压缩
   const image = sharp(filePath);
-  const metadata = await image.metadata();
+  await image.metadata();
 
   // JPEG quality 逐渐降低，直到大小达标
   const qualities = [100, 90, 80, 70, 60, 50, 40, 30];

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect } from "vitest";
 import { poll, sleep } from "./polling.js";
 
 describe("poll", () => {
@@ -38,8 +38,7 @@ describe("poll", () => {
         condition: () => false,
         interval: 10,
         timeout: 5000,
-        signal: controller.signal,
-      }),
+      }, controller.signal),
     ).rejects.toThrow();
   });
 });

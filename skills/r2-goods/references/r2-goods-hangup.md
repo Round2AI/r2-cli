@@ -13,7 +13,7 @@
 - 商家编码（`out-item-no`）**优先让用户自定义**，用户不填则推荐自动生成编码（如 `GS20260512-0005`）
 - **必须问用户的条件**：价格（永远无法从图片判断）。其他一切字段都应尝试从图片获取。商家编码优先用户自定义，不填则推荐自动生成
 - **描述必须自动生成**：基于 AI 识别的品牌+款式+颜色+材质+货号自动组合，不要标记为"需要补充"
-- **品牌必须双传**：`--brand-name`（文本字段）+ itemAttrs 中的一项（含 propId/valueId/valueName），缺一不可
+- **品牌必须双传**：`--brand-name`（文本字段）+ itemAttrs 中的一项（含 propId/valueId/valueName/propName/channelCatId），缺一不可
 - **季节自动推断**：根据商品类型推断适用季节（夹克/风衣→春秋季，羽绒服→秋冬季，T恤/短裤→夏季），不需要问用户
 - **尺码/货号从标签读取**：如果图片中有标签/吊牌/水洗标，尝试读取尺码和货号，读不到时才问用户
 - **标题自动组合**：品牌+款式+颜色+尺码+成色，自动组合为标题
@@ -146,19 +146,20 @@ Agent 遍历所有属性，尽量自动匹配：
 r2-cli goods hang-up brands --channel-cat-id <id> --prop-id <品牌propId> --key "Nike" --json
 ```
 
-最终构建 `--item-attrs`（**只有 3 个字段：valueName、valueId、propId**）：
+最终构建 `--item-attrs`（**5 个字段：valueName、valueId、propId、propName、channelCatId**）：
 
-**⚠️ 品牌必须同时出现在 itemAttrs 和 --brand-name 中**。只传 `--brand-name` 不会把品牌写入商品属性，品牌必须作为 itemAttrs 的一项传入（含 propId、valueId、valueName）。
+**⚠️ 品牌必须同时出现在 itemAttrs 和 --brand-name 中**。只传 `--brand-name` 不会把品牌写入商品属性，品牌必须作为 itemAttrs 的一项传入（含 propId、valueId、valueName、propName、channelCatId）。
 
 ```json
 [
-  { "valueName": "Nike/耐克", "valueId": "68af4e8f...", "propId": "83b8f62c..." },
-  { "valueName": "吊带", "valueId": "af8266ea...", "propId": "1d6d7611..." },
-  { "valueName": "全新", "valueId": "d114e6ab...", "propId": "3b9f06b2..." }
+  { "valueName": "Nike/耐克", "valueId": "68af4e8f...", "propId": "83b8f62c...", "propName": "品牌", "channelCatId": "f4718bbb..." },
+  { "valueName": "几乎全新", "valueId": "25317efe...", "propId": "3b9f06b2...", "propName": "成色", "channelCatId": "f4718bbb..." },
+  { "valueName": "L", "valueId": "65f57139...", "propId": "6562df9f...", "propName": "尺码", "channelCatId": "f4718bbb..." },
+  { "valueName": "春秋季", "valueId": "3162b94f...", "propId": "be925d4d...", "propName": "适用季节", "channelCatId": "f4718bbb..." }
 ]
 ```
 
-> **注意**：每个属性项只包含 `valueName`、`valueId`、`propId` 三个字段，**不要加 `channelCatId`**。valueId 和 propId 都从 `props` 返回的 `propsValues` 中获取。
+> **注意**：每个属性项包含 `valueName`、`valueId`、`propId`、`propName`、`channelCatId` 五个字段，全部从 `props` 返回的 `propsValues` 中获取。
 
 ---
 
@@ -201,7 +202,7 @@ r2-cli goods hang-up submit \
   --out-item-no "商家编码" \
   --brand-name "Nike/耐克" \
   --size "42" \
-  --item-attrs '[{"valueName":"Nike/耐克","valueId":"品牌valueId","propId":"83b8f62c..."},{"valueName":"全新","valueId":"d114e6ab...","propId":"3b9f06b2..."},{"valueName":"42","valueId":"尺码valueId","propId":"6562df9f..."}]' \
+  --item-attrs '[{"valueName":"Nike/耐克","valueId":"品牌valueId","propId":"83b8f62c...","propName":"品牌","channelCatId":"f4718bbb..."},{"valueName":"全新","valueId":"d114e6ab...","propId":"3b9f06b2...","propName":"成色","channelCatId":"f4718bbb..."},{"valueName":"42","valueId":"尺码valueId","propId":"6562df9f...","propName":"尺码","channelCatId":"f4718bbb..."}]' \
   --json
 ```
 

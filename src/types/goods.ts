@@ -344,14 +344,18 @@ export interface UploadImagesResult {
   failed: { file: string; error: string }[];
 }
 
-/** 商品属性（用于挂售上架 itemAttrList，三字段必填） */
+/** 商品属性（用于 itemAttrList，五字段必填） */
 export interface XyItemAttr {
-  /** 属性值 */
+  /** 属性值（如：Nike/耐克、全新、L） */
   valueName: string;
-  /** 属性值 ID（从 props 的 propsValues 中获取 valueId） */
+  /** 属性值 ID */
   valueId: string;
-  /** 属性 ID （从 props 的 propsValues 中获取 propId）*/
+  /** 属性 ID */
   propId: string;
+  /** 属性名称（如：品牌、成色、尺码） */
+  propName: string;
+  /** 渠道小分类 ID */
+  channelCatId: string;
 }
 
 /** 商品图片信息（长图） */

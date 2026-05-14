@@ -91,7 +91,7 @@ export async function uploadXyImages(shopId: string, filePaths: string[]): Promi
         const fileBuffer = await compressImageIfNeeded(filePath);
         const fileName = basename(filePath);
         const formData = new FormData();
-        formData.append("file", new Blob([fileBuffer]), fileName);
+        formData.append("file", new Blob([new Uint8Array(fileBuffer)]), fileName);
         return await client.upload<ImageUploadResult>(
           `platform/xy/media/upload?shopId=${encodeURIComponent(shopId)}`,
           formData,
@@ -112,11 +112,12 @@ export async function uploadXyImages(shopId: string, filePaths: string[]): Promi
   const failed: { file: string; error: string }[] = [];
 
   for (let i = 0; i < settled.length; i++) {
-    const r = settled[i];
+    const r = settled[i]!;
     if (r.status === "fulfilled") {
       images.push(r.value);
     } else {
-      failed.push({ file: filePaths[i], error: r.reason?.message ?? String(r.reason) });
+      const reason = r.reason;
+      failed.push({ file: filePaths[i]!, error: reason instanceof Error ? reason.message : `${reason}` });
     }
   }
 

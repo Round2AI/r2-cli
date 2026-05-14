@@ -9,14 +9,6 @@ import { jsonAction } from "../shared.js";
 import { renderComponent } from "../../utils/render.js";
 import { ListingTable } from "../../components/ListingTable.js";
 
-const STATUS_MAP: Record<string, string> = {
-  init: "待上架",
-  up: "已上架",
-  down: "已下架",
-  fail: "失败",
-  sold: "已售出",
-};
-
 export function createListingCommand(): Command {
   const command = new Command("listing");
   command.description("查询上架商品列表");
@@ -71,7 +63,7 @@ export function createListingCommand(): Command {
         return;
       }
 
-      renderComponent(ListingTable, { items: data.items, total: data.total });
+      renderComponent(ListingTable, { items: data.items, total: Number(data.total) });
     }),
   );
 

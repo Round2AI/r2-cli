@@ -23,7 +23,7 @@
 }
 ```
 
-状态值：`init`（处理中）、`up`（已上架）、`down`（已下架）、`fail`（失败，查看 `errorMsg`）、`sold`（已售出）
+状态值：`init`（处理中）、`up`（已上架）、`down`（已下架）、`fail`（失败，查看 `errorMsg`）、`sold`（已售出）、`sold`（已售出）
 
 ## 上架列表返回字段
 
@@ -35,7 +35,7 @@
 | `goodsName` | 商品名称 |
 | `brandName` | 品牌 |
 | `price` | 上架价格 |
-| `status` | 状态：`init`/`up`/`down`/`fail`/`sold` |
+| `status` | 状态：`init`/`up`/`down`/`fail`/`sold`（已售出） |
 | `thirdItemNo` | 平台商品 ID |
 | `outItemNo` | 商家编码 |
 | `spec` | 规格（尺码） |
@@ -95,6 +95,7 @@ r2-cli goods price --stock-goods-id <id> --shop-id <id> --price <新价格> --js
 - **`--image-ids` 保持字符串**：图片 ID 是 19 位数字，`Number()` 会精度丢失
 - **`--item-attrs` 传 JSON 字符串**：必须是 `JSON.stringify()` 后的结果，不能直接传对象
 - **即使不改类目也要传 `--category-id` 和 `--channel-cat-id`**：后端必填，缺少会报 `getCategoryId() is null`
+- **`--item-attrs` 必须包含 props 中所有属性，不只是修改的那一个**：后端替换整个属性列表，漏传的属性会被清除。从 `goods hang-up props --channel-cat-id <id> --json` 获取全部属性后，修改目标属性的值，其他属性保持原样一并传入
 
 ### 必填参数
 
@@ -149,6 +150,8 @@ r2-cli goods edit \
 
 ### 只改文字字段（无图片）
 
+> 只改标题/描述等文字字段时，不需要传 `--item-attrs`。**但一旦传了 `--item-attrs`，必须包含 props 中所有属性**，不能只传修改的那一项。
+
 ```bash
 # 改标题
 r2-cli goods edit --id 5 \
@@ -160,3 +163,5 @@ r2-cli goods edit --id 5 \
   --category-id 50106003 --channel-cat-id "f4718bbb04d7ed1facde29f76907b07f" \
   --brand-name "Nike" --desc "全新描述" --json
 ```
+
+> **注意**：改品牌时建议同时传 `--item-attrs`（含所有属性，品牌项用最新 valueId），因为只传 `--brand-name` 可能不会更新属性列表中的品牌值。
