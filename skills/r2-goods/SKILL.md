@@ -14,12 +14,15 @@ metadata:
 
 # R2-Goods (v1)
 
-> **Tip**: Agent 获取数据后展示给用户选择，不要让用户自己提供 ID。
+> **Tip**: Agent 获取数据后展示给用户选择，不要让用户自己提供 ID。遵守「友好输出原则」：提取关键字段展示，不丢原始 JSON。
 > **Tip**: 所有 `--json` 命令统一错误格式 `{ success: false, error: "..." }`，检查 `success` 判断成败。
+> **Tip**: 查询分页建议使用 `--page 1 --size 50`。若响应含分页信息则继续翻页取完。在查询前提醒用户通过 `--status` 或 `--stock-id` 缩小范围提高效率。
 
 商品管理专家，指导 AI Agent 完成商品上架、下架、改价、挂售全流程。
 
 ## CRITICAL
+
+**CRITICAL -- 开始前 MUST 先用 Read 工具读取 [../r2-shared/SKILL.md](../r2-shared/SKILL.md)**（执行规则、版本检查、错误格式、网络重试、Token 恢复），然后读取 [../r2-auth/SKILL.md](../r2-auth/SKILL.md) 确保已登录。
 
 命令执行规则见 **r2-shared** skill 的「执行规则」。安装、统一错误格式见 **r2-shared** skill。认证登录见 **r2-auth** skill。
 
@@ -142,6 +145,14 @@ metadata:
 > 挂售提交时 `--item-attrs` 中的成色值需要从 props 中取对应 valueId，上面的映射告诉你取哪个 valueName。`--stuff-status` 参数单独传数字值。
 
 > Agent 执行具体操作时，用 Read 工具读取对应的 reference 文件获取完整参数和流程说明。
+
+## 场景指南
+
+| 场景 | 说明 | 指南 |
+|------|------|------|
+| 服装/鞋包挂售 | 服装、鞋类、包袋的季节推断与属性指南 | [scenes/r2-scene-hangup-fashion.md](scenes/r2-scene-hangup-fashion.md) |
+| 带图片修改商品 | 用户提供图片时自动修改商品信息的全流程 | [scenes/r2-scene-edit-with-images.md](scenes/r2-scene-edit-with-images.md) |
+| 批量操作 | 多商品上架、跨店铺操作与分页策略 | [scenes/r2-scene-batch-operations.md](scenes/r2-scene-batch-operations.md) |
 
 ## 错误处理
 

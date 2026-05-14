@@ -78,32 +78,13 @@ npm install -g @round2ai/r2-cli@latest
 - 先登录：`r2-cli auth login`（支持第二回合 APP / 微信 / 支付宝扫码）
 - 检查状态：`r2-cli auth status`
 
-## 认证命令（详见 r2-auth skill）
+## 认证命令
 
-| 命令 | 说明 |
-|------|------|
-| `r2-cli auth login --json` | 扫码登录（Agent 推荐，一步完成） |
-| `r2-cli auth xianyu --json` | 闲鱼店铺授权（Agent 推荐，一步完成） |
-| `r2-cli auth status` | 查看登录状态 |
-| `r2-cli auth logout` | 退出登录 |
+认证登录和闲鱼店铺授权的完整流程与参数详见 **r2-auth** skill。
 
-## 商品管理命令（详见 r2-goods skill）
+## 商品管理命令
 
-| 分类 | 命令 | 说明 |
-|------|------|------|
-| 查询 | `r2-cli goods shops [--json]` | 查看已授权店铺 |
-| | `r2-cli goods stocks [--json]` | 查看仓库 |
-| | `r2-cli goods list [--stock-id <id>] [--json]` | 查看选品商品 |
-| | `r2-cli goods listing [--status <up/down/sold>] [--json]` | 查询上架列表 |
-| 上架 | `r2-cli goods up --stock-goods-id <> --shop-id <> --price <> --json` | 普通上架（选品商品） |
-| | `r2-cli goods down --id <id> [--json]` | 下架商品 |
-| | `r2-cli goods price --id <id> --price <amount> [--json]` | 修改价格 |
-| 修改 | `r2-cli goods edit --id <> --category-id <> --channel-cat-id <> ... --json` | 修改商品信息（定位推荐 `--id`） |
-| 挂售 | `r2-cli goods hang-up categories [--json]` | 获取闲鱼类目 |
-| | `r2-cli goods hang-up props --channel-cat-id <id> [--json]` | 获取属性列表 |
-| | `r2-cli goods hang-up brands --channel-cat-id <> --prop-id <> --key <> [--json]` | 品牌搜索 |
-| | `r2-cli goods hang-up upload-images --shop-id <> --files <> --json` | 上传图片 |
-| | `r2-cli goods hang-up submit --shop-id <> --title <> ... --json` | 提交挂售上架 |
+商品上架、下架、改价、修改、挂售以及查询的完整流程与参数详见 **r2-goods** skill。
 
 ## 其他命令
 
@@ -112,15 +93,51 @@ npm install -g @round2ai/r2-cli@latest
 | `r2-cli update` | 一键更新 CLI 和技能 |
 | `r2-cli uninstall` | 卸载并清除配置 |
 
-## Agent 上架路由（概要）
+## 上架路由
 
-用户说"上架"时需要选择正确的方式：
-- **用户明确指定方式或提供了图片** → 直接走对应流程
-- **未指定方式** → **必须询问用户**："选品上架还是挂售上架？"
-  - 选品上架 → `goods up`（店铺 → 仓库 → 选品商品 → 提交价格）
-  - 挂售上架 → `goods hang-up`（上传图片 → AI 读图识别 → 类目/属性 → 提交）
+详见 **r2-goods** skill 的「上架路由决策」章节。
 
-> 详细决策规则和完整操作流程见 **r2-goods** skill。
+## Network & Retry
+
+Agent 处理命令失败时的策略：
+
+- **网络错误**（`TypeError`、`fetch failed`）：最多自动重试 2 次，间隔 3 秒。连续失败则提示用户检查网络
+- **超时错误**（`timeout`）：重试 1 次。仍超时则建议检查网络或 SERVER_BASEURL 配置
+- **认证错误**（`请先运行 r2-cli auth login 登录`、`401`）：**不重试**，直接引导用户重新登录（见下方 Token Expiry Recovery）
+- **轮询超时**（`轮询超时`）：说明提交已接受但结果未回，建议稍后用 `goods listing` 查看
+
+## Token Expiry Recovery
+
+当命令返回认证错误时：
+
+1. **立即停止当前工作流**，不要继续执行其他命令
+2. 告知用户 Token 已过期，引导重新登录：`r2-cli auth login --json`
+3. 重新登录成功后，**从上次成功的步骤继续**（不要从头开始）
+
+## 友好输出原则
+
+Agent 执行 `--json` 命令后，**不要直接把原始 JSON 丢给用户**。应从 JSON 中提取关键字段，整理为易读格式：
+
+```
+❌ 错误：直接把 JSON 丢给用户
+{ "success": true, "data": [{ "shopId": "10086", "shopName": "xxx", "platform": "xianyu" }] }
+
+✅ 正确：提取关键字段，整理展示
+店铺列表：
+1. xxx（xianyu）— shopId: 10086
+```
+
+具体规则：
+- **查询结果**：用编号列表展示（参见各 reference 的"Agent 展示格式"模板），末尾提示用户选择
+- **操作结果**：提取关键字段（listing ID、价格、状态等），一行一个字段简洁展示
+- **错误信息**：直接展示 `error` 字段内容，不展示整个 JSON 结构
+- **确认提示**：展示商品关键信息（名称/价格/店铺）后，引导用户输入 yes/no
+
+始终遵守：**Agent 看 JSON，用户看友好文本。**
+
+## 分页建议
+
+查询类命令（`goods list`、`goods listing`）建议使用 `--page 1 --size 50`。如果响应包含分页信息，继续翻页直到数据取完。在查询前提醒用户可以通过 `--status` 或 `--stock-id` 缩小范围提高效率。
 
 ## 统一错误格式
 

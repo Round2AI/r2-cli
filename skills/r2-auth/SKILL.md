@@ -19,6 +19,8 @@ metadata:
 
 ## CRITICAL
 
+**CRITICAL -- 开始前 MUST 先用 Read 工具读取 [../r2-shared/SKILL.md](../r2-shared/SKILL.md)**，其中包含执行规则、版本检查、统一错误格式、网络重试策略和 Token 过期恢复流程。
+
 命令执行规则见 **r2-shared** skill 的「执行规则」。安装、统一错误格式见 **r2-shared** skill。
 
 ---
@@ -119,14 +121,14 @@ Agent 操作步骤与登录相同：启动命令 → 获取第 1 段 JSON → **
 
 ## 其他命令
 
-| 命令 | 说明 |
-|------|------|
-| `r2-cli auth login` | 扫码登录（人类使用，自动打开浏览器） |
-| `r2-cli auth xianyu` | 闲鱼店铺授权（人类使用，自动打开浏览器） |
-| `r2-cli auth login poll --token <>` | 手动轮询登录状态（备选，不推荐） |
-| `r2-cli auth xianyu poll --state <>` | 手动轮询授权状态（备选，不推荐） |
-| `r2-cli auth status` | 查看登录状态 |
-| `r2-cli auth logout` | 退出登录 |
+| 命令 | 说明 | 详细文档 |
+|------|------|----------|
+| `r2-cli auth login` | 扫码登录（人类使用，自动打开浏览器） | [r2-auth-login](references/r2-auth-login.md) |
+| `r2-cli auth xianyu` | 闲鱼店铺授权（人类使用，自动打开浏览器） | [r2-auth-login](references/r2-auth-login.md) |
+| `r2-cli auth login poll --token <>` | 手动轮询登录状态（备选，不推荐） | [r2-auth-login](references/r2-auth-login.md) |
+| `r2-cli auth xianyu poll --state <>` | 手动轮询授权状态（备选，不推荐） | [r2-auth-login](references/r2-auth-login.md) |
+| `r2-cli auth status` | 查看登录状态 | [r2-auth-status](references/r2-auth-status.md) |
+| `r2-cli auth logout` | 退出登录 | [r2-auth-logout](references/r2-auth-logout.md) |
 
 ---
 

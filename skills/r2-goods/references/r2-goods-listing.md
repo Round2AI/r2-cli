@@ -11,7 +11,16 @@
 3. `r2-cli goods list --stock-id <stockId> --json` → 展示商品 → 用户选择 `stockGoodsId`
 4. `r2-cli goods up --stock-goods-id <id> --shop-id <id> --price <amount> --json` → 提交上架
 
-命令自动轮询上架进度（每 2 秒，最多 10 秒），返回：
+命令自动轮询上架进度（每 2 秒，最多 10 秒），返回 `{ success, data: { submit, listing } }`。
+
+**提交成功展示模板**：
+```
+上架成功！
+- 商品：[goodsName]
+- 店铺：[shopName]
+- 价格：¥[price]
+- 上架 ID：[listing.id]（用于后续改价/下架）
+```
 
 ```json
 {
@@ -42,6 +51,30 @@
 | `platform` | 平台（xianyu） |
 | `gmtCreate` / `gmtModified` | 创建/修改时间戳 |
 
+### 友好输出指引
+
+上架响应 JSON 示例：
+```json
+{
+  "success": true,
+  "data": {
+    "submit": { "id": 12345, "status": "init" },
+    "listing": { "id": 12345, "goodsName": "Nike 运动鞋", "price": 299, "shopName": "店铺A", "status": "up" }
+  }
+}
+```
+
+Agent 提取展示：
+```
+上架成功！
+- 商品：Nike 运动鞋
+- 店铺：店铺A
+- 价格：¥299
+- 上架 ID：12345（用于后续改价/下架）
+```
+
+> **`data.listing` 中的字段**：`id`（上架记录 ID）、`goodsName`（商品名）、`price`（价格）、`shopName`（店铺名）、`status`（状态）。Agent 提取这些字段展示给用户。
+
 ## 上架参数
 
 | 参数 | 必填 | 说明 |
@@ -57,12 +90,30 @@
 
 **Agent 必须先向用户确认后再执行下架。**
 
+**确认模板**：
+```
+确认下架？
+商品：[goodsName] | [brandName] | ¥[price]
+店铺：[shopName]
+输入 yes 确认，其他取消
+```
+
 ```bash
 # 方式 1：上架记录 ID
 r2-cli goods down --id <goodsListingId> --json
 
 # 方式 2：库存商品 ID + 店铺 ID
 r2-cli goods down --stock-goods-id <id> --shop-id <id> --json
+```
+
+### 友好输出指引
+
+下架响应 `{ "success": true, "data": "下架成功" }`。Agent 提取展示：
+```
+下架成功！
+- 商品：[goodsName]
+- 店铺：[shopName]
+- 上架 ID：[id]
 ```
 
 ## 改价（price）
@@ -75,6 +126,15 @@ r2-cli goods price --id <goodsListingId> --price <新价格> --json
 
 # 方式 2：库存商品 ID + 店铺 ID
 r2-cli goods price --stock-goods-id <id> --shop-id <id> --price <新价格> --json
+```
+
+### 友好输出指引
+
+改价响应 `{ "success": true, "data": "修改成功" }`。Agent 提取展示：
+```
+改价成功！
+- 商品：[goodsName]
+- 原价：¥[原价] → ¥[新价格]
 ```
 
 ## 修改商品信息（edit）
@@ -121,32 +181,9 @@ r2-cli goods price --stock-goods-id <id> --shop-id <id> --price <新价格> --js
 | `--original-price <n>` | 原价（元） |
 | `--size <size>` | 尺码 |
 
-### 带图片修改的全自动流程
+### 带图片修改
 
-用户提供了图片文件时，**Agent 自动完成所有步骤，用户只需确认**：
-
-1. **展示列表**：`r2-cli goods listing --json` → 展示给用户选择要修改的商品（获取 stockGoodsId、shopId）
-2. **上传图片**：`r2-cli goods hang-up upload-images --shop-id <shopId> --files <paths> --json`
-3. **AI 读图识别**：Agent 用 Read 工具查看图片，识别品牌/类目/成色/描述/材质等
-4. **自动匹配类目**：`r2-cli goods hang-up categories --json` → 根据识别结果匹配 catId + channelCatId（如"运动夹克" → 男士服装>夹克）
-5. **自动查询属性**：`r2-cli goods hang-up props --channel-cat-id <id> --json` → 根据识别结果自动匹配：
-   - 成色（全新/99新/95新等） → 查找对应 valueId
-   - 尺码（XL/L/M 等） → 查找对应 valueId
-   - 适用季节 → 查找对应 valueId
-   - 其他属性 → 根据识别结果匹配
-6. **自动搜索品牌**：`r2-cli goods hang-up brands --channel-cat-id <> --prop-id <> --key <品牌名> --json` → 获取品牌 valueId
-7. **汇总确认**：展示「当前值 vs 变更值」对比表，用户确认
-8. **提交修改**：
-
-```bash
-r2-cli goods edit \
-  --id <goodsListingId> \
-  --category-id <catId> --channel-cat-id <channelCatId> \
-  --image-ids "id1,id2,id3" \
-  --item-attrs '[{...品牌...},{...成色...},{...尺码...},{...季节...}]' \
-  --brand-name "Louis Vuitton/路易威登" \
-  --json
-```
+用户提供了图片文件时，参见场景指南：[../scenes/r2-scene-edit-with-images.md](../scenes/r2-scene-edit-with-images.md)
 
 ### 只改文字字段（无图片）
 
@@ -165,3 +202,20 @@ r2-cli goods edit --id 5 \
 ```
 
 > **注意**：改品牌时建议同时传 `--item-attrs`（含所有属性，品牌项用最新 valueId），因为只传 `--brand-name` 可能不会更新属性列表中的品牌值。
+
+### 友好输出指引
+
+edit 响应 `{ "success": true, "data": "修改成功" }`。Agent 提取展示修改摘要：
+```
+修改成功！
+商品：[goodsName]
+┌──────────┬──────────────────┐
+│ 修改项    │ 新值              │
+├──────────┼──────────────────┤
+│ 标题      │ [新标题]           │
+│ 品牌      │ [新品牌]           │
+│ 描述      │ [新描述摘要]        │
+└──────────┴──────────────────┘
+```
+
+> 只展示**实际修改的字段**，未修改的字段不展示。`--item-attrs` 中如有多个属性修改，只列属性名+新值。

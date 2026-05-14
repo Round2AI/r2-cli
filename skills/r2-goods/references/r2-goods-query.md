@@ -18,6 +18,14 @@ r2-cli goods shops --json
 
 > `--json` 输出会自动过滤敏感字段（`accessToken`、`refreshExpireIn`），Agent 可直接展示。
 
+**Agent 展示格式**：
+```
+店铺列表：
+1. [shopName]（[platform]）— shopId: [shopId]
+2. [shopName]（[platform]）— shopId: [shopId]
+请选择店铺（输入编号）：
+```
+
 ## 仓库（stocks）
 
 ```bash
@@ -25,6 +33,14 @@ r2-cli goods stocks --json
 ```
 
 返回字段：`stockId`（仓库 ID）、`stockName`（仓库名称）
+
+**Agent 展示格式**：
+```
+仓库列表：
+1. [stockName]（stockId: [stockId]）
+2. [stockName]（stockId: [stockId]）
+请选择仓库（输入编号）：
+```
 
 ## 选品商品（list）
 
@@ -50,6 +66,14 @@ r2-cli goods list --stock-id <stockId> --page 2 --size 50 --json
 | `salePrice` | 建议售价 |
 | `cate1Name` / `cate2Name` / `cate3Name` | 分类 |
 
+**Agent 展示格式**：
+```
+选品商品列表：
+1. [goodsName] | [brand] | [size] | ¥[salePrice] | [cate3Name]（stockGoodsId: [id]）
+2. [goodsName] | [brand] | [size] | ¥[salePrice] | [cate3Name]（stockGoodsId: [id]）
+请选择商品（输入编号）：
+```
+
 ## 上架列表（listing）
 
 ```bash
@@ -63,3 +87,10 @@ r2-cli goods listing --page 2 --size 50 --json     # 翻页
 ```
 
 过滤参数：`--id`、`--stock-goods-id`、`--shop-id`、`--stock-id`、`--status`（init/up/down/fail/sold）、`--platform`、`--page`（默认 1）、`--size`（默认 20，最大 50）
+
+**Agent 展示格式**：
+```
+上架商品列表：
+1. [goodsName] | [brandName] | ¥[price] | [status] | id: [id]
+2. [goodsName] | [brandName] | ¥[price] | [status] | id: [id]
+```
