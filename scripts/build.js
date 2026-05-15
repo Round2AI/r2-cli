@@ -1,6 +1,16 @@
 #!/usr/bin/env node
 /**
- * 构建脚本 - 使用 esbuild 打包
+ * 构建脚本 - 使用 esbuild 打包 CLI 为单文件
+ *
+ * 工作流：
+ *   1. 读取 package.json 获取 dependencies 列表，自动生成 esbuild external
+ *   2. 清空并重建 dist/
+ *   3. esbuild 打包入口 → dist/r2-cli.js
+ *   4. 复制 QR 页面 HTML 到 dist/pages/
+ *
+ * 环境变量：
+ *   - SERVER_BASEURL 通过 esbuild define 在构建时注入
+ *   - .env / .env.production 作为默认值，CI 中 workflow env 优先
  */
 
 import esbuild from "esbuild";
@@ -16,161 +26,94 @@ const rootDir = path.dirname(__dirname);
 const nodeEnv = process.env.NODE_ENV || "development";
 const isProd = nodeEnv === "production";
 const envFile = isProd ? ".env.production" : ".env";
+
+// 加载 .env，dotenv.config() 不覆盖已有的 process.env
 dotenv.config({ path: path.join(rootDir, envFile) });
-const serverBaseUrl = process.env.SERVER_BASEURL || "https://api.qiuxietang.com";
 
-// 入口点配置
-const entryPoints = {
-  "r2-cli": "src/entrypoints/r2-cli.tsx",
-};
-
-// esbuild 配置
-const esbuildConfig = {
-  bundle: true,
-  platform: "node",
-  format: "esm",
-  sourcemap: false,
-  minify: isProd,
-  external: [
-    "commander",
-    "chalk",
-    "figlet",
-    "@inquirer/prompts",
-    "@inquirer/core",
-    "@inquirer/input",
-    "@inquirer/select",
-    "@inquirer/confirm",
-    "@inquirer/checkbox",
-    "mute-stream",
-    "qrcode",
-    "ora",
-    "react",
-    "ink",
-    "react-dom",
-    "react-devtools-core",
-    "sharp",
-  ],
-  banner: {
-    js: '"use strict";',
-  },
-  define: {
-    "process.env.NODE_ENV": JSON.stringify(nodeEnv),
-    "process.env.SERVER_BASEURL": JSON.stringify(serverBaseUrl),
-  },
-  treeShaking: true,
-  splitting: false,
-};
+const entryPoint = "src/entrypoints/r2-cli.tsx";
+const outDir = path.join(rootDir, "dist");
 
 /**
- * 清理输出目录
+ * 从 package.json 读取 runtime dependencies 作为 external 列表。
+ * esbuild 不打包 runtime 依赖，由 node_modules 在运行时提供。
+ * native 模块（sharp）和大型库（react, ink）必须 externalize。
+ */
+async function getExternals() {
+  const pkg = JSON.parse(
+    await fs.readFile(path.join(rootDir, "package.json"), "utf-8")
+  );
+  return Object.keys(pkg.dependencies || {});
+}
+
+/**
+ * 清理并重建 dist/ 目录。
+ * Windows 上文件可能被进程占用导致 EBUSY，此时逐文件删除 + 重试。
  */
 async function cleanDist() {
-  const distDir = path.join(rootDir, "dist");
   try {
-    await fs.rm(distDir, { recursive: true, force: true });
+    await fs.rm(outDir, { recursive: true, force: true });
   } catch (e) {
     if (e.code === "EBUSY" || e.code === "EPERM") {
-      const files = await fs.readdir(distDir);
+      const files = await fs.readdir(outDir);
       for (const file of files) {
-        await fs.rm(path.join(distDir, file), { recursive: true, force: true });
+        await fs.rm(path.join(outDir, file), { recursive: true, force: true });
       }
     } else {
       throw e;
     }
   }
-  await fs.mkdir(distDir, { recursive: true });
-  console.log("🧹 清理输出目录完成");
+  await fs.mkdir(outDir, { recursive: true });
 }
 
 /**
- * 构建单个入口点
+ * 复制 QR 扫码页面 HTML 到 dist/pages/。
+ * 运行时 QrServer 从 pages/ 目录读取静态页面。
  */
-async function buildEntryPoint(name, entry) {
-  const outputDir = path.join(rootDir, "dist");
-  console.log(`🔨 构建 ${name} -> ${path.relative(rootDir, outputDir)}`);
+async function copyPages() {
+  const pagesOut = path.join(outDir, "pages");
+  await fs.mkdir(pagesOut, { recursive: true });
 
-  const config = { ...esbuildConfig };
-  if (name === "r2-cli") {
-    config.banner = {
-      js: "#!/usr/bin/env node\n",
-    };
-  }
+  const pagesSrc = path.join(rootDir, "src", "qr-server", "pages");
+  const files = await fs.readdir(pagesSrc);
 
-  try {
-    await esbuild.build({
-      ...config,
-      entryPoints: [path.join(rootDir, entry)],
-      outdir: outputDir,
-      // 保持原始文件名，不加 outdir 的 hash 前缀
-      // outdir 会自动生成文件名，不需要 outfile
-    });
-    console.log(`✅ ${name} 构建成功`);
-  } catch (error) {
-    console.error(`❌ ${name} 构建失败:`, error.message);
-    throw error;
-  }
-}
-
-/**
- * 复制必要文件
- */
-async function copyFiles() {
-  const filesToCopy = ["README.md"];
-
-  for (const file of filesToCopy) {
-    const src = path.join(rootDir, file);
-    const dest = path.join(rootDir, "dist", file);
-
-    try {
-      await fs.copyFile(src, dest);
-      console.log(`📄 已复制 ${file}`);
-    } catch {
-      // file doesn't exist, skip
-    }
-  }
-
-  // 复制 QR 页面 HTML 文件到 dist/pages/
-  const pagesDir = path.join(rootDir, "dist", "pages");
-  await fs.mkdir(pagesDir, { recursive: true });
-  const htmlSrcDir = path.join(rootDir, "src", "qr-server", "pages");
-  const htmlFiles = await fs.readdir(htmlSrcDir);
-  for (const file of htmlFiles) {
+  for (const file of files) {
     if (file.endsWith(".html")) {
-      await fs.copyFile(path.join(htmlSrcDir, file), path.join(pagesDir, file));
-      console.log(`📄 已复制 pages/${file}`);
+      await fs.copyFile(path.join(pagesSrc, file), path.join(pagesOut, file));
     }
   }
 }
 
-/**
- * 构建项目
- */
 async function build() {
-  console.log("🚀 开始构建 R2-CLI...\n");
+  const externals = await getExternals();
+  const serverBaseUrl = process.env.SERVER_BASEURL || "https://api.qiuxietang.com";
 
-  try {
-    // 1. 清理输出目录
-    await cleanDist();
+  await cleanDist();
 
-    // 2. 构建所有入口点
-    console.log("🔨 开始构建入口点...\n");
-    for (const [name, entry] of Object.entries(entryPoints)) {
-      await buildEntryPoint(name, entry);
-    }
+  await esbuild.build({
+    entryPoints: [path.join(rootDir, entryPoint)],
+    outdir: outDir,
+    bundle: true,
+    platform: "node",
+    format: "esm",
+    minify: isProd,
+    sourcemap: false,
+    external: externals,
+    treeShaking: true,
+    banner: {
+      js: "#!/usr/bin/env node\n",
+    },
+    define: {
+      "process.env.NODE_ENV": JSON.stringify(nodeEnv),
+      "process.env.SERVER_BASEURL": JSON.stringify(serverBaseUrl),
+    },
+  });
 
-    // 3. 复制必要文件
-    await copyFiles();
+  await copyPages();
 
-    console.log("\n✅ 构建完成！");
-    console.log("\n📦 输出文件:");
-    Object.keys(entryPoints).forEach((name) => {
-      console.log(`   • dist/${name}.js`);
-    });
-  } catch (error) {
-    console.error("❌ 构建失败:", error);
-    process.exit(1);
-  }
+  console.log(`\n✅ 构建完成 → ${path.join(outDir, "r2-cli.js")}`);
 }
 
-// 运行构建
-build();
+build().catch((e) => {
+  console.error("❌ 构建失败:", e.message);
+  process.exit(1);
+});
